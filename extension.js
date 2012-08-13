@@ -30,20 +30,23 @@ $.ga = function( selector, root )
 	return root.querySelectorAll( selector );
 };
 
-$.get = function( url, func, errorFunc )
+$.get = function( url, callbacks, headers )
 {
-	var x = new XMLHttpRequest();
+	var key, x = new XMLHttpRequest();
 	x.open( 'GET', url );
-
-	x.onreadystatechange = function() {
-		if( x.readyState == 4 ) {
-			if( x.status == 200 ) func(x.responseText);
-			if( x.status == 404 && errorFunc ) errorFunc(x.responseText);
+	x.onload = onload;
+	x.onerror = onerror;
+	x.timeout = 25000;
+	if (callbacks) {
+		for (key in callbacks) {
+			x[key] = callbacks[key];
 		}
-
-
-	};
-
+	}
+	if (headers) {
+		for (key in headers) {
+			x.setRequestHeader(key, headers[key]);
+		}
+	}
 	x.send(null);
 };
 
@@ -288,46 +291,74 @@ $.parseHtml = function(html)
 // Take a JSON array and spit out 4chan HTML
 $.buildHTMLFromJSON = function( arr, board )
 {
-	var userId = '', fileDims = '', imgSrc = '', fileBuildStart = '', fileBuildEnd = '', fileInfo = '', fileHtml = '', shortSubject = '', fileSize = '', fileClass = '', shortFile = '', longFile = '', capcodeStart = '', capcodeClass = '', capcode = '', highlight = '', emailStart = '', emailEnd = '';
-	var staticPath = '//static.4chan.org';
-	var imgDir = '//images.4chan.org/' + board + '/src';
-
-	arr.resto = arr.resto == 0 ? arr.no : arr.resto;
-
+	var
+		container = document.createElement('div'),
+		isOP = false,
+		
+		userId,
+		fileDims = '',
+		imgSrc = '',
+		fileBuildStart = '',
+		fileBuildEnd = '',
+		fileInfo = '',
+		fileHtml = '',
+		shortSubject = '',
+		fileSize = '',
+		fileClass = '',
+		shortFile = '',
+		longFile = '',
+		capcodeStart = '',
+		capcodeClass = '',
+		capcode = '',
+		flag,
+		highlight = '',
+		emailStart = '',
+		emailEnd = '',
+			
+		staticPath = '//static.4chan.org',
+		imgDir = '//images.4chan.org/' + board + '/src';
+	
+	if (arr.resto == 0) {
+		isOP = true;
+		arr.resto = arr.no;
+	}
+	
 	var noLink = arr.resto + '#p' + arr.no;
 	var quoteLink = noLink.replace('p', 'q');
 
+	if ((arr.capcode == 'none') && arr.id) {
+		userId = '<span class="posteruid id_'
+			+ arr.id + '">(ID: <span class="hand" title="Highlight posts by this ID">'
+			+ arr.id + '</span>)</span> ';
+	}
+	else {
+		userId = '';
+	}
+	
 	switch( arr.capcode ) {
 		case 'admin':
-			capcodeStart = ' <strong class="capcode">## Admin</strong>';
+			capcodeStart = ' <strong class="capcode hand id_admin" title="Highlight posts by the Administrator">## Admin</strong>';
 			capcodeClass = ' capcodeAdmin';
 
 			capcode = ' <img src="' + staticPath + '/image/adminicon.gif" alt="This user is the 4chan Administrator." title="This user is the 4chan Administrator." class="identityIcon"/>';
 			break;
-
-		case 'admin':
-			capcodeStart = ' <strong class="capcode">## Admin</strong>';
-			capcodeClass = ' capcodeAdmin';
-
-			capcode = ' <img src="' + staticPath + '/image/adminicon.gif" alt="This user is the 4chan Administrator." title="This user is the 4chan Administrator." class="identityIcon"/>';
-			highlight = ' highlightPost';
-			break;
-
-		case 'admin':
-			capcodeStart = ' <strong class="capcode">## Mod</strong>';
-			capcodeClass = ' capcodeAdmin';
+		
+		case 'mod':
+			capcodeStart = ' <strong class="capcode hand id_mod" title="Highlight posts by Moderators">## Moderator</strong>';
+			capcodeClass = ' capcodeMod';
 
 			capcode = ' <img src="' + staticPath + '/image/modicon.gif" alt="This user is a 4chan Moderator." title="This user is a 4chan Moderator." class="identityIcon"/>';
 			break;
 
-		case 'admin':
-			capcodeStart = ' <strong class="capcode">## Developer</strong>';
-			capcodeClass = ' capcodeAdmin';
+		case 'developer':
+			capcodeStart = ' <strong class="capcode hand id_developer" title="Highlight posts by Developers">## Developer</strong>';
+			capcodeClass = ' capcodeDeveloper';
 
 			capcode = ' <img src="' + staticPath + '/image/developericon.gif" alt="This user is a 4chan Developer." title="This user is a 4chan Developer." class="identityIcon"/>';
 			break;
 
-		default:break;
+		default:
+			break;
 
 	}
 
@@ -335,11 +366,20 @@ $.buildHTMLFromJSON = function( arr, board )
 		emailStart = '<a href="mailto:' + arr.email.replace(/ /g, '%20') + '" class="useremail">';
 		emailEnd = '</a>';
 	}
+	
+	if (arr.flag) {
+		flag = '<img src="' + staticPath + '/image/country/'
+			+ arr.flag + '.gif" alt="' + (arr.flagcode || arr.flagname) + '" title="'
+			+ arr.flagname + '" class="countryFlag"> ';
+	}
+	else {
+		flag = '';
+	}
 
 	if( arr.ext ) {
 		shortFile = longFile = arr.filename + arr.ext;
 		if( arr.filename.length > 40 ) {
-			shortFile = arr.filename.substring(0, 35) + '(...)' + arr.ext;
+			shortFile = arr.filename.slice(0, 35) + '(...)' + arr.ext;
 		}
 
 		if( !arr.tn_w && !arr.tn_h && arr.ext == '.gif' ) {
@@ -369,7 +409,7 @@ $.buildHTMLFromJSON = function( arr, board )
 		imgSrc = '<a class="fileThumb' + fileClass + '" href="' + imgDir + '/' + arr.tim + arr.ext + '" target="_blank"><img src="' + fileThumb + '" alt="' + fileSize + 'B" data-md5="' + arr.md5 + '" style="height: ' + arr.tn_h + 'px; width: ' + arr.tn_w + 'px;"></a>';
 
 		if( arr.filedeleted ) {
-			imgSrc = '<span class="filethumb"><img src="' + staticPath + '/image/filedeleted.gif"></span>';
+			imgSrc = '<span class="fileThumb"><img src="' + staticPath + '/image/filedeleted-res.gif" alt="File deleted."></span>';
 			fileInfo = '';
 		} else {
 			fileDims = arr.ext == '.pdf' ? 'PDF' : arr.w + 'x' + arr.h;
@@ -379,7 +419,8 @@ $.buildHTMLFromJSON = function( arr, board )
 		fileBuildStart = fileInfo ? '<div class="fileInfo">' : '';
 		fileBuildEnd = fileInfo ? '</div>' : '';
 
-		fileHtml = '<div class="file">' + fileBuildStart + fileInfo + fileBuildEnd + imgSrc + '</div>';
+		fileHtml = '<div id="f' + arr.no + '" class="file">'
+			+ fileBuildStart + fileInfo + fileBuildEnd + imgSrc + '</div>';
 	}
 
 	shortSubject = arr.sub;
@@ -388,27 +429,42 @@ $.buildHTMLFromJSON = function( arr, board )
 		shortSubject = '<span title="' + shortSubject + '">' + shortSubject.substring(0, 23) + '(...)</span>';
 	}
 
-	var buildHtml = '<div class="postContainer replyContainer" id="pc' + arr.no + '">' +
-		'<div id="p' + arr.no + '" class="post op' + highlight + '">' +
-			fileHtml +
+	container.className = 'postContainer replyContainer';
+	container.id = 'pc' + arr.no;
+	
+	container.innerHTML =
+		'<div class="sideArrows" id="sa' + arr.no + '">&gt;&gt;</div>' +
+		'<div id="p' + arr.no + '" class="post ' + (isOP ? 'op' : 'reply') + highlight + '">' +
+			'<div class="postInfoM mobile" id="pim' + arr.no + '">' +
+				'<span class="nameBlock' + capcodeClass + '"> ' + emailStart +
+				'<span class="name">' + arr.name + '</span> ' +
+				emailEnd + capcodeStart + emailEnd + userId + flag +
+				'<br><span class="subject">' + arr.sub +
+				'</span></span><span class="dateTime postNum" data-utc="' + arr.time + '">' +
+				arr.now + '<br><em><a href="' + arr.no + '#p' + arr.no + '">No.</a>' +
+				'<a href="javascript:quote(\'' + arr.no + '\');">' + arr.no + '</a></em></span>' +
+			'</div>' +
+			(isOP ? fileHtml : '') +
 			'<div class="postInfo desktop" id="pi' + arr.no + '">' +
 				'<input type="checkbox" name="' + arr.no + '" value="delete"> ' +
 				'<span class="subject">' + arr.sub + '</span> ' +
 				'<span class="nameBlock' + capcodeClass + '"> ' +
-					emailStart + '<span class="name">' + arr.name + '</span> ' + emailEnd + capcodeStart + emailEnd + userId +
+					emailStart + '<span class="name">' + arr.name + '</span> ' + emailEnd
+					+ capcodeStart + emailEnd + userId + flag +
 				'</span> ' +
-
+	
 				'<span class="dateTime" data-utc="' + arr.time + '">' + arr.now + '</span> ' +
-
-				'<span class="postNum">' +
-					'<a href="' + noLink + '" title="Highlight this post">No.</a><a href="' + quoteLink + '">' + arr.no + '</a>' +
+	
+				'<span class="postNum desktop">' +
+					'<a href="' + noLink + '" title="Highlight this post">No.</a><a href="' +
+					quoteLink + '">' + arr.no + '</a>' +
 				'</span>' +
 			'</div>' +
-
-			'<blockquote class="postMessage" id="m' + arr.no + '">' + arr.com + '</blockquote>' +
+			(isOP ? '' : fileHtml) +
+			'<blockquote class="postMessage" id="m' + arr.no + '">' + arr.com + '</blockquote> ' +
 		'</div>';
-
-	return buildHtml;
+		
+	return container;
 };
 
 $.buildButton = function( id, threadId, text, func, textonly, style )
@@ -527,27 +583,29 @@ parser.handleOnClick = function( e )
 parser.parseBoard = function()
 {
 	var threads = $.ga('div[id^="t"]');
-	var len= threads.length;
+	var len = threads.length;
 
 	for( var i = 0; i < len; i++ ) {
 		parser.parseThread( threads[i].getAttribute('id') );
 	}
 };
 
-parser.parseThread = function( id )
+parser.parseThread = function( id, offset )
 {
+	var i, j, posts, threadId;
+	
 	if( !$('#' + id) ) {
 		console.log('Tried to parse thread id ' + id + ' but could not find the element.');
 		return false;
 	}
+	
+	threadId = $.parseNo(id);
 
-	var threadId = $.parseNo(id);
-
-	var threads = $.ga('#' + id + ' > div > div[id^="p"]');
-	var len = threads.length;
-
-	for( var i = 0; i < len; i++ ) {
-		parser.parsePost( threads[i].getAttribute('id'), threadId );
+	posts = document.getElementsByClassName('post');
+	
+	i = offset ? posts.length - offset : 0;
+	for (j = posts.length; i < j; ++i) {
+		parser.parsePost( posts[i].id, threadId );
 	}
 };
 
@@ -555,7 +613,7 @@ parser.parsePost = function( id, threadId )
 {
 	var postNo = $.parseNo(id);
 	var img = $('#fT' + postNo);
-
+	
 	if( config.gs( 'enable_quick_reply' ) && postNo == threadId && config.__viewing == 'board' ) {
 		$.append(
 			'#pi' + postNo + ' .postNum',
@@ -1069,142 +1127,200 @@ parser.handleMouseMove = function(e)
 	}
 };
 
-/** THREAD UPDATER **/
-parser.threadUpdater = new Object();
-parser.threadInterval = null;
-parser.threadUpdaterChangeNum = 0;
-parser.lastActivity = 0;
+/********************************
+ *                              *
+ *          END: PARSER         *
+ *                              *
+ ********************************/
 
-parser.startThreadUpdater = function()
+/********************************
+ *                              *
+ *        START: UPDATER        *
+ *                              *
+ ********************************/
+ /*
+parser.startThreadUpdater = function () {
+	// dummy for local testing
+	threadUpdater.init()
+	threadUpdater.start();
+};*/
+
+threadUpdater = {
+	interval: null,
+	pulseInterval: null,
+	force: false,
+	updating: false,
+	delay: 0,
+	step: 5,
+	range: [ 10, 60 ], // in seconds
+	lastUpdated: 0,
+	lastModified: '0',
+	statusNode: null
+};
+
+threadUpdater.init = function() {
+	var navlinks, btn, postCount;
+	
+	postCount = document.getElementsByClassName('reply').length;
+	navlinks = document.getElementsByClassName('navLinksBot')[0];
+	
+	navlinks.appendChild(document.createTextNode(' ['));
+	btn = document.createElement('a');
+	btn.id = 'threadUpdateBtn';
+	btn.href = '';
+	btn.textContent = 'Update';
+	navlinks.appendChild(btn);
+	navlinks.appendChild(document.createTextNode(']'));
+	
+	this.statusNode = document.createElement('span');
+	
+	this.statusNode.id = 'threadUpdateStatus';
+	navlinks.appendChild(this.statusNode);
+	
+	btn.addEventListener('click', this.onUpdateClick, false);
+};
+
+threadUpdater.start = function() {
+	this.force = this.updating = false;
+	this.lastUpdated = Date.now();
+	this.delay = this.range[0];
+	this.interval = setInterval(this.update, this.delay * 1000);
+	this.pulseInterval = setInterval(this.pulse, 1000);
+};
+
+threadUpdater.stop = function() {
+	clearInterval(this.interval);
+	clearInterval(this.pulseInterval);
+};
+
+threadUpdater.pulse = function() {
+	var self = threadUpdater;
+	self.statusNode.textContent =
+		self.delay - (0 | (Date.now() - self.lastUpdated) / 1000);
+};
+
+threadUpdater.adjustDelay = function(postCount, force)
 {
-	var tid = window.location.href.match(/res\/(\d+)/)[1];
-	var postCount = parser.postCount;
-
-	var interval = parser.calculateUpdaterInterval( config.gs('thread_autoupdate_interval'), postCount );
-	var requestAllowance = parser.calculateRequestAllowance( postCount );
-
-	parser.threadUpdater = { fourohfour: 0, immediate: 0, updatingAt: 0, lastUpdated: Math.floor(new Date().getTime() / 1000), updating: 0, threadId: tid, interval: interval, requestAllowance: requestAllowance };
-	parser.threadInterval = setInterval(parser.doThreadUpdaterCheck, 1000);
-
-	$.mousemove(document, function(e) {
-		var date = new Date().getTime();
-
-		// Don't want 1000 variable updates a second.
-		if( (date - 1000) > parser.lastActivity ) {
-			parser.lastActivity = date;
+	if (!force) {
+		if (postCount == 0) {
+			if ((this.delay += this.step) > this.range[1]) {
+				this.delay = this.range[1];
+			}
 		}
-	});
-
-	$.keydown(document, function(e) {
-		var date = new Date().getTime();
-
-		// Don't want 1000 variable updates a second.
-		if( (date - 1000) > parser.lastActivity ) {
-			parser.lastActivity = date;
+		else {
+			if ((this.delay -= postCount * this.step) < this.range[0]) {
+				this.delay = this.range[0]
+			}
 		}
-	});
-
-	if( config.gs( 'touch_bottom_to_clear_new_posts' ) ) {
-		$.scroll( window, function(e) {
-			console.log('horse');
-		});
 	}
+	clearInterval(this.interval);
+	this.interval = setInterval(this.update, this.delay * 1000);
+	console.log(postCount + ' new post(s), delay is ' + this.delay + ' seconds');
 };
 
-parser.calculateRequestAllowance = function( postCount )
-{
-	// Calculates how much time to allow for computing before
-	// declaring as timed out.
-
-	if( postCount >= 2000 ) { return 40; }
-	if( postCount >= 1500 ) { return 35; }
-	if( postCount >= 1000 ) { return 30; }
-	if( postCount >= 500 ) { return 25; }
-	if( postCount >= 200 ) { return 20; }
-	if( postCount >= 100 ) { return 15; }
-
-	return 15;
+threadUpdater.onUpdateClick = function(e) {
+	e.stopPropagation();
+	e.preventDefault();
+	threadUpdater.force = true;
+	threadUpdater.update();
 };
 
-parser.calculateUpdaterInterval = function(interval, postCount)
-{
-	// Contrary to popular belief,
-	// going fast is not alwa-
-	// JUST KIDDIN GOTTA GO FAST
-
-	interval = parseInt(interval);
-
-	if( postCount >= 2000 ) { return interval+20; }
-	if( postCount >= 1500 ) { return interval+17; }
-	if( postCount >= 1000 ) { return interval+14; }
-	if( postCount >= 500 ) { return interval+10; }
-	if( postCount >= 200 ) { return interval+8; }
-	if( postCount >= 100 ) { return interval+7; }
-
-	return interval;
-};
-
-parser.doThreadUpdaterCheck = function()
-{
-	var date = new Date().getTime();
-
-	if( (date - 1200000) > parser.idleCheck ) {
-		return true;
+threadUpdater.update = function() {
+	var self, now = Date.now();
+	
+	self = threadUpdater;
+	
+	if (self.updating) {
+		console.log('Already updating');
+		return;
 	}
-
-	parser.doThreadUpdater();
-};
-
-parser.latestPost = 0;
-
-parser.doThreadUpdater = function()
-{
-	if( parser.threadUpdater.explicitStop ) {
-		clearInterval( parser.threadInterval );
-		return false;
+		
+	if (!self.force && ((now - self.lastUpdated) < self.delay)) {
+		console.log('Too fast');
+		return;
 	}
-
-	var timeNow = Math.floor( new Date().getTime()/1000 );
-	var board = config.__board;
-
-	if( parser.threadUpdater.updating && !parser.threadUpdater.immediate && (timeNow - parser.threadUpdater.updatingAt) < parser.threadUpdater.requestAllowance ) return;
-	if( timeNow - parser.threadUpdater.lastUpdated < parser.threadUpdater.interval && !parser.threadUpdater.immediate ) return;
-
-	parser.threadUpdater.updating = 1;
-	parser.threadUpdater.updatingAt = Math.floor(new Date().getTime()/1000);
-	parser.threadUpdater.immediate = 0;
-
-	var fDate = new Date();
-	console.log('Updating thread at ' + fDate.getHours() + ':' + fDate.getMinutes() + ':' + fDate.getSeconds());
-
-	$.get( '//api.4chan.org/' + board + '/res/' + parser.threadUpdater.threadId + '.latest.json', function(data) {
-		var latest = JSON.parse(data);
-		if( latest.latest <= parser.latestPost ) return true;
-	},
-
-	// 404
-	function( data ) {
-		if( parser.threadUpdater.fourohfour ) {
-			$.after('.thread', '<div class="ext_fourohfour postblock">Thread has dropped off the board/been deleted (404)</div>');
-
-			clearInterval(parser.threadInterval);
-
-			parser.explicitStop = 1;
-			parser.threadUpdater.lastUpdated = 0;
-			parser.threadUpdater.immediate = 0;
-			return false;
+	
+	clearInterval(self.pulseInterval);
+	self.updating = true;
+	
+	console.log('Updating thread at ' + new Date().toString());
+	
+	self.statusNode.textContent = 'Updating...';
+	
+	$.get('//api.4chan.org/' + config.__board + '/res/' + config.__no + '.json',
+		{
+			onload: self.onload,
+			onerror: self.onerror,
+			onabort: self.onabort,
+			ontimeout: self.ontimeout
+		},
+		{
+			'If-Modified-Since': self.lastModified
 		}
-
-		parser.threadUpdater.immediate = 1;
-		parser.threadUpdater.fourohfour = 1;
-		return true;
-	}
 	);
+};
+
+threadUpdater.onload = function() {
+	var i, self, nodes, thread, newposts, frag, postcount, lastrep, lastid, lastoffset;
+	
+	self = threadUpdater;
+	nodes = [];
+	
+	if (this.status == 200) {
+		self.lastModified = this.getResponseHeader('Last-Modified');
+		
+		thread = document.getElementById('t' + config.__no);
+		
+		lastrep = thread.childNodes[thread.childElementCount - 1];
+		lastid = +lastrep.id.slice(2);
+		lastoffset = lastrep.offsetTop;
+		
+		newposts = JSON.parse(this.responseText).posts;
+		
+		for (i = newposts.length - 1; i >= 0; i--) {
+			if (newposts[i].no <= lastid) {
+				break;
+			}
+			nodes.push(newposts[i]);
+		}
+		
+		if (nodes[0]) {
+			frag = document.createDocumentFragment();
+			for (i = nodes.length - 1; i >= 0; i--) {
+				frag.appendChild($.buildHTMLFromJSON(nodes[i], config.__board));
+			}
+			thread.appendChild(frag);
+			parser.parseThread(thread.id, nodes.length);
+			window.scrollBy(0, lastrep.offsetTop - lastoffset);
+		}
+	}
+	else if (status == 404) {
+		self.statusNode.textContent = 'Not Found';
+		self.stop();
+	}
+	self.lastUpdated = Date.now();
+	self.adjustDelay(nodes.length, self.force);
+	self.pulse();
+	self.pulseInterval = setInterval(self.pulse, 1000);
+	self.updating = self.force = false;
+};
+
+threadUpdater.onerror = function() {
+	threadUpdater.updating = false;
+	threadUpdater.statusNode.textContent = this.statusText;
+};
+
+threadUpdater.onabort = function() {
+	// body...
+};
+
+threadUpdater.ontimeout = function() {
+	// body...
 };
 
 /********************************
  *                              *
- *          END: PARSER         *
+ *          END: UPDATER        *
  *                              *
  ********************************/
 
@@ -1221,7 +1337,9 @@ config.__viewing = config.__no = config.__board = null;
 config.init = function()
 {
 	config.__viewing = window.location.href.match(/\/res\//) ? 'thread' : 'board';
-	config.__no = config.__viewing == 'thread' ?  $('.opContainer').getAttribute('id') : 0;
+	
+	// thread number
+	config.__no = config.__viewing == 'thread' ?  $('.opContainer').id.slice(2) : 0;
 
 	config.__board = window.location.href.match(/\.org\/(\w+)\//)[1];
 };
@@ -1378,6 +1496,8 @@ config.ss = function( opt, setting )
 
 init = function()
 {
+	clearInterval(parser.threadInterval);
+	
 	injCss();
 
 	console.time('4chan Extension');
@@ -1394,13 +1514,14 @@ init = function()
 	if( config.gs( 'enable_link_hover_preview' ) ) {
 		$.mousemove( document, parser.handleMouseMove );
 	}
-
+	
 	if( !config.gs( 'enable_thread_autoupdater' ) ) {
 		console.log('Starting thread updater...');
-		parser.startThreadUpdater();
+		threadUpdater.init();
+		threadUpdater.start();
 	}
 
-	console.timeEnd('4chan Extension');
+	//console.timeEnd('4chan Extension');
 };
 
 if( !localStorage['4chanext_firstrun'] ) {
@@ -1411,7 +1532,7 @@ if( window.location.href.match(/^http:/) && config.gs('force_https') ) {
 	window.location = window.location.href.replace('http:', 'https:');
 }
 
-if( !window.location.href.match(/post$/) ) document.addEventListener('DOMContentLoaded', init);
+//if( !window.location.href.match(/post$/) ) document.addEventListener('DOMContentLoaded', init);
 
 injCss = function()
 {
@@ -1439,6 +1560,9 @@ div.op > span .postHideButtonCollapsed {\
 .ext_fourohfour {\
 	padding: 5px;\
 	text-align: center;\
+}\
+#threadUpdateStatus {\
+  margin-left: 0.5ex;\
 }\
 </style>\
 ';

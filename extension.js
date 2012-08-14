@@ -19,6 +19,10 @@ $ = function( selector, root )
 	return root.querySelector( selector );
 };
 
+$.id = function(id) {
+	return document.getElementById(id);
+}
+
 $.ga = function( selector, root )
 {
 	if( typeof selector != 'string' ) return selector;
@@ -582,30 +586,27 @@ parser.handleOnClick = function( e )
 
 parser.parseBoard = function()
 {
-	var threads = $.ga('div[id^="t"]');
-	var len = threads.length;
-
-	for( var i = 0; i < len; i++ ) {
-		parser.parseThread( threads[i].getAttribute('id') );
+	var i, threads = document.getElementsByClassName('thread');
+	
+	for (i = 0; threads[i]; ++i) {
+		parser.parseThread(threads[i].id);
 	}
 };
 
 parser.parseThread = function( id, offset )
 {
-	var i, j, posts, threadId;
+	var i, posts, threadId;
 	
-	if( !$('#' + id) ) {
+	if (!document.getElementById(id)) {
 		console.log('Tried to parse thread id ' + id + ' but could not find the element.');
 		return false;
 	}
 	
-	threadId = $.parseNo(id);
-
+	threadId = id.slice(1);
 	posts = document.getElementsByClassName('post');
 	
-	i = offset ? posts.length - offset : 0;
-	for (j = posts.length; i < j; ++i) {
-		parser.parsePost( posts[i].id, threadId );
+	for (i = offset ? posts.length - offset : 0 ; posts[i]; ++i) {
+		parser.parsePost(posts[i].id, id.slice(1));
 	}
 };
 
@@ -792,43 +793,54 @@ parser.expandImage = function(id)
 };
 
 /** POST HIDING/EXPANDING **/
-parser.togglePost = function(e)
-{
-	// [THREAD, POST]
+parser.togglePost = function(e) {
+	// threads only for now
 	var no = $.parseButton( e.target.getAttribute('id') );
-
-	if( /postHidden/.test(e.target.getAttribute('class')) ) {
-		// We need to expand
-		parser.expandPost(no);
+	
+	if (this.parentNode.hasAttribute('data-hidden')) {
+		parser.expandPost(no[1]);
 	} else {
-		parser.collapsePost(no);
+		parser.collapsePost(no[1]);
 	}
 };
 
-parser.expandPost = function(id)
-{
-
+parser.expandPost = function(tid) {
+	var post, message, summary, thread, sa;
+	
+	post = $.id('p' + tid);
+	message = $.id('m' + tid);
+	summary = $.id('summary-' + tid);
+	thread = $.id('t' + tid);
+	sa = $.id('sa' + tid);
+	
+	sa.removeAttribute('data-hidden');
+	sa.firstChild.textContent = '[ - ]';
+	post.insertBefore(sa, post.firstChild);
+	post.insertBefore(summary.firstChild, message);
+	
+	thread.parentNode.removeChild(summary);
+	thread.style.display = 'block';
 };
 
-parser.collapsePost = function(id)
-{
-	var threadno = id[0];
-	var postno = id[1];
-
-	var post = $('#p' + postno);
-	$.addClass( post, 'postHidden' );
-
-	console.log(threadno, postno);
-
-	if(	threadno == postno ) {
-		// We have a thread. Collapse it!
-		$.css( '#t' + threadno + ' > div.replyContainer, #t' + threadno + ' .summary', ['display', 'none'] );
-
-	}
-
+parser.collapsePost = function(tid) {
+	var summary, sa, thread;
+	
+	thread = $.id('t' + tid);
+	thread.style.display = 'none';
+	
+	sa = $.id('sa' + tid);
+	sa.setAttribute('data-hidden', tid);
+	sa.firstChild.textContent = '[ + ]';
+	
+	summary = document.createElement('summary');
+	summary.id = 'summary-' + tid;
+	summary.className = 'summary';
+	summary.appendChild(sa);
+	summary.appendChild(document.getElementById('pi' + tid));
+	
+	thread.parentNode.insertBefore(summary, thread);
 
 };
-
 
 parser.quoteButtonClick = function(e)
 {
@@ -1142,13 +1154,14 @@ parser.handleMouseMove = function(e)
 parser.startThreadUpdater = function () {
 	// dummy for local testing
 	threadUpdater.init()
-	threadUpdater.start();
+	//threadUpdater.start();
 };*/
 
 threadUpdater = {
-	interval: null,
+	updateInterval: null,
 	pulseInterval: null,
 	force: false,
+	auto: false,
 	updating: false,
 	delay: 0,
 	step: 5,
@@ -1159,44 +1172,66 @@ threadUpdater = {
 };
 
 threadUpdater.init = function() {
-	var navlinks, btn, postCount;
+	var frag, navlinks, el, label, postCount;
 	
 	postCount = document.getElementsByClassName('reply').length;
 	navlinks = document.getElementsByClassName('navLinksBot')[0];
 	
-	navlinks.appendChild(document.createTextNode(' ['));
-	btn = document.createElement('a');
-	btn.id = 'threadUpdateBtn';
-	btn.href = '';
-	btn.textContent = 'Update';
-	navlinks.appendChild(btn);
-	navlinks.appendChild(document.createTextNode(']'));
+	frag = document.createDocumentFragment();
 	
+	// Update button
+	frag.appendChild(document.createTextNode(' ['));
+	el = document.createElement('a');
+	el.id = 'threadUpdateBtn';
+	el.href = '';
+	el.textContent = 'Update';
+	el.addEventListener('click', this.onUpdateClick, false);
+	frag.appendChild(el);
+	frag.appendChild(document.createTextNode(']'));
+	
+	// Auto checkbox
+	frag.appendChild(document.createTextNode(' ['));
+	label = document.createElement('label');
+	el = document.createElement('input');
+	el.type = 'checkbox';
+	el.title = 'Fetch new replies automatically';
+	el.id = 'threadUpdateAuto';
+	el.addEventListener('click', this.onAutoClick, false);
+	label.appendChild(el);
+	label.appendChild(document.createTextNode('Auto'));
+	frag.appendChild(label);
+	frag.appendChild(document.createTextNode(']'));
+	
+	// Status span
 	this.statusNode = document.createElement('span');
 	
 	this.statusNode.id = 'threadUpdateStatus';
-	navlinks.appendChild(this.statusNode);
+	frag.appendChild(this.statusNode);
 	
-	btn.addEventListener('click', this.onUpdateClick, false);
+	navlinks.appendChild(frag);
 };
 
 threadUpdater.start = function() {
+	this.auto = true;
 	this.force = this.updating = false;
 	this.lastUpdated = Date.now();
 	this.delay = this.range[0];
-	this.interval = setInterval(this.update, this.delay * 1000);
-	this.pulseInterval = setInterval(this.pulse, 1000);
+	this.updateInterval = setTimeout(this.update, this.delay * 1000);
+	this.pulse();
 };
 
 threadUpdater.stop = function() {
-	clearInterval(this.interval);
-	clearInterval(this.pulseInterval);
+	this.auto = this.updating = this.force = false;
+	this.statusNode.textContent = '';
+	clearTimeout(this.updateInterval);
+	clearTimeout(this.pulseInterval);
 };
 
 threadUpdater.pulse = function() {
 	var self = threadUpdater;
 	self.statusNode.textContent =
 		self.delay - (0 | (Date.now() - self.lastUpdated) / 1000);
+	self.pulseInterval = setTimeout(self.pulse, 1000);
 };
 
 threadUpdater.adjustDelay = function(postCount, force)
@@ -1213,16 +1248,28 @@ threadUpdater.adjustDelay = function(postCount, force)
 			}
 		}
 	}
-	clearInterval(this.interval);
-	this.interval = setInterval(this.update, this.delay * 1000);
+	if (this.auto) {
+		this.updateInterval = setTimeout(this.update, this.delay * 1000);
+		this.pulse();
+	}
 	console.log(postCount + ' new post(s), delay is ' + this.delay + ' seconds');
 };
 
 threadUpdater.onUpdateClick = function(e) {
-	e.stopPropagation();
 	e.preventDefault();
 	threadUpdater.force = true;
 	threadUpdater.update();
+};
+
+threadUpdater.onAutoClick = function(e) {
+	if (this.hasAttribute('checked')) {
+		this.removeAttribute('checked');
+		threadUpdater.stop();
+	}
+	else {
+		this.setAttribute('checked', 'checked');
+		threadUpdater.start();
+	}
 };
 
 threadUpdater.update = function() {
@@ -1234,13 +1281,12 @@ threadUpdater.update = function() {
 		console.log('Already updating');
 		return;
 	}
-		
-	if (!self.force && ((now - self.lastUpdated) < self.delay)) {
-		console.log('Too fast');
-		return;
+	
+	if (self.auto) {
+		clearTimeout(self.pulseInterval);
+		clearTimeout(self.updateInterval);	
 	}
 	
-	clearInterval(self.pulseInterval);
 	self.updating = true;
 	
 	console.log('Updating thread at ' + new Date().toString());
@@ -1251,8 +1297,7 @@ threadUpdater.update = function() {
 		{
 			onload: self.onload,
 			onerror: self.onerror,
-			onabort: self.onabort,
-			ontimeout: self.ontimeout
+			ontimeout: self.onerror
 		},
 		{
 			'If-Modified-Since': self.lastModified
@@ -1266,6 +1311,8 @@ threadUpdater.onload = function() {
 	self = threadUpdater;
 	nodes = [];
 	
+	self.statusNode.textContent = '';
+	
 	if (this.status == 200) {
 		self.lastModified = this.getResponseHeader('Last-Modified');
 		
@@ -1275,7 +1322,13 @@ threadUpdater.onload = function() {
 		lastid = +lastrep.id.slice(2);
 		lastoffset = lastrep.offsetTop;
 		
-		newposts = JSON.parse(this.responseText).posts;
+		try {
+			newposts = JSON.parse(this.responseText).posts;
+		}
+		catch(e) {
+			console.log(e);
+			newposts = [];
+		}
 		
 		for (i = newposts.length - 1; i >= 0; i--) {
 			if (newposts[i].no <= lastid) {
@@ -1294,20 +1347,25 @@ threadUpdater.onload = function() {
 			window.scrollBy(0, lastrep.offsetTop - lastoffset);
 		}
 	}
+	else if (status == 304 || status == 0) {
+		self.statusNode.textContent = 'Not Modified';
+	}
 	else if (status == 404) {
 		self.statusNode.textContent = 'Not Found';
 		self.stop();
 	}
+	
 	self.lastUpdated = Date.now();
 	self.adjustDelay(nodes.length, self.force);
-	self.pulse();
-	self.pulseInterval = setInterval(self.pulse, 1000);
 	self.updating = self.force = false;
 };
 
 threadUpdater.onerror = function() {
-	threadUpdater.updating = false;
-	threadUpdater.statusNode.textContent = this.statusText;
+	var self = threadUpdater;
+	self.statusNode.textContent = 'Connection Error';
+	self.lastUpdated = Date.now();
+	self.adjustDelay(0, self.force);
+	self.updating = self.force = false;
 };
 
 threadUpdater.onabort = function() {
@@ -1496,8 +1554,6 @@ config.ss = function( opt, setting )
 
 init = function()
 {
-	clearInterval(parser.threadInterval);
-	
 	injCss();
 
 	console.time('4chan Extension');
@@ -1518,7 +1574,7 @@ init = function()
 	if( !config.gs( 'enable_thread_autoupdater' ) ) {
 		console.log('Starting thread updater...');
 		threadUpdater.init();
-		threadUpdater.start();
+		//threadUpdater.start();
 	}
 
 	//console.timeEnd('4chan Extension');
@@ -1532,7 +1588,7 @@ if( window.location.href.match(/^http:/) && config.gs('force_https') ) {
 	window.location = window.location.href.replace('http:', 'https:');
 }
 
-//if( !window.location.href.match(/post$/) ) document.addEventListener('DOMContentLoaded', init);
+if( !window.location.href.match(/post$/) ) document.addEventListener('DOMContentLoaded', init);
 
 injCss = function()
 {
@@ -1563,6 +1619,9 @@ div.op > span .postHideButtonCollapsed {\
 }\
 #threadUpdateStatus {\
   margin-left: 0.5ex;\
+}\
+.summary .postInfo {\
+	display: inline;\
 }\
 </style>\
 ';

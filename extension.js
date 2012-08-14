@@ -327,7 +327,7 @@ $.buildHTMLFromJSON = function( arr, board )
 	var quoteLink = noLink.replace('p', 'q');
 
 	if ((arr.capcode == 'none') && arr.id) {
-		userId = '<span class="posteruid id_'
+		userId = ' <span class="posteruid id_'
 			+ arr.id + '">(ID: <span class="hand" title="Highlight posts by this ID">'
 			+ arr.id + '</span>)</span> ';
 	}
@@ -367,10 +367,10 @@ $.buildHTMLFromJSON = function( arr, board )
 		emailEnd = '</a>';
 	}
 	
-	if (arr.flag) {
+	if (arr.country) {
 		flag = '<img src="' + staticPath + '/image/country/'
-			+ arr.flag + '.gif" alt="' + (arr.flagcode || arr.flagname) + '" title="'
-			+ arr.flagname + '" class="countryFlag"> ';
+			+ arr.country.toLowerCase() + '.gif" alt="' + arr.country + '" title="'
+			+ arr.country_name + '" class="countryFlag"> ';
 	}
 	else {
 		flag = '';
@@ -437,7 +437,7 @@ $.buildHTMLFromJSON = function( arr, board )
 		'<div id="p' + arr.no + '" class="post ' + (isOP ? 'op' : 'reply') + highlight + '">' +
 			'<div class="postInfoM mobile" id="pim' + arr.no + '">' +
 				'<span class="nameBlock' + capcodeClass + '"> ' + emailStart +
-				'<span class="name">' + arr.name + '</span> ' +
+				'<span class="name">' + arr.name + '</span>' +
 				emailEnd + capcodeStart + emailEnd + userId + flag +
 				'<br><span class="subject">' + arr.sub +
 				'</span></span><span class="dateTime postNum" data-utc="' + arr.time + '">' +
@@ -449,7 +449,7 @@ $.buildHTMLFromJSON = function( arr, board )
 				'<input type="checkbox" name="' + arr.no + '" value="delete"> ' +
 				'<span class="subject">' + arr.sub + '</span> ' +
 				'<span class="nameBlock' + capcodeClass + '"> ' +
-					emailStart + '<span class="name">' + arr.name + '</span> ' + emailEnd
+					emailStart + '<span class="name">' + arr.name + '</span>' + emailEnd
 					+ capcodeStart + emailEnd + userId + flag +
 				'</span> ' +
 	

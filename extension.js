@@ -20,8 +20,14 @@ $ = function( selector, root )
 };
 
 $.id = function(id) {
-	return document.getElementById(id);
+  return document.getElementById(id);
 }
+
+$.extend = function(destination, source) {
+  for (var key in source) {
+    destination[key] = source[key];
+  }
+};
 
 $.ga = function( selector, root )
 {
@@ -586,98 +592,94 @@ parser.handleOnClick = function( e )
 
 parser.parseBoard = function()
 {
-	var i, threads = document.getElementsByClassName('thread');
-	
-	for (i = 0; threads[i]; ++i) {
-		parser.parseThread(threads[i].id);
-	}
+  var i, threads = document.getElementsByClassName('thread');
+  
+  for (i = 0; threads[i]; ++i) {
+    parser.parseThread(threads[i].id.slice(1));
+  }
 };
 
-parser.parseThread = function( id, offset )
-{
-	var i, thread, posts, threadId;
-	
-	if (!(thread = document.getElementById(id))) {
-		console.log('Tried to parse thread id ' + id + ' but could not find the element.');
-		return false;
-	}
-	
-	threadId = id.slice(1);
-	posts = thread.getElementsByClassName('post');
-	
-	for (i = offset ? posts.length - offset : 0 ; posts[i]; ++i) {
-		parser.parsePost(posts[i].id, threadId);
-	}
+parser.parseThread = function(tid, offset) {
+  var i, thread, posts;
+  
+  thread = $.id('t' + tid);
+  posts = thread.getElementsByClassName('post');
+  
+  for (i = offset ? posts.length - offset : 0 ; posts[i]; ++i) {
+    parser.parsePost(posts[i].id.slice(1), tid);
+  }
+  
+  if (config.threadHiding && threadHiding.hidden[tid]) {
+    threadHiding.hide(tid);
+  }
 };
 
-parser.parsePost = function( id, threadId )
-{
-	var postNo = $.parseNo(id);
-	var img = $('#fT' + postNo);
+parser.parsePost = function(pid, tid) {
+  var img, quickReply;
+  
+	var img = $('#fT' + pid);
 	
-	if( config.gs( 'enable_quick_reply' ) && postNo == threadId && config.__viewing == 'board' ) {
-		$.append(
-			'#pi' + postNo + ' .postNum',
-			[
-				'[',
-				'<a href="javascript:void(0);" class="replylink" id="qrButton_' + threadId + '_' + postNo + '">Quick Reply</a>',
-				']'
-			]
-		);
-
-		$.click(
-			$('#qrButton_' + threadId + '_' + postNo),
-			parser.quoteButtonClick
-		);
+	if (!main.tid && config.quickReply && (pid == tid)) {
+    $.append(
+      '#pi' + pid + ' .postNum',
+      [
+      '[',
+      '<a href="javascript:void(0);" class="replylink" id="qrButton_' + tid + '_' + pid + '">Quick Reply</a>',
+      ']'
+      ]
+    );
+    
+    $.click(
+      $('#qrButton_' + tid + '_' + pid),
+      parser.quoteButtonClick
+    );
 	}
 
-	if( config.gs('enable_quick_quote') && config.gs('enable_quick_reply') ) {
-		var quickReply = [$.buildButton( postNo, threadId, 'Q', parser.quoteButtonClick ), ' '];
-	} else {
-		var quickReply = ['',''];
+	if (config.quickReply) {
+		quickReply = [$.buildButton( pid, tid, 'Q', parser.quoteButtonClick ), ' '];
+	}
+	else {
+		quickReply = ['',''];
 	}
 
 	$.append(
-		'#pi' + postNo,
+		'#pi' + pid,
 		[
 			' ',
 			quickReply[0], quickReply[1],
-			$.buildButton( postNo, threadId, '!', parser.reportButtonClick ),
+			$.buildButton( pid, tid, '!', parser.reportButtonClick ),
 			' ',
-			$.buildButton( postNo, threadId, '^', parser.topButtonClick ),
+			$.buildButton( pid, tid, '^', parser.topButtonClick ),
 			' '
 		]
 	);
-
+  /*
 	if( config.gs('enable_image_search') && img ) {
 		$.append(
 			img,
 			[
 				' ',
-				$.buildButton( postNo, threadId, 'Google', parser.imageSearchButton, 1 ),
+				$.buildButton( pid, tid, 'Google', parser.imageSearchButton, 1 ),
 				' ',
-				$.buildButton( postNo, threadId, 'tineye', parser.imageSearchButton, 1 ),
+				$.buildButton( pid, tid, 'tineye', parser.imageSearchButton, 1 ),
 				' ',
-				$.buildButton( postNo, threadId, 'iqdb', parser.imageSearchButton, 1 )
+				$.buildButton( pid, tid, 'iqdb', parser.imageSearchButton, 1 )
 			]
 		);
 	}
-
-	if( config.gs( 'enable_backlinking' ) ) {
-		parser.parseBacklink( postNo );
+  */
+	if (config.backlinks) {
+		parser.parseBacklink(pid);
 	}
-
-	if( postNo == threadId )
+  
+  if (config.threadHiding && (pid == tid)) {
+    $.prepend( '#p' + pid, '<span id="sa' + tid + '" class="postHideButton"></span>' );
+    $.html( $('#sa' + pid), $.buildButton( pid, tid, '-', threadHiding.toggle, 0, 'float: left; margin-right: 5px;' ) );
+  }
+	/*else
 	{
-		$.prepend( '#p' + postNo, '<span id="sa' + threadId + '" class="postHideButton"></span>' );
-		$.html( $('#sa' + postNo), $.buildButton( postNo, threadId, '-', parser.togglePost, 0, 'float: left; margin-right: 5px;' ) );
-
-	}
-
-	else
-	{
-		$.html( $('#sa' + postNo), $.buildButton( postNo, threadId, '-', parser.togglePost, 0, 'margin-right: 5px;' ) );
-	}
+		$.html( $('#sa' + pid), $.buildButton( pid, tid, '-', parser.togglePost, 0, 'margin-right: 5px;' ) );
+	}*/
 };
 
 parser.parseBacklink = function( postno )
@@ -690,7 +692,7 @@ parser.parseBacklink = function( postno )
 
 
 	var currentLink, href, info, board, thread, post, parent, bl, append;
-	board = config.__board;
+	board = main.board;
 
 	for( var i = 0; i < len; i++ ) {
 		currentLink = links[i];
@@ -790,56 +792,6 @@ parser.expandImage = function(id)
 		img.setAttribute('src', img.getAttribute('data-thumburl'));
 		img.parentNode.className = img.parentNode.className.replace(' fitToPage', '');
 	}
-};
-
-/** POST HIDING/EXPANDING **/
-parser.togglePost = function(e) {
-	// threads only for now
-	var no = $.parseButton( e.target.getAttribute('id') );
-	
-	if (this.parentNode.hasAttribute('data-hidden')) {
-		parser.expandPost(no[1]);
-	} else {
-		parser.collapsePost(no[1]);
-	}
-};
-
-parser.expandPost = function(tid) {
-	var post, message, summary, thread, sa;
-	
-	post = $.id('p' + tid);
-	message = $.id('m' + tid);
-	summary = $.id('summary-' + tid);
-	thread = $.id('t' + tid);
-	sa = $.id('sa' + tid);
-	
-	sa.removeAttribute('data-hidden');
-	sa.firstChild.textContent = '[ - ]';
-	post.insertBefore(sa, post.firstChild);
-	post.insertBefore(summary.firstChild, message);
-	
-	thread.parentNode.removeChild(summary);
-	thread.style.display = 'block';
-};
-
-parser.collapsePost = function(tid) {
-	var summary, sa, thread;
-	
-	thread = $.id('t' + tid);
-	thread.style.display = 'none';
-	
-	sa = $.id('sa' + tid);
-	sa.setAttribute('data-hidden', tid);
-	sa.firstChild.textContent = '[ + ]';
-	
-	summary = document.createElement('summary');
-	summary.id = 'summary-' + tid;
-	summary.className = 'summary';
-	summary.appendChild(sa);
-	summary.appendChild(document.getElementById('pi' + tid));
-	
-	thread.parentNode.insertBefore(summary, thread);
-
 };
 
 parser.quoteButtonClick = function(e)
@@ -983,7 +935,7 @@ parser.reportButtonClick = function(e)
 	var info = $.parseButton(e.target.getAttribute('id'));
 	var a = ( new Date ).getTime();
 
-	window.open( 'https://sys.4chan.org/' + config.__board + '/imgboard.php?mode=report&no=' + info[1] , a, "toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,width=680,height=200");
+	window.open( 'https://sys.4chan.org/' + main.board + '/imgboard.php?mode=report&no=' + info[1] , a, "toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,width=680,height=200");
 };
 
 parser.topButtonClick = function(e)
@@ -1029,7 +981,7 @@ parser.showHoverPreview = function(e)
 	parser.showTooltip(e.target, id );
 
 	var board = href.match(/([a-z0-9]+)\/res/);
-	board = board ? board[1] : config.__board;
+	board = board ? board[1] : main.board;
 
 	var post = $('#p' + id);
 	var clone = '';
@@ -1144,6 +1096,82 @@ parser.handleMouseMove = function(e)
  *          END: PARSER         *
  *                              *
  ********************************/
+
+/**
+ * Thread hiding
+ */
+ 
+threadHiding = {};
+
+threadHiding.hidden = {};
+
+threadHiding.toggle = function(e) {
+  var tid = this.parentNode.id.slice(2);
+  if (this.parentNode.hasAttribute('data-hidden')) {
+    threadHiding.show(tid);
+  } else {
+    threadHiding.hide(tid);
+  }
+  threadHiding.save();
+};
+
+threadHiding.show = function(tid) {
+  var post, message, summary, thread, sa;
+  
+  post = $.id('p' + tid);
+  message = $.id('m' + tid);
+  summary = $.id('summary-' + tid);
+  thread = $.id('t' + tid);
+  sa = $.id('sa' + tid);
+  
+  sa.removeAttribute('data-hidden');
+  sa.firstChild.textContent = '[ - ]';
+  post.insertBefore(sa, post.firstChild);
+  post.insertBefore(summary.firstChild, message);
+  
+  thread.parentNode.removeChild(summary);
+  thread.style.display = 'block';
+  
+  delete threadHiding.hidden[tid];
+};
+
+threadHiding.hide = function(tid) {
+  var summary, sa, thread;
+  
+  thread = $.id('t' + tid);
+  thread.style.display = 'none';
+  
+  sa = $.id('sa' + tid);
+  sa.setAttribute('data-hidden', tid);
+  sa.firstChild.textContent = '[ + ]';
+  
+  summary = document.createElement('summary');
+  summary.id = 'summary-' + tid;
+  summary.className = 'summary';
+  summary.appendChild(sa);
+  summary.appendChild(document.getElementById('pi' + tid));
+  
+  thread.parentNode.insertBefore(summary, thread);
+  
+  threadHiding.hidden[tid] = true;
+};
+
+threadHiding.load = function() {
+  var storage;
+  if (storage = localStorage.getItem('4chan-hide-' + main.board)) {
+    threadHiding.hidden = JSON.parse(storage);
+  }
+}
+
+threadHiding.save = function() {
+  for (var i in threadHiding.hidden) {
+    localStorage.setItem('4chan-hide-' + main.board,
+      JSON.stringify(threadHiding.hidden)
+    );
+    return;
+  }
+  localStorage.removeItem('4chan-hide-' + main.board);
+};
 
 /********************************
  *                              *
@@ -1293,7 +1321,8 @@ threadUpdater.update = function() {
 	
 	self.statusNode.textContent = 'Updating...';
 	
-	$.get('//api.4chan.org/' + config.__board + '/res/' + config.__no + '.json',
+	//$.get('http://localtest.4chan.org/' + main.board + '/res/' + main.tid + '.json',
+	$.get('//api.4chan.org/' + main.board + '/res/' + main.tid + '.json',
 		{
 			onload: self.onload,
 			onerror: self.onerror,
@@ -1316,7 +1345,7 @@ threadUpdater.onload = function() {
 	if (this.status == 200) {
 		self.lastModified = this.getResponseHeader('Last-Modified');
 		
-		thread = document.getElementById('t' + config.__no);
+		thread = document.getElementById('t' + main.tid);
 		
 		lastrep = thread.childNodes[thread.childElementCount - 1];
 		lastid = +lastrep.id.slice(2);
@@ -1340,10 +1369,10 @@ threadUpdater.onload = function() {
 		if (nodes[0]) {
 			frag = document.createDocumentFragment();
 			for (i = nodes.length - 1; i >= 0; i--) {
-				frag.appendChild($.buildHTMLFromJSON(nodes[i], config.__board));
+				frag.appendChild($.buildHTMLFromJSON(nodes[i], main.board));
 			}
 			thread.appendChild(frag);
-			parser.parseThread(thread.id, nodes.length);
+			parser.parseThread(thread.id.slice(1), nodes.length);
 			window.scrollBy(0, lastrep.offsetTop - lastoffset);
 		}
 	}
@@ -1389,17 +1418,55 @@ threadUpdater.ontimeout = function() {
  *                              *
  ********************************/
 
-var config = new Object();
-config.__viewing = config.__no = config.__board = null;
+var config = {
+  threadHiding: true,
+  threadUpdater: true,
+  backlinks: true,
+  quotePreview: true,
+  quickReply: true
+};
 
-config.init = function()
+var main = {};
+
+main.init = function()
 {
-	config.__viewing = window.location.href.match(/\/res\//) ? 'thread' : 'board';
+  //var start = Date.now();
+  var params, storage;
+  
+  document.removeEventListener('DOMContentLoaded', main.init, false);
+  
+  injCss();
+  
+  params = location.pathname.split(/\//);
+  main.board = params[1];
+  main.tid = params[3];
+  
+  if (storage = localStorage.getItem('4chan-settings')) {
+    storage = JSON.parse(storage);
+    $.extend(config, storage);
+  }
+  
+  if (config.threadHiding) {
+    threadHiding.load();
+  }
+  
+  if (main.tid) {
+    parser.parseThread(main.tid);
+    if (config.threadUpdater) {
+      threadUpdater.init();
+    }
+  }
+  else {
+    parser.parseBoard();
+  }
+  
+  if (config.quotePreview) {
+    $.mousemove(document, parser.handleMouseMove);
+  }
+  
+  $.click(document, parser.handleOnClick);
 	
-	// thread number
-	config.__no = config.__viewing == 'thread' ?  $('.opContainer').id.slice(2) : 0;
-
-	config.__board = window.location.href.match(/\.org\/(\w+)\//)[1];
+	//console.info('4chanJS took: ' + (Date.now() - start) + 'ms');
 };
 
 config.firstRun = function()
@@ -1553,11 +1620,21 @@ config.ss = function( opt, setting )
  ********************************/
 
 init = function()
-{
+{/*
 	injCss();
-
+	
 	console.time('4chan Extension');
-	config.init();
+
+  var params, storage;
+  
+  params = location.href.split(/\//);
+  this.board = params[0];
+  this.tid = params[1];
+  
+  if (storage = localStorage('4chan-settings')) {
+    storage = JSON.parse(storage);
+    $.extend(config, storage);
+  }
 
 	if( config.__viewing == 'thread' ) {
 		parser.parseThread( $('div.board > div[id^="t"]').getAttribute('id') );
@@ -1576,18 +1653,15 @@ init = function()
 		$.mousemove( document, parser.handleMouseMove );
 	}
 	
-	//console.timeEnd('4chan Extension');
+	console.timeEnd('4chan Extension');*/
 };
 
-if( !localStorage['4chanext_firstrun'] ) {
-	config.firstRun();
+if (['interactive', 'complete'].indexOf(document.readyState) != -1) {
+  main.init();
 }
-
-if( window.location.href.match(/^http:/) && config.gs('force_https') ) {
-	window.location = window.location.href.replace('http:', 'https:');
+else {
+  document.addEventListener('DOMContentLoaded', main.init, false);
 }
-
-if( !window.location.href.match(/post$/) ) document.addEventListener('DOMContentLoaded', init);
 
 injCss = function()
 {
@@ -1621,6 +1695,12 @@ div.op > span .postHideButtonCollapsed {\
 }\
 .summary .postInfo {\
 	display: inline;\
+}\
+.qrHeader {\
+  cursor: move;\
+  user-select: none;\
+  -moz-user-select: none;\
+  -webkit-user-select: none;\
 }\
 </style>\
 ';

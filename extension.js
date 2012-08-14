@@ -595,18 +595,18 @@ parser.parseBoard = function()
 
 parser.parseThread = function( id, offset )
 {
-	var i, posts, threadId;
+	var i, thread, posts, threadId;
 	
-	if (!document.getElementById(id)) {
+	if (!(thread = document.getElementById(id))) {
 		console.log('Tried to parse thread id ' + id + ' but could not find the element.');
 		return false;
 	}
 	
 	threadId = id.slice(1);
-	posts = document.getElementsByClassName('post');
+	posts = thread.getElementsByClassName('post');
 	
 	for (i = offset ? posts.length - offset : 0 ; posts[i]; ++i) {
-		parser.parsePost(posts[i].id, id.slice(1));
+		parser.parsePost(posts[i].id, threadId);
 	}
 };
 
@@ -1561,6 +1561,11 @@ init = function()
 
 	if( config.__viewing == 'thread' ) {
 		parser.parseThread( $('div.board > div[id^="t"]').getAttribute('id') );
+		if( !config.gs( 'enable_thread_autoupdater' ) ) {
+			console.log('Starting thread updater...');
+			threadUpdater.init();
+			//threadUpdater.start();
+		}
 	} else {
 		parser.parseBoard();
 	}
@@ -1571,12 +1576,6 @@ init = function()
 		$.mousemove( document, parser.handleMouseMove );
 	}
 	
-	if( !config.gs( 'enable_thread_autoupdater' ) ) {
-		console.log('Starting thread updater...');
-		threadUpdater.init();
-		//threadUpdater.start();
-	}
-
 	//console.timeEnd('4chan Extension');
 };
 

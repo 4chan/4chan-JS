@@ -23,6 +23,10 @@ $.id = function(id) {
   return document.getElementById(id);
 }
 
+$.class = function(className, root) {
+  return (root || document).getElementsByClassName(className);
+}
+
 $.extend = function(destination, source) {
   for (var key in source) {
     destination[key] = source[key];
@@ -600,47 +604,68 @@ parser.parseBoard = function()
 };
 
 parser.parseThread = function(tid, offset) {
-  var i, thread, posts;
+  var i, thread, posts, el;
   
   thread = $.id('t' + tid);
   posts = thread.getElementsByClassName('post');
   
-  for (i = offset ? posts.length - offset : 0 ; posts[i]; ++i) {
-    parser.parsePost(posts[i].id.slice(1), tid);
-  }
-  
-  if (config.threadHiding) {
-    if (!offset) {
-      cnt = document.createElement('span');
-      cnt.id = 'sa' + tid;
-      cnt.innerHTML = '<a href="" class="extButton threadHideButton"'
+  if (!offset) {
+    if (config.threadHiding) {
+      el = document.createElement('span');
+      el.id = 'sa' + tid;
+      el.innerHTML = '<a class="extButton threadHideButton"'
         + 'data-cmd="hide" data-target="'
         + tid + '" title="Hide thread">[ - ]</a>';
-      posts[0].insertBefore(cnt, posts[0].firstChild);
+      posts[0].insertBefore(el, posts[0].firstChild);
+      if (threadHiding.hidden[tid]) {
+        threadHiding.hide(tid);
+      }
     }
-    if (threadHiding.hidden[tid]) {
-      threadHiding.hide(tid);
+    if (config.threadWatcher) {
+      el = document.createElement('a');
+      el.className = 'extButton';
+      el.setAttribute('data-cmd', 'watch');
+      el.setAttribute('data-target', tid);
+      el.title = 'Add to watch list';
+      el.textContent = '[ W ]';
+      document.getElementById('pi' + tid).appendChild(el);
     }
+  }
+  
+  for (i = offset ? posts.length - offset : 0 ; posts[i]; ++i) {
+    parser.parsePost(posts[i].id.slice(1), tid);
   }
 };
 
 parser.parsePost = function(pid, tid) {
-  var img, quickReply, cnt, html = '';
+  var img, quickReply, el, pi;
+  
+  pi = document.getElementById('pi' + pid);
   
   if (config.quickReply) {
-    html += '<a href="" class="extButton" data-cmd="qr" data-target="'
-      + tid + '-' + pid + '" title="Quick reply">[ Q ]</a>';
+    el = document.createElement('a');
+    el.className = 'extButton';
+    el.setAttribute('data-cmd', 'qr');
+    el.setAttribute('data-target', tid + '-' + pid);
+    el.title = 'Quick reply';
+    el.textContent = '[ Q ]';
+    pi.appendChild(el);
   }
   
-  html += '<a href="" class="extButton" data-cmd="report" data-target="'
-+ pid + '" title="Report post">[ ! ]</a>\
-<a href="#top" class="extButton" title="Back to top">[ ↑ ]</a>';
-  
-  cnt = document.createElement('span');
-  cnt.className = 'postControls';
-  cnt.innerHTML = html;
-  
-  document.getElementById('pi' + pid).appendChild(cnt);
+  el = document.createElement('a');
+  el.className = 'extButton';
+  el.setAttribute('data-cmd', 'report');
+  el.setAttribute('data-target', pid);
+  el.title = 'Report post';
+  el.textContent = '[ ! ]';
+  pi.appendChild(el);
+
+  el = document.createElement('a');
+  el.className = 'extButton';
+  el.setAttribute('data-cmd', 'totop');
+  el.title = 'Back to top';
+  el.textContent = '[ ↑ ]';
+  pi.appendChild(el);
   
   if (config.backlinks) {
     parser.parseBacklink(pid);
@@ -1152,28 +1177,96 @@ threadWatcher.watched = {};
 
 threadWatcher.init = function() {
   threadWatcher.load();
-  threadWatcher.open();
+  threadWatcher.build();
 };
 
-threadWatcher.open = function() {
-  var i, thread, cnt, html;
+threadWatcher.build = function() {
+  var tuid, key, thread, cnt, html;
   
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
   
-  html += '<ul>';
-  for (i = 0; thread = threadWatcher.watched[i]; ++i) {
-    html += '<li><a href="'
-      + main.linkTothread(thread[0]) + '#pc' + thread[2] + '">'
-      + thread[0] + ' &mdash;' + thread[1] + '</a></li>'
+  html = '<div id="twHandle">Thread Watcher <span id="twToggle"></span></div>';
+  
+  html += '<ul id="watchList">';
+  for (key in threadWatcher.watched) {
+    tuid = key.split('-');
+    thread = threadWatcher.watched[key];
+    html += '<li id="watch-' + key
+      + '"><span style="cursor:pointer" data-cmd="unwatch" data-tid="'
+      + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
+      + main.linkToThread(tuid[0], tuid[1]) + '#pc' + thread[1] + '">/'
+      + tuid[1] + '/ &mdash; '
+      + thread[0] + '</a></li>';
   }
   html += '</ul>';
   
   cnt.innerHTML = html;
+  cnt.addEventListener('click', threadWatcher.onClick, false);
   document.body.appendChild(cnt);
 };
 
-threadWatcher.toggle = function() {
+threadWatcher.destroy = function() {
+  var el = $.id('threadWatcher');
+  el.removeEventListener('click', threadWatcher.onClick, false);
+  document.body.removeChild(el);
+};
+
+threadWatcher.onClick = function(e) {
+  var cmd, target;
+  
+  target = e.target;
+  cmd = target.getAttribute('data-cmd');
+  
+  if (cmd == 'unwatch') {
+    threadWatcher.remove(target.getAttribute('data-tid'),
+      target.getAttribute('data-board'));
+  }
+};
+
+threadWatcher.toggleThread = function(tid) {
+  if (threadWatcher.watched[tid + '-' + main.board]) {
+    threadWatcher.remove(tid, main.board);
+  }
+  else {
+    threadWatcher.add(tid, main.board);
+  }
+};
+
+threadWatcher.add = function(tid, board) {
+  var label, meta, posts, key;
+  
+  meta = [];
+  key = tid + '-' + board;
+  
+  if ((label = $.class('subject', $.id('pi' + tid))[0].textContent)
+    || (label = $.id('m' + tid).textContent)) {
+    meta.push(label.slice(0, 50));
+  }
+  else {
+    meta.push(tid);
+  }
+  
+  posts = $.class('postContainer', $.id('t' + tid));
+  meta.push(posts[posts.length - 1].id.slice(2));
+  
+  threadWatcher.watched[key] = meta;
+  
+  threadWatcher.save();
+  threadWatcher.destroy();
+  threadWatcher.build();
+};
+
+threadWatcher.remove = function(tid, board) {
+  var key = tid + '-' + board;
+  if (threadWatcher.watched[key]) {
+    delete threadWatcher.watched[key];
+    $.id('watchList').removeChild($.id('watch-' + key));
+    threadWatcher.save();
+  }
+};
+
+threadWatcher.toggleUI = function() {
   if ($.id('threadWatcher').hasAttribute('data-collapsed')) {
     threadWatcher.expand();
   } else {
@@ -1191,19 +1284,19 @@ threadWatcher.expand = function() {
 
 threadWatcher.load = function() {
   var storage;
-  if (storage = localStorage.getItem('4chan-watch-' + main.board)) {
+  if (storage = localStorage.getItem('4chan-watch')) {
     threadWatcher.watched = JSON.parse(storage);
   }
 };
 
 threadWatcher.save = function() {
   for (var i in threadWatcher.watched) {
-    localStorage.setItem('4chan-watch-' + main.board,
+    localStorage.setItem('4chan-watch',
       JSON.stringify(threadWatcher.watched)
     );
     return;
   }
-  localStorage.removeItem('4chan-watch-' + main.board);
+  localStorage.removeItem('4chan-watch');
 };
 
 /**
@@ -1435,6 +1528,7 @@ var settingsMenu = {};
 
 settingsMenu.options = {
   threadHiding: 'Thread hiding',
+  threadWatcher: 'Thread watcher',
   threadUpdater: 'Thread updater',
   backlinks: 'Backlinks',
   quotePreview: 'Quote previews',
@@ -1542,6 +1636,10 @@ main.init = function()
     threadHiding.load();
   }
   
+  if (config.threadWatcher) {
+    threadWatcher.init();
+  }
+  
   if (main.tid) {
     parser.parseThread(main.tid);
     if (config.threadUpdater) {
@@ -1579,8 +1677,14 @@ main.onThreadClick = function(e) {
     else if (cmd == 'hide') {
       threadHiding.toggle(t.getAttribute('data-target'));
     }
+    else if (cmd == 'watch') {
+      threadWatcher.toggleThread(t.getAttribute('data-target'));
+    }
     else if (cmd == 'report') {
       main.reportPost(t.getAttribute('data-target'));
+    }
+    else if (cmd == 'totop') {
+      location.href += '#top';
     }
   }
   else if (t.href && t.href.indexOf('quote') != -1) {
@@ -1595,8 +1699,8 @@ main.reportPost = function(pid) {
     "toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,width=680,height=200");
 };
 
-main.linkToThread = function(tid) {
-  return '//' + location.host + '/' + main.board + '/res/' + tid;
+main.linkToThread = function(tid, board) {
+  return '//' + location.host + '/' + (board || main.board) + '/res/' + tid;
 };
 
 config.firstRun = function()
@@ -1778,7 +1882,8 @@ div.op > span .postHideButtonCollapsed {\
 	margin-right: 1px;\
 }\
 .extButton {\
-  color: inherit !important;\
+  cursor: pointer;\
+  color: inherit;\
 	text-decoration: none;\
 	font-size: 0.9em;\
 	margin-left: 5px;\
@@ -1812,6 +1917,27 @@ div.op > span .postHideButtonCollapsed {\
   user-select: none;\
   -moz-user-select: none;\
   -webkit-user-select: none;\
+}\
+#threadWatcher {\
+  width: 280px;\
+  position: fixed;\
+  top: 20px;\
+  left: 20px;\
+  background: #D9BFB7;\
+  border: 1px solid gray;\
+  padding: 3px;\
+}\
+#watchList {\
+  margin: 0;\
+  padding: 0;\
+}\
+#watchList a {\
+  text-decoration: none;\
+}\
+#watchList li {\
+  overflow: hidden;\
+  white-space: nowrap;\
+  text-overflow: ellipsis;\
 }\
 </style>\
 ';

@@ -613,7 +613,8 @@ parser.parseThread = function(tid, offset) {
     if (!offset) {
       cnt = document.createElement('span');
       cnt.id = 'sa' + tid;
-      cnt.innerHTML = '<a href="" class="extButton threadHideButton" title="Hide thread">[ - ]</a>';
+      cnt.innerHTML = '<a href="" class="extButton threadHideButton"'
+        + 'data-cmd="hide" title="Hide thread">[ - ]</a>';
       posts[0].insertBefore(cnt, posts[0].firstChild);
     }
     if (threadHiding.hidden[tid]) {
@@ -626,15 +627,16 @@ parser.parsePost = function(pid, tid) {
   var img, quickReply, cnt, html = '';
   
   if (config.quickReply) {
-    html += '<a href="" class="extButton" title="Quick reply">[ Q ]</a>';
+    html += '<a href="" class="extButton" data-cmd="qr" data-target="'
+      + tid + '-' + pid + '" title="Quick reply">[ Q ]</a>';
   }
   
-  html += '<a href="" class="extButton" title="Report post">[ ! ]</a>'
-    + '<a href="" class="extButton" title="Back to top">[ ↑ ]</a>';
+  html += '<a href="" class="extButton" data-cmd="report" data-target="'
++ pid + '" title="Report post">[ ! ]</a>\
+<a href="#top" class="extButton" title="Back to top">[ ↑ ]</a>';
   
   cnt = document.createElement('span');
   cnt.className = 'postControls';
-  cnt.setAttribute('data-target', pid + '-' + tid);
   cnt.innerHTML = html;
   
   document.getElementById('pi' + pid).appendChild(cnt);
@@ -756,12 +758,10 @@ parser.expandImage = function(id)
 	}
 };
 
-parser.quoteButtonClick = function(e)
+parser.openQuickReply = function(tid, pid)
 {
-	var info = $.parseButton(e.target.getAttribute('id'));
-
-	var threadId = info[0];
-	var postNo = info[1];
+	var threadId = tid;
+	var postNo = pid;
 
 	var comment = null, position, float = config.gs('float_qr_box'), form, qrResto, qrForm, calcLeft, calcTop;
 
@@ -890,14 +890,6 @@ parser.quoteButtonClick = function(e)
 parser.closeQrWindow = function(id)
 {
 	$.remove('#bottom', '#qrWindow_' + id);
-};
-
-parser.reportButtonClick = function(e)
-{
-	var info = $.parseButton(e.target.getAttribute('id'));
-	var a = ( new Date ).getTime();
-
-	window.open( 'https://sys.4chan.org/' + main.board + '/imgboard.php?mode=report&no=' + info[1] , a, "toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,width=680,height=200");
 };
 
 parser.topButtonClick = function(e)
@@ -1336,7 +1328,6 @@ threadUpdater.update = function() {
 	
 	self.statusNode.textContent = 'Updating...';
 	
-	//$.get('http://localtest.4chan.org/' + main.board + '/res/' + main.tid + '.json',
 	$.get('//api.4chan.org/' + main.board + '/res/' + main.tid + '.json',
 		{
 			onload: self.onload,
@@ -1495,12 +1486,9 @@ settingsMenu.close = function() {
   document.body.removeChild($.id('settingsMenu'));
 };
 
-/********************************
- *                              *
- *        START: CONFIG         *
- *                              *
- ********************************/
-
+/**
+ * Config
+ */
 var config = {
   threadHiding: true,
   threadWatcher: true,
@@ -1510,6 +1498,9 @@ var config = {
   quickReply: true
 };
 
+/**
+ * Main
+ */
 var main = {};
 
 main.init = function()
@@ -1548,12 +1539,40 @@ main.init = function()
     $.mousemove(document, parser.handleMouseMove);
   }
   
-  $.click(document, parser.handleOnClick);
+  $.id('delform').addEventListener('click', main.onThreadClick, false);
   
   $.id('settingsWindowLink').addEventListener('click', settingsMenu.toggle, false);
   $.id('settingsWindowLinkBot').addEventListener('click', settingsMenu.toggle, false);
 	
 	//console.info('4chanJS took: ' + (Date.now() - start) + 'ms');
+};
+
+main.onThreadClick = function(e) {
+  var t, ids, cmd;
+  
+  t = e.target;
+  cmd = t.getAttribute('data-cmd');
+  
+  if (cmd) {
+    e.preventDefault();
+    if (cmd == 'qr') {
+      ids = t.getAttribute('data-target').split('-');
+      parser.openQuickReply(ids[0], ids[1]);
+    }
+    else if (cmd == 'report') {
+      main.reportPost(t.getAttribute('data-target'));
+    }
+  }
+  else if (t.href && t.href.indexOf('quote') != -1) {
+    //
+  }
+}
+
+main.reportPost = function(pid) {
+  window.open('https://sys.4chan.org/'
+    + main.board + '/imgboard.php?mode=report&no=' + pid
+    , Date.now(),
+    "toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,width=680,height=200");
 };
 
 main.linkToThread = function(tid) {
@@ -1709,43 +1728,6 @@ config.ss = function( opt, setting )
  *          END: CONFIG         *
  *                              *
  ********************************/
-
-init = function()
-{/*
-	injCss();
-	
-	console.time('4chan Extension');
-
-  var params, storage;
-  
-  params = location.href.split(/\//);
-  this.board = params[0];
-  this.tid = params[1];
-  
-  if (storage = localStorage('4chan-settings')) {
-    storage = JSON.parse(storage);
-    $.extend(config, storage);
-  }
-
-	if( config.__viewing == 'thread' ) {
-		parser.parseThread( $('div.board > div[id^="t"]').getAttribute('id') );
-		if( !config.gs( 'enable_thread_autoupdater' ) ) {
-			console.log('Starting thread updater...');
-			threadUpdater.init();
-			//threadUpdater.start();
-		}
-	} else {
-		parser.parseBoard();
-	}
-
-	$.click(document, parser.handleOnClick);
-
-	if( config.gs( 'enable_link_hover_preview' ) ) {
-		$.mousemove( document, parser.handleMouseMove );
-	}
-	
-	console.timeEnd('4chan Extension');*/
-};
 
 if (['interactive', 'complete'].indexOf(document.readyState) != -1) {
   main.init();

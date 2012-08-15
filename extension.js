@@ -1178,12 +1178,6 @@ threadHiding.save = function() {
  *        START: UPDATER        *
  *                              *
  ********************************/
- /*
-parser.startThreadUpdater = function () {
-	// dummy for local testing
-	threadUpdater.init()
-	//threadUpdater.start();
-};*/
 
 threadUpdater = {
 	updateInterval: null,
@@ -1411,6 +1405,80 @@ threadUpdater.ontimeout = function() {
  *                              *
  ********************************/
 
+/**
+ * Settings menu
+ */
+var settingsMenu = {};
+
+settingsMenu.options = {
+  threadHiding: 'Thread hiding',
+  threadUpdater: 'Thread updater',
+  backlinks: 'Backlinks',
+  quotePreview: 'Quote previews',
+  quickReply: 'Quick reply'
+};
+
+settingsMenu.save = function() {
+  var i, options, el, key;
+  
+  options = $.id('settingsMenu').getElementsByClassName('menuOption');
+  
+  for (i = 0; el = options[i]; ++i) {
+    key = el.getAttribute('data-option');
+    config[key] = el.type == 'checkbox' ? el.checked : el.value;
+  }
+  
+  localStorage.setItem('4chan-settings', JSON.stringify(config));
+  
+  settingsMenu.close();
+};
+
+settingsMenu.toggle = function(e) {
+  e.preventDefault();
+  if ($.id('settingsMenu')) {
+    settingsMenu.close();
+  }
+  else {
+    settingsMenu.open(this.id == 'settingsWindowLinkBot');
+  }
+};
+
+settingsMenu.open = function(bottom) {
+  var key, html, btn;
+  
+  cnt = document.createElement('div');
+  cnt.id = 'settingsMenu';
+  cnt.style[bottom ? 'bottom' : 'top'] = '20px';
+  
+  html = '';
+  for (key in settingsMenu.options) {
+    html += '<label><input type="checkbox" class="menuOption" data-option="'
+      + key + '"' + (config[key] ? ' checked="checked">' : '>')
+      + settingsMenu.options[key] + '</label>';
+  }
+  
+  cnt.innerHTML = html + '<hr>';
+  
+  btn = document.createElement('button');
+  btn.id = 'settingsSave';
+  btn.textContent = 'Save';
+  btn.addEventListener('click', settingsMenu.save, false);
+  cnt.appendChild(btn);
+  
+  btn = document.createElement('button');
+  btn.id = 'settingsClose';
+  btn.textContent = 'Close';
+  btn.addEventListener('click', settingsMenu.close, false);
+  cnt.appendChild(btn);
+  
+  document.body.appendChild(cnt);
+};
+
+settingsMenu.close = function() {
+  $.id('settingsSave').removeEventListener('click', settingsMenu.save, false);
+  $.id('settingsClose').removeEventListener('click', settingsMenu.close, false);
+  document.body.removeChild($.id('settingsMenu'));
+};
 
 /********************************
  *                              *
@@ -1465,6 +1533,9 @@ main.init = function()
   }
   
   $.click(document, parser.handleOnClick);
+  
+  $.id('settingsWindowLink').addEventListener('click', settingsMenu.toggle, false);
+  $.id('settingsWindowLinkBot').addEventListener('click', settingsMenu.toggle, false);
 	
 	//console.info('4chanJS took: ' + (Date.now() - start) + 'ms');
 };
@@ -1698,6 +1769,20 @@ div.op > span .postHideButtonCollapsed {\
 }\
 .qrHeader {\
   cursor: move;\
+  user-select: none;\
+  -moz-user-select: none;\
+  -webkit-user-select: none;\
+}\
+#settingsMenu {\
+  position: fixed;\
+  display: inline-block;\
+  right: 20px;\
+  background: #D9BFB7;\
+  border: 1px solid gray;\
+  padding: 3px;\
+}\
+#settingsMenu label {\
+  display: block;\
   user-select: none;\
   -moz-user-select: none;\
   -webkit-user-select: none;\

@@ -1303,6 +1303,9 @@ threadWatcher.save = function() {
  * Thread updater
  */
 threadUpdater = {
+  unread: false,
+  iconNode: null,
+  defaultIcon: '',
 	updateInterval: null,
 	pulseInterval: null,
 	force: false,
@@ -1323,6 +1326,10 @@ threadUpdater.init = function() {
 	navlinks = document.getElementsByClassName('navLinksBot')[0];
 	
 	frag = document.createDocumentFragment();
+	
+	this.iconNode = document.head.querySelector('link[rel="shortcut icon"]');
+	this.defaultIcon = this.iconNode.getAttribute('href');
+	//this.iconNode.type = 'image/x-icon';
 	
 	// Update button
 	frag.appendChild(document.createTextNode(' ['));
@@ -1361,6 +1368,7 @@ threadUpdater.start = function() {
 	this.force = this.updating = false;
 	this.lastUpdated = Date.now();
 	this.delay = this.range[0];
+	document.addEventListener('scroll', this.onScroll, false);
 	this.updateInterval = setTimeout(this.update, this.delay * 1000);
 	this.pulse();
 };
@@ -1368,6 +1376,8 @@ threadUpdater.start = function() {
 threadUpdater.stop = function() {
 	this.auto = this.updating = this.force = false;
 	this.statusNode.textContent = '';
+	this.setIcon(this.defaultIcon);
+	document.removeEventListener('scroll', this.onScroll, false);
 	clearTimeout(this.updateInterval);
 	clearTimeout(this.pulseInterval);
 };
@@ -1398,6 +1408,14 @@ threadUpdater.adjustDelay = function(postCount, force)
 		this.pulse();
 	}
 	console.log(postCount + ' new post(s), delay is ' + this.delay + ' seconds');
+};
+
+threadUpdater.onScroll = function() {
+  if (document.documentElement.scrollTopMax ==
+    document.documentElement.scrollTop) {
+    threadUpdater.setIcon(threadUpdater.defaultIcon);
+    threadUpdater.unread = false;
+  }
 };
 
 threadUpdater.onUpdateClick = function(e) {
@@ -1438,6 +1456,7 @@ threadUpdater.update = function() {
 	
 	self.statusNode.textContent = 'Updating...';
 	
+	//$.get('http://localtest.4chan.org/' + main.board + '/res/' + main.tid + '.json',
 	$.get('//api.4chan.org/' + main.board + '/res/' + main.tid + '.json',
 		{
 			onload: self.onload,
@@ -1451,58 +1470,65 @@ threadUpdater.update = function() {
 };
 
 threadUpdater.onload = function() {
-	var i, self, nodes, thread, newposts, frag, postcount, lastrep, lastid, lastoffset;
-	
-	self = threadUpdater;
-	nodes = [];
-	
-	self.statusNode.textContent = '';
-	
-	if (this.status == 200) {
-		self.lastModified = this.getResponseHeader('Last-Modified');
-		
-		thread = document.getElementById('t' + main.tid);
-		
-		lastrep = thread.childNodes[thread.childElementCount - 1];
-		lastid = +lastrep.id.slice(2);
-		lastoffset = lastrep.offsetTop;
-		
-		try {
-			newposts = JSON.parse(this.responseText).posts;
-		}
-		catch(e) {
-			console.log(e);
-			newposts = [];
-		}
-		
-		for (i = newposts.length - 1; i >= 0; i--) {
-			if (newposts[i].no <= lastid) {
-				break;
-			}
-			nodes.push(newposts[i]);
-		}
-		
-		if (nodes[0]) {
-			frag = document.createDocumentFragment();
-			for (i = nodes.length - 1; i >= 0; i--) {
-				frag.appendChild($.buildHTMLFromJSON(nodes[i], main.board));
-			}
-			thread.appendChild(frag);
-			parser.parseThread(thread.id.slice(1), nodes.length);
-			window.scrollBy(0, lastrep.offsetTop - lastoffset);
-		}
-	}
-	else if (status == 304 || status == 0) {
-		self.statusNode.textContent = 'Not Modified';
-	}
-	else if (status == 404) {
-		self.statusNode.textContent = 'Not Found';
-		self.stop();
-	}
-	
-	self.lastUpdated = Date.now();
-	self.adjustDelay(nodes.length, self.force);
-	self.updating = self.force = false;
+  var i, self, nodes, thread, newposts, frag, postcount, lastrep, lastid, lastoffset;
+  
+  self = threadUpdater;
+  nodes = [];
+  
+  self.statusNode.textContent = '';
+  
+  if (this.status == 200) {
+    self.lastModified = this.getResponseHeader('Last-Modified');
+    
+    thread = document.getElementById('t' + main.tid);
+    
+    lastrep = thread.childNodes[thread.childElementCount - 1];
+    lastid = +lastrep.id.slice(2);
+    lastoffset = lastrep.offsetTop;
+    
+    try {
+      newposts = JSON.parse(this.responseText).posts;
+    }
+    catch(e) {
+      console.log(e);
+      newposts = [];
+    }
+    
+    for (i = newposts.length - 1; i >= 0; i--) {
+      if (newposts[i].no <= lastid) {
+        break;
+      }
+      nodes.push(newposts[i]);
+    }
+    
+    if (nodes[0]) {
+      if (!self.unread) {
+        self.setIcon(self.icons[main.type]);
+      }
+      
+      frag = document.createDocumentFragment();
+      for (i = nodes.length - 1; i >= 0; i--) {
+        frag.appendChild($.buildHTMLFromJSON(nodes[i], main.board));
+      }
+      thread.appendChild(frag);
+      parser.parseThread(thread.id.slice(1), nodes.length);
+      window.scrollBy(0, lastrep.offsetTop - lastoffset);
+    }
+  }
+  else if (this.status == 304 || this.status == 0) {
+    self.statusNode.textContent = 'Not Modified';
+  }
+  else if (this.status == 404) {
+    self.setIcon(self.icons.dead);
+    self.statusNode.textContent = 'Not Found';
+    if (self.auto) {
+      self.stop();
+    }
+  }
+  
+  self.lastUpdated = Date.now();
+  self.adjustDelay(nodes.length, self.force);
+  self.updating = self.force = false;
 };
 
 threadUpdater.onerror = function() {
@@ -1521,6 +1547,17 @@ threadUpdater.ontimeout = function() {
 	// body...
 };
 
+threadUpdater.setIcon = function(data) {
+  this.iconNode.href = data;
+  document.head.appendChild(this.iconNode);
+};
+
+threadUpdater.icons = {
+  ws: 'data:image/gif;base64,R0lGODlhEAAQAJEDAC6Xw////wAAAAAAACH5BAEAAAMALAAAAAAQABAAAAI2nI+pq+L9jABUoFkPBs5Rrn1cEGyg1Alkai1qyVxrPLCdW63Z9aU9v9u0JJzT5JiwDGtMGqMAADs=',
+  nws: 'data:image/gif;base64,R0lGODlhEAAQAJEDAP///2bMMwAAAAAAACH5BAEAAAMALAAAAAAQABAAAAI2nI+pq+L9jAhUoFkPDs5Rrn0cAGyg1Alkai1qyVxrPLCdW63Z9aU9v9u0JJzT5JiwDGtMGqMAADs=',
+  dead: 'data:image/gif;base64,R0lGODlhEAAQAJECAAAAAPAAAAAAAAAAACH5BAEAAAIALAAAAAAQABAAAAIvlI+pq+P9zAh0oFkPDlbs7lFZKIJOJJ3MyraoB14jFpOcVMpzrnF3OKlZYsMWowAAOw=='
+};
+
 /**
  * Settings menu
  */
@@ -1530,6 +1567,7 @@ settingsMenu.options = {
   threadHiding: 'Thread hiding',
   threadWatcher: 'Thread watcher',
   threadUpdater: 'Thread updater',
+  pageTitle: 'Excerpts in page title',
   backlinks: 'Backlinks',
   quotePreview: 'Quote previews',
   quickReply: 'Quick reply'
@@ -1604,6 +1642,7 @@ var config = {
   threadHiding: true,
   threadWatcher: true,
   threadUpdater: true,
+  pageTitle: true,
   backlinks: true,
   quotePreview: true,
   quickReply: true
@@ -1623,6 +1662,8 @@ main.init = function()
   
   injCss();
   
+  main.type = style_group.split('_')[0];
+  
   params = location.pathname.split(/\//);
   main.board = params[1];
   main.tid = params[3];
@@ -1641,6 +1682,9 @@ main.init = function()
   }
   
   if (main.tid) {
+    if (config.pageTitle) {
+      main.setTitle();
+    }
     parser.parseThread(main.tid);
     if (config.threadUpdater) {
       threadUpdater.init();
@@ -1660,6 +1704,16 @@ main.init = function()
   $.id('settingsWindowLinkBot').addEventListener('click', settingsMenu.toggle, false);
 	
 	//console.info('4chanJS took: ' + (Date.now() - start) + 'ms');
+};
+
+main.setTitle = function() {
+  var title;
+  
+  title = $.class('subject', $.id('pi' + main.tid))[0].textContent ||
+    $.id('m' + main.tid).textContent.replace(/<br>/g, ' ').slice(0, 30) ||
+    main.tid;
+  
+  document.title = '/' + main.board + '/ - ' + title;
 };
 
 main.onThreadClick = function(e) {

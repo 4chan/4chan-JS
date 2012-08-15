@@ -615,7 +615,7 @@ parser.parseThread = function(tid, offset) {
 };
 
 parser.parsePost = function(pid, tid) {
-  var img, quickReply;
+  var img, quickReply, watchBtn;
   
 	var img = $('#fT' + pid);
 	
@@ -634,7 +634,7 @@ parser.parsePost = function(pid, tid) {
       parser.quoteButtonClick
     );
 	}
-
+  
 	if (config.quickReply) {
 		quickReply = [$.buildButton( pid, tid, 'Q', parser.quoteButtonClick ), ' '];
 	}
@@ -653,21 +653,7 @@ parser.parsePost = function(pid, tid) {
 			' '
 		]
 	);
-  /*
-	if( config.gs('enable_image_search') && img ) {
-		$.append(
-			img,
-			[
-				' ',
-				$.buildButton( pid, tid, 'Google', parser.imageSearchButton, 1 ),
-				' ',
-				$.buildButton( pid, tid, 'tineye', parser.imageSearchButton, 1 ),
-				' ',
-				$.buildButton( pid, tid, 'iqdb', parser.imageSearchButton, 1 )
-			]
-		);
-	}
-  */
+  
 	if (config.backlinks) {
 		parser.parseBacklink(pid);
 	}
@@ -676,10 +662,7 @@ parser.parsePost = function(pid, tid) {
     $.prepend( '#p' + pid, '<span id="sa' + tid + '" class="postHideButton"></span>' );
     $.html( $('#sa' + pid), $.buildButton( pid, tid, '-', threadHiding.toggle, 0, 'float: left; margin-right: 5px;' ) );
   }
-	/*else
-	{
-		$.html( $('#sa' + pid), $.buildButton( pid, tid, '-', parser.togglePost, 0, 'margin-right: 5px;' ) );
-	}*/
+
 };
 
 parser.parseBacklink = function( postno )
@@ -1100,8 +1083,7 @@ parser.handleMouseMove = function(e)
 /**
  * Thread hiding
  */
- 
-threadHiding = {};
+var threadHiding = {};
 
 threadHiding.hidden = {};
 
@@ -1161,7 +1143,7 @@ threadHiding.load = function() {
   if (storage = localStorage.getItem('4chan-hide-' + main.board)) {
     threadHiding.hidden = JSON.parse(storage);
   }
-}
+};
 
 threadHiding.save = function() {
   for (var i in threadHiding.hidden) {
@@ -1173,12 +1155,72 @@ threadHiding.save = function() {
   localStorage.removeItem('4chan-hide-' + main.board);
 };
 
-/********************************
- *                              *
- *        START: UPDATER        *
- *                              *
- ********************************/
+/**
+ * Thread watcher
+ */
+var threadWatcher = {};
 
+threadWatcher.watched = {};
+
+threadWatcher.init = function() {
+  threadWatcher.load();
+  threadWatcher.open();
+};
+
+threadWatcher.open = function() {
+  var i, thread, cnt, html;
+  
+  cnt = document.createElement('div');
+  cnt.id = 'threadWatcher';
+  
+  html += '<ul>';
+  for (i = 0; thread = threadWatcher.watched[i]; ++i) {
+    html += '<li><a href="'
+      + main.linkTothread(thread[0]) + '#pc' + thread[2] + '">'
+      + thread[0] + ' &mdash;' + thread[1] + '</a></li>'
+  }
+  html += '</ul>';
+  
+  cnt.innerHTML = html;
+  document.body.appendChild(cnt);
+};
+
+threadWatcher.toggle = function() {
+  if ($.id('threadWatcher').hasAttribute('data-collapsed')) {
+    threadWatcher.expand();
+  } else {
+    threadWatcher.collapse();
+  }
+};
+
+threadWatcher.collapse = function() {
+  
+};
+
+threadWatcher.expand = function() {
+  
+};
+
+threadWatcher.load = function() {
+  var storage;
+  if (storage = localStorage.getItem('4chan-watch-' + main.board)) {
+    threadWatcher.watched = JSON.parse(storage);
+  }
+};
+
+threadWatcher.save = function() {
+  for (var i in threadWatcher.watched) {
+    localStorage.setItem('4chan-watch-' + main.board,
+      JSON.stringify(threadWatcher.watched)
+    );
+    return;
+  }
+  localStorage.removeItem('4chan-watch-' + main.board);
+};
+
+/**
+ * Thread updater
+ */
 threadUpdater = {
 	updateInterval: null,
 	pulseInterval: null,
@@ -1399,12 +1441,6 @@ threadUpdater.ontimeout = function() {
 	// body...
 };
 
-/********************************
- *                              *
- *          END: UPDATER        *
- *                              *
- ********************************/
-
 /**
  * Settings menu
  */
@@ -1488,6 +1524,7 @@ settingsMenu.close = function() {
 
 var config = {
   threadHiding: true,
+  threadWatcher: true,
   threadUpdater: true,
   backlinks: true,
   quotePreview: true,
@@ -1538,6 +1575,10 @@ main.init = function()
   $.id('settingsWindowLinkBot').addEventListener('click', settingsMenu.toggle, false);
 	
 	//console.info('4chanJS took: ' + (Date.now() - start) + 'ms');
+};
+
+main.linkToThread = function(tid) {
+  return '//' + location.host + '/' + main.board + '/res/' + tid;
 };
 
 config.firstRun = function()

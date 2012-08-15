@@ -609,60 +609,39 @@ parser.parseThread = function(tid, offset) {
     parser.parsePost(posts[i].id.slice(1), tid);
   }
   
-  if (config.threadHiding && threadHiding.hidden[tid]) {
-    threadHiding.hide(tid);
+  if (config.threadHiding) {
+    if (!offset) {
+      cnt = document.createElement('span');
+      cnt.id = 'sa' + tid;
+      cnt.innerHTML = '<a href="" class="extButton threadHideButton" title="Hide thread">[ - ]</a>';
+      posts[0].insertBefore(cnt, posts[0].firstChild);
+    }
+    if (threadHiding.hidden[tid]) {
+      threadHiding.hide(tid);
+    }
   }
 };
 
 parser.parsePost = function(pid, tid) {
-  var img, quickReply, watchBtn;
+  var img, quickReply, cnt, html = '';
   
-	var img = $('#fT' + pid);
-	
-	if (!main.tid && config.quickReply && (pid == tid)) {
-    $.append(
-      '#pi' + pid + ' .postNum',
-      [
-      '[',
-      '<a href="javascript:void(0);" class="replylink" id="qrButton_' + tid + '_' + pid + '">Quick Reply</a>',
-      ']'
-      ]
-    );
-    
-    $.click(
-      $('#qrButton_' + tid + '_' + pid),
-      parser.quoteButtonClick
-    );
-	}
-  
-	if (config.quickReply) {
-		quickReply = [$.buildButton( pid, tid, 'Q', parser.quoteButtonClick ), ' '];
-	}
-	else {
-		quickReply = ['',''];
-	}
-
-	$.append(
-		'#pi' + pid,
-		[
-			' ',
-			quickReply[0], quickReply[1],
-			$.buildButton( pid, tid, '!', parser.reportButtonClick ),
-			' ',
-			$.buildButton( pid, tid, '^', parser.topButtonClick ),
-			' '
-		]
-	);
-  
-	if (config.backlinks) {
-		parser.parseBacklink(pid);
-	}
-  
-  if (config.threadHiding && (pid == tid)) {
-    $.prepend( '#p' + pid, '<span id="sa' + tid + '" class="postHideButton"></span>' );
-    $.html( $('#sa' + pid), $.buildButton( pid, tid, '-', threadHiding.toggle, 0, 'float: left; margin-right: 5px;' ) );
+  if (config.quickReply) {
+    html += '<a href="" class="extButton" title="Quick reply">[ Q ]</a>';
   }
-
+  
+  html += '<a href="" class="extButton" title="Report post">[ ! ]</a>'
+    + '<a href="" class="extButton" title="Back to top">[ ↑ ]</a>';
+  
+  cnt = document.createElement('span');
+  cnt.className = 'postControls';
+  cnt.setAttribute('data-target', pid + '-' + tid);
+  cnt.innerHTML = html;
+  
+  document.getElementById('pi' + pid).appendChild(cnt);
+  
+  if (config.backlinks) {
+    parser.parseBacklink(pid);
+  }
 };
 
 parser.parseBacklink = function( postno )
@@ -1788,15 +1767,19 @@ injCss = function()
 .preview div.post div.file div.fileInfo {\
 	margin-left: 0px!important;\
 }\
-.postHideButton {\
-	font-size: 12px;\
+.threadHideButton {\
+	float: left;\
+	margin-right: 5px;\
 }\
 \
 div.op > span .postHideButtonCollapsed {\
 	margin-right: 1px;\
 }\
 .extButton {\
-	color: inherit;\
+  color: inherit !important;\
+	text-decoration: none;\
+	font-size: 0.9em;\
+	margin-left: 5px;\
 }\
 .ext_fourohfour {\
 	padding: 5px;\

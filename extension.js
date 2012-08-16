@@ -1698,6 +1698,11 @@ settingsMenu.open = function(bottom) {
   btn.addEventListener('click', settingsMenu.close, false);
   cnt.appendChild(btn);
   
+  btn = document.createElement('button');
+  btn.textContent = 'Clear Local Storage';
+  btn.addEventListener('click', function() { localStorage.clear(); }, false);
+  cnt.appendChild(btn);
+  
   document.body.appendChild(cnt);
 };
 

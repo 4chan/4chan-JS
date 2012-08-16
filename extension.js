@@ -1181,22 +1181,31 @@ threadWatcher.init = function() {
 };
 
 threadWatcher.build = function() {
-  var tuid, key, thread, cnt, html;
+  var tuid, key, thread, cnt, html, pos;
   
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
+  cnt.setAttribute('data-trackpos', 'TW-position');
   
-  html = '<div id="twHandle">Thread Watcher <span id="twToggle"></span></div>';
+  if (config['TW-position']) {
+    cnt.style.cssText = config['TW-position'];
+  }
+  else {
+    cnt.style.left = '10px';
+    cnt.style.top = '100px';
+  }
+  
+  html = '<div class="drag" id="twHeader">Thread Watcher</div>';
   
   html += '<ul id="watchList">';
   for (key in threadWatcher.watched) {
     tuid = key.split('-');
     thread = threadWatcher.watched[key];
     html += '<li id="watch-' + key
-      + '"><span style="cursor:pointer" data-cmd="unwatch" data-tid="'
+      + '"><span class="pointer" data-cmd="unwatch" data-tid="'
       + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
       + main.linkToThread(tuid[0], tuid[1]) + '#pc' + thread[1] + '">/'
-      + tuid[1] + '/ &mdash; '
+      + tuid[1] + '/ - '
       + thread[0] + '</a></li>';
   }
   html += '</ul>';
@@ -1204,27 +1213,45 @@ threadWatcher.build = function() {
   cnt.innerHTML = html;
   cnt.addEventListener('click', threadWatcher.onClick, false);
   document.body.appendChild(cnt);
+  draggable.set($.id('twHeader'));
 };
 
 threadWatcher.destroy = function() {
   var el = $.id('threadWatcher');
   el.removeEventListener('click', threadWatcher.onClick, false);
+  draggable.unset($.id('twHeader'));
   document.body.removeChild(el);
 };
 
 threadWatcher.onClick = function(e) {
   var cmd, target;
   
-  target = e.target;
-  cmd = target.getAttribute('data-cmd');
+  t = e.target;
+  cmd = t.getAttribute('data-cmd');
   
   if (cmd == 'unwatch') {
-    threadWatcher.remove(target.getAttribute('data-tid'),
-      target.getAttribute('data-board'));
+    threadWatcher.remove(t.getAttribute('data-tid'),
+      t.getAttribute('data-board'));
+  }
+  else if (t.id == 'fixedTW') {
+    threadWatcher.toggleFixed();
   }
 };
 
-threadWatcher.toggleThread = function(tid) {
+threadWatcher.toggleFixed = function() {
+  config.fixedTW = !config.fixedTW;
+  if (config.fixedTW) {
+    t.parentNode.style.position = 'fixed';
+    $.id('fixedTW').textContent = '●';
+  }
+  else {
+    t.parentNode.style.position = 'absolute';
+    $.id('fixedTW').textContent = '○';
+  }
+  config.save();
+};
+
+threadWatcher.toggle = function(tid) {
   if (threadWatcher.watched[tid + '-' + main.board]) {
     threadWatcher.remove(tid, main.board);
   }
@@ -1241,7 +1268,7 @@ threadWatcher.add = function(tid, board) {
   
   if ((label = $.class('subject', $.id('pi' + tid))[0].textContent)
     || (label = $.id('m' + tid).textContent)) {
-    meta.push(label.slice(0, 50));
+    meta.push(label.slice(0, 35));
   }
   else {
     meta.push(tid);
@@ -1264,22 +1291,6 @@ threadWatcher.remove = function(tid, board) {
     $.id('watchList').removeChild($.id('watch-' + key));
     threadWatcher.save();
   }
-};
-
-threadWatcher.toggleUI = function() {
-  if ($.id('threadWatcher').hasAttribute('data-collapsed')) {
-    threadWatcher.expand();
-  } else {
-    threadWatcher.collapse();
-  }
-};
-
-threadWatcher.collapse = function() {
-  
-};
-
-threadWatcher.expand = function() {
-  
 };
 
 threadWatcher.load = function() {
@@ -1559,6 +1570,78 @@ threadUpdater.icons = {
 };
 
 /**
+ * Draggable helper
+ */
+draggable = {
+  el: null,
+  key: null,
+  dx: null, dy: null, right: null, bottom: null,
+  
+  set: function(handle) {
+    handle.addEventListener('mousedown', draggable.startDrag, false);
+  },
+  
+  unset: function(handle) {
+    handle.removeEventListener('mousedown', draggable.startDrag, false);
+  },
+  
+  startDrag: function(e) {
+    var offs;
+    e.preventDefault();
+    draggable.el = e.target.parentNode;
+    draggable.key = draggable.el.getAttribute('data-trackpos');
+    offs = draggable.el.getBoundingClientRect();
+    draggable.dx = e.clientX - offs.left;
+    draggable.dy = e.clientY - offs.top;
+    draggable.right = document.documentElement.clientWidth - offs.width;
+    draggable.bottom = document.documentElement.clientHeight - offs.height;
+    document.addEventListener('mouseup', draggable.endDrag, false);
+    document.addEventListener('mousemove', draggable.onDrag, false);
+  },
+  
+  endDrag: function(e) {
+    document.removeEventListener('mouseup', draggable.endDrag, false);
+    document.removeEventListener('mousemove', draggable.onDrag, false);
+    if (draggable.key) {
+      config[draggable.key] = draggable.el.style.cssText;
+      config.save();
+    }
+    delete draggable.el;
+  },
+  
+  onDrag: function(e) {
+    var left, top, style;
+    left = e.clientX - draggable.dx;
+    top = e.clientY - draggable.dy;
+    style = draggable.el.style;
+    if (left < 1) {
+      style.left = '0px';
+      style.right = null;
+    }
+    else if (draggable.right < left) {
+      style.left = null;
+      style.right = '0px';
+    }
+    else {
+      style.left = left + 'px';
+      style.right = null;
+    }
+    if (top < 1) {
+      style.top = '0px';
+      style.bottom = null;
+    }
+    else if (draggable.bottom < top) {
+      style.bottom = '0px';
+      style.top = null;
+    }
+    else {
+      style.top = top + 'px';
+      style.bottom = null;
+    }
+  }
+};
+
+/**
  * Settings menu
  */
 var settingsMenu = {};
@@ -1583,8 +1666,7 @@ settingsMenu.save = function() {
     config[key] = el.type == 'checkbox' ? el.checked : el.value;
   }
   
-  localStorage.setItem('4chan-settings', JSON.stringify(config));
-  
+  config.save();
   settingsMenu.close();
 };
 
@@ -1648,6 +1730,17 @@ var config = {
   quickReply: true
 };
 
+config.load = function() {
+  if (storage = localStorage.getItem('4chan-settings')) {
+    storage = JSON.parse(storage);
+    $.extend(config, storage);
+  }
+};
+
+config.save = function() {
+  localStorage.setItem('4chan-settings', JSON.stringify(config));
+};
+
 /**
  * Main
  */
@@ -1668,10 +1761,7 @@ main.init = function()
   main.board = params[1];
   main.tid = params[3];
   
-  if (storage = localStorage.getItem('4chan-settings')) {
-    storage = JSON.parse(storage);
-    $.extend(config, storage);
-  }
+  config.load();
   
   if (config.threadHiding) {
     threadHiding.load();
@@ -1732,7 +1822,7 @@ main.onThreadClick = function(e) {
       threadHiding.toggle(t.getAttribute('data-target'));
     }
     else if (cmd == 'watch') {
-      threadWatcher.toggleThread(t.getAttribute('data-target'));
+      threadWatcher.toggle(t.getAttribute('data-target'));
     }
     else if (cmd == 'report') {
       main.reportPost(t.getAttribute('data-target'));
@@ -1740,6 +1830,11 @@ main.onThreadClick = function(e) {
     else if (cmd == 'totop') {
       location.href += '#top';
     }
+  }
+  // image expansion temporary fix
+  else if (/fileThumb/.test(t.parentNode.className)) {
+    e.preventDefault();
+    parser.expandImage(t.parentNode.parentNode.id.slice(1));
   }
   else if (t.href && t.href.indexOf('quote') != -1) {
     //
@@ -1972,11 +2067,21 @@ div.op > span .postHideButtonCollapsed {\
   -moz-user-select: none;\
   -webkit-user-select: none;\
 }\
+.pointer {\
+  cursor: pointer;\
+}\
+.drag {\
+  cursor: move;\
+  user-select: none;\
+  -moz-user-select: none;\
+  -webkit-user-select: none;\
+}\
+#twHeader {\
+  margin-right: 20px;\
+}\
 #threadWatcher {\
-  width: 280px;\
-  position: fixed;\
-  top: 20px;\
-  left: 20px;\
+  max-width: 250px;\
+  position: absolute;\
   background: #D9BFB7;\
   border: 1px solid gray;\
   padding: 3px;\

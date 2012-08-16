@@ -33,6 +33,33 @@ $.extend = function(destination, source) {
   }
 };
 
+if (!document.documentElement.classList) {
+  $.hasClass = function(el, klass) {
+    return (' ' + el.className + ' ').indexOf(' ' + klass + ' ') != -1;
+  };
+  
+  $.addClass = function(el, klass) {
+    el.className = (el.className == '') ? klass : el.className + ' ' + klass;
+  };
+  
+  $.removeClass = function(el, klass) {
+    el.className = (' ' + el.className + ' ').replace(' ' + klass + ' ', '');
+  }
+}
+else {
+  $.hasClass = function(el, klass) {
+    return el.classList.contains(klass);
+  };
+  
+  $.addClass = function(el, klass) {
+    el.classList.add(klass);
+  };
+  
+  $.removeClass = function(el, klass) {
+    el.classList.remove(klass);
+  }
+}
+
 $.ga = function( selector, root )
 {
 	if( typeof selector != 'string' ) return selector;
@@ -94,28 +121,6 @@ $.css = function( selector, css )
 		} else {
 			cur.setAttribute('style', style + key + ':' + val + ';');
 		}
-	}
-};
-
-$.addClass = function( selector, className )
-{
-	selector = $.ga( selector );
-	var len = selector.length;
-
-	for( var i = 0; i < len; i++ ) {
-		selector[i].setAttribute('class', selector[i].getAttribute('class') + ' ' + className);
-	}
-};
-
-$.removeClass = function( selector, className )
-{
-	selector = $.ga( selector );
-	var len = selector.length;
-
-	var classMatch = new RegExp('[^| ]' + className + '[ |$]', 'g');
-
-	for( var i = 0; i < len; i++ ) {
-		selector[i].setAttribute('class', selector[i].getAttribute('style').replace(classMatch, ''));
 	}
 };
 
@@ -604,7 +609,7 @@ parser.parseBoard = function()
 };
 
 parser.parseThread = function(tid, offset) {
-  var i, thread, posts, el;
+  var i, thread, posts, el, key;
   
   thread = $.id('t' + tid);
   posts = thread.getElementsByClassName('post');
@@ -614,7 +619,7 @@ parser.parseThread = function(tid, offset) {
       el = document.createElement('span');
       el.id = 'sa' + tid;
       el.innerHTML = '<a class="extButton threadHideButton"'
-        + 'data-cmd="hide" data-target="'
+        + 'data-cmd="hide" data-tid="'
         + tid + '" title="Hide thread">[ - ]</a>';
       posts[0].insertBefore(el, posts[0].firstChild);
       if (threadHiding.hidden[tid]) {
@@ -623,9 +628,14 @@ parser.parseThread = function(tid, offset) {
     }
     if (config.threadWatcher) {
       el = document.createElement('a');
-      el.className = 'extButton';
+      el.className = 'extButton wbtn';
+      if (threadWatcher.watched[key = tid + '-' + main.board]) {
+        el.className += ' active';
+        el.setAttribute('data-active', '1');
+      }
+      el.id = 'wbtn-' + key;
       el.setAttribute('data-cmd', 'watch');
-      el.setAttribute('data-target', tid);
+      el.setAttribute('data-tid', tid);
       el.title = 'Add to watch list';
       el.textContent = '[ W ]';
       document.getElementById('pi' + tid).appendChild(el);
@@ -646,7 +656,7 @@ parser.parsePost = function(pid, tid) {
     el = document.createElement('a');
     el.className = 'extButton';
     el.setAttribute('data-cmd', 'qr');
-    el.setAttribute('data-target', tid + '-' + pid);
+    el.setAttribute('data-tid', tid + '-' + pid);
     el.title = 'Quick reply';
     el.textContent = '[ Q ]';
     pi.appendChild(el);
@@ -655,7 +665,7 @@ parser.parsePost = function(pid, tid) {
   el = document.createElement('a');
   el.className = 'extButton';
   el.setAttribute('data-cmd', 'report');
-  el.setAttribute('data-target', pid);
+  el.setAttribute('data-tid', pid);
   el.title = 'Report post';
   el.textContent = '[ ! ]';
   pi.appendChild(el);
@@ -1171,17 +1181,15 @@ threadHiding.save = function() {
 /**
  * Thread watcher
  */
-var threadWatcher = {};
+var threadWatcher = {
+  listNode: null,
+  watched: {},
+};
 
 threadWatcher.watched = {};
 
 threadWatcher.init = function() {
-  threadWatcher.load();
-  threadWatcher.build();
-};
-
-threadWatcher.build = function() {
-  var tuid, key, thread, cnt, html, pos;
+  var cnt, html;
   
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
@@ -1195,119 +1203,101 @@ threadWatcher.build = function() {
     cnt.style.top = '100px';
   }
   
-  html = '<div class="drag" id="twHeader">Thread Watcher</div>';
+  cnt.innerHTML = '<div class="drag" id="twHeader">Thread Watcher</div>';
   
-  html += '<ul id="watchList">';
-  for (key in threadWatcher.watched) {
-    tuid = key.split('-');
-    thread = threadWatcher.watched[key];
-    html += '<li id="watch-' + key
-      + '"><span class="pointer" data-cmd="unwatch" data-tid="'
-      + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
-      + main.linkToThread(tuid[0], tuid[1]) + '#pc' + thread[1] + '">/'
-      + tuid[1] + '/ - '
-      + thread[0] + '</a></li>';
-  }
-  html += '</ul>';
+  threadWatcher.listNode = document.createElement('ul');
+  threadWatcher.listNode.id = 'watchList';
+  threadWatcher.reload();
+  cnt.appendChild(threadWatcher.listNode);
   
-  cnt.innerHTML = html;
-  cnt.addEventListener('click', threadWatcher.onClick, false);
   document.body.appendChild(cnt);
+  
+  cnt.addEventListener('click', threadWatcher.onClick, false);
   draggable.set($.id('twHeader'));
 };
 
-threadWatcher.destroy = function() {
-  var el = $.id('threadWatcher');
-  el.removeEventListener('click', threadWatcher.onClick, false);
-  draggable.unset($.id('twHeader'));
-  document.body.removeChild(el);
+threadWatcher.reload = function(full) {
+  var i, storage, html, tuid, key, buttons, bn;
+  
+  html = '';
+  if (storage = localStorage.getItem('4chan-watch')) {
+    threadWatcher.watched = JSON.parse(storage);
+    
+    for (key in threadWatcher.watched) {
+      tuid = key.split('-');
+      html += '<li id="watch-' + key
+        + '"><span class="pointer" data-cmd="unwatch" data-tid="'
+        + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
+        + main.linkToThread(tuid[0], tuid[1]) + '">/'
+        + tuid[1] + '/ - '
+        + threadWatcher.watched[key] + '</a></li>';
+    }
+    
+    if (full) {
+      buttons = $.class('wbtn', $.id('delform'));
+      for (i = 0; btn = buttons[i]; ++i) {
+        key = btn.getAttribute('data-tid') + '-' + main.board;
+        if (threadWatcher.watched[key]) {
+          if (!btn.hasAttribute('data-active')) {
+            btn.className += ' active';
+            btn.setAttribute('data-active', '1')
+          }
+        }
+        else {
+          if (btn.hasAttribute('data-active')) {
+            btn.className = btn.className.replace(/ active/, '');
+            btn.removeAttribute('data-active')
+          }
+        }
+      }
+    }
+  }
+  
+  threadWatcher.listNode.innerHTML = html;
 };
 
 threadWatcher.onClick = function(e) {
-  var cmd, target;
-  
-  t = e.target;
-  cmd = t.getAttribute('data-cmd');
-  
-  if (cmd == 'unwatch') {
-    threadWatcher.remove(t.getAttribute('data-tid'),
-      t.getAttribute('data-board'));
-  }
-  else if (t.id == 'fixedTW') {
-    threadWatcher.toggleFixed();
+  var t = e.target;
+  if (t.hasAttribute('data-tid')) {
+    threadWatcher.toggle(
+      t.getAttribute('data-tid'),
+      t.getAttribute('data-board')
+    );
   }
 };
 
-threadWatcher.toggleFixed = function() {
-  config.fixedTW = !config.fixedTW;
-  if (config.fixedTW) {
-    t.parentNode.style.position = 'fixed';
-    $.id('fixedTW').textContent = '●';
-  }
-  else {
-    t.parentNode.style.position = 'absolute';
-    $.id('fixedTW').textContent = '○';
-  }
-  config.save();
-};
-
-threadWatcher.toggle = function(tid) {
-  if (threadWatcher.watched[tid + '-' + main.board]) {
-    threadWatcher.remove(tid, main.board);
-  }
-  else {
-    threadWatcher.add(tid, main.board);
-  }
-};
-
-threadWatcher.add = function(tid, board) {
-  var label, meta, posts, key;
+threadWatcher.toggle = function(tid, board, synced) {
+  var key, label, btn;
   
-  meta = [];
-  key = tid + '-' + board;
+  key = tid + '-' + (board || main.board);
   
-  if ((label = $.class('subject', $.id('pi' + tid))[0].textContent)
-    || (label = $.id('m' + tid).textContent)) {
-    meta.push(label.slice(0, 35));
-  }
-  else {
-    meta.push(tid);
-  }
-  
-  posts = $.class('postContainer', $.id('t' + tid));
-  meta.push(posts[posts.length - 1].id.slice(2));
-  
-  threadWatcher.watched[key] = meta;
-  
-  threadWatcher.save();
-  threadWatcher.destroy();
-  threadWatcher.build();
-};
-
-threadWatcher.remove = function(tid, board) {
-  var key = tid + '-' + board;
   if (threadWatcher.watched[key]) {
     delete threadWatcher.watched[key];
-    $.id('watchList').removeChild($.id('watch-' + key));
-    threadWatcher.save();
+    if (btn = $.id('wbtn-' + key)) {
+      btn.className = btn.className.replace(/ active/, '');
+      btn.removeAttribute('data-active');
+    }
   }
-};
-
-threadWatcher.load = function() {
-  var storage;
-  if (storage = localStorage.getItem('4chan-watch')) {
-    threadWatcher.watched = JSON.parse(storage);
+  else {
+    if ((label = $.class('subject', $.id('pi' + tid))[0].textContent)
+      || (label = $.id('m' + tid).textContent)) {
+      label = label.slice(0, 35);
+    }
+    else {
+      label = tid;
+    }
+    threadWatcher.watched[key] = label;
+    if (btn = $.id('wbtn-' + key)) {
+      btn.className += ' active';
+      btn.setAttribute('data-active', '1');
+    }
   }
+  threadWatcher.save();
+  threadWatcher.reload();
 };
 
 threadWatcher.save = function() {
-  for (var i in threadWatcher.watched) {
-    localStorage.setItem('4chan-watch',
-      JSON.stringify(threadWatcher.watched)
-    );
-    return;
-  }
-  localStorage.removeItem('4chan-watch');
+  localStorage.setItem('4chan-watch', JSON.stringify(threadWatcher.watched));
 };
 
 /**
@@ -1789,6 +1779,7 @@ main.init = function()
   }
   
   $.id('delform').addEventListener('click', main.onThreadClick, false);
+  window.addEventListener('storage', main.syncStorage, false);
   
   $.id('settingsWindowLink').addEventListener('click', settingsMenu.toggle, false);
   $.id('settingsWindowLinkBot').addEventListener('click', settingsMenu.toggle, false);
@@ -1806,6 +1797,17 @@ main.setTitle = function() {
   document.title = '/' + main.board + '/ - ' + title;
 };
 
+main.syncStorage = function(e) {
+  var key = e.key.split('-');
+  
+  if (key[0] != '4chan') {
+    return;
+  }
+  if (key[1] == 'watch' && e.newValue) {
+    threadWatcher.reload(true);
+  }
+}
+
 main.onThreadClick = function(e) {
   var t, ids, cmd;
   
@@ -1815,17 +1817,17 @@ main.onThreadClick = function(e) {
   if (cmd) {
     e.preventDefault();
     if (cmd == 'qr') {
-      ids = t.getAttribute('data-target').split('-');
+      ids = t.getAttribute('data-tid').split('-');
       parser.openQuickReply(ids[0], ids[1]);
     }
     else if (cmd == 'hide') {
-      threadHiding.toggle(t.getAttribute('data-target'));
+      threadHiding.toggle(t.getAttribute('data-tid'));
     }
     else if (cmd == 'watch') {
-      threadWatcher.toggle(t.getAttribute('data-target'));
+      threadWatcher.toggle(t.getAttribute('data-tid'));
     }
     else if (cmd == 'report') {
-      main.reportPost(t.getAttribute('data-target'));
+      main.reportPost(t.getAttribute('data-tid'));
     }
     else if (cmd == 'totop') {
       location.href += '#top';
@@ -2075,6 +2077,9 @@ div.op > span .postHideButtonCollapsed {\
   user-select: none;\
   -moz-user-select: none;\
   -webkit-user-select: none;\
+}\
+.active {\
+  font-weight: bold;\
 }\
 #twHeader {\
   margin-right: 20px;\

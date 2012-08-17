@@ -1077,7 +1077,8 @@ var QR = {
 };
 
 QR.show = function(tid, pid) {
-  var i, j, cnt, postForm, form, table, fields, tr, tbody, pos, spoiler, file, cd;
+  var i, j, cnt, postForm, form, table, fields, tr, tbody, pos, spoiler, file,
+    cd, qrError;
   
   if (QR.currentTid) {
     if (!main.tid && QR.currentTid != tid) {
@@ -1150,7 +1151,13 @@ QR.show = function(tid, pid) {
   
   form.appendChild(table);
   cnt.appendChild(form);
+  
+  qrError = document.createElement('div');
+  qrError.id = 'qrError';
+  cnt.appendChild(qrError);
+  
   cnt.addEventListener('click', QR.onClick, false);
+  
   document.body.appendChild(cnt);
   
   if (cd = localStorage.getItem('4chan-cd-' + main.board)) {
@@ -1218,10 +1225,28 @@ QR.onClick = function(e) {
   }
 };
 
+QR.showPostError = function(msg) {
+  var qrError;
+  
+  qrError = $.id('qrError');
+  qrError.innerHTML = msg;
+  qrError.style.display = 'block';
+  if (document.hidden
+    || document.mozHidden
+    || document.webkitHidden
+    || document.msHidden) {
+    alert('Posting Error');
+  }
+};
+
+QR.hidePostError = function() {
+  $.id('qrError').style.display = 'none';
+};
+
 QR.submit = function(e) {
   var i, btn, cd, xhr, email, field;
   
-  //hidePostError();
+  QR.hidePostError();
   
   if (e) {
     e.preventDefault();
@@ -1259,7 +1284,7 @@ QR.submit = function(e) {
   xhr.onerror = function() {
     btn.value = 'Submit';
     console.log('Error');
-    //showPostError('Connection error. Are you banned?');
+    QR.showPostError('Connection error. Are you <a href="https//www.4chan.org/banned">banned</a>?');
   };
   xhr.onload = function() {
     var resp, qrFile;
@@ -1269,8 +1294,21 @@ QR.submit = function(e) {
     if (this.status == 200) {
       if (resp = xhr.responseText.match(/"errmsg"[^>]*>(.*?)<\/span/)) {
         QR.reloadCaptcha();
-        console.log(resp[1]);
-        //showPostError(resp[1]);
+        QR.showPostError(resp[1]);
+        return;
+      }
+      
+      if (/You are banned! ;_;/.test(xhr.responseText)) {
+        if (/heeding this warning/.test(xhr.responseText)) {
+          resp = xhr.responseText
+            .split(/<br\/><br\/>\n<b>/)[1]
+            .split(/<\/b><br\/><br\/>/)[0];
+          QR.showPostError('<h3>You were issued a warning:<h3>' + resp);
+        }
+        else {
+          QR.showPostError('You are <a href="https//www.4chan.org/banned">banned</a>! ;_;');
+        }
+        QR.reloadCaptcha();
         return;
       }
       
@@ -1300,8 +1338,7 @@ QR.submit = function(e) {
       }
     }
     else {
-      console.log(xhr.statusText);
-      //showPostError(xhr.statusText);
+      QR.showPostError('Error: ' + xhr.status + ' ' + xhr.statusText);
     };
   }
   xhr.send(new FormData(document.forms.qrPost));
@@ -2305,13 +2342,6 @@ config.ss = function( opt, setting )
  *                              *
  ********************************/
 
-if (['interactive', 'complete'].indexOf(document.readyState) != -1) {
-  main.init();
-}
-else {
-  document.addEventListener('DOMContentLoaded', main.init, false);
-}
-
 injCss = function()
 {
 	var css = '\
@@ -2388,6 +2418,7 @@ div.op > span .postHideButtonCollapsed {\
 }\
 #quickReply {\
   position: fixed;\
+  box-shadow: 0px 0px 2px rgba(0,0,0,0.5);\
 }\
 #qrHeader {\
   padding: 5px;\
@@ -2400,7 +2431,7 @@ div.op > span .postHideButtonCollapsed {\
   text-decoration: none;\
 }\
 #qrCaptcha {\
-  border: 1px solid #DFDFDF; \
+  border: 1px solid #DFDFDF;\
 }\
 #qrCapField {\
   border: 1px solid #aaa;\
@@ -2432,8 +2463,28 @@ div.op > span .postHideButtonCollapsed {\
 #qrCapField:invalid {\
   box-shadow: none;\
 }\
+#qrError {\
+  display: none;\
+  padding: 5px;\
+  font-family: monospace;\
+  background-color: #E62020;\
+  color: white;\
+  padding: 3px 20px;\
+  text-shadow: 0 1px rgba(0,0,0,0.2);\
+  font-size: 0.8em;\
+}\
+#qrError a {\
+  color: white;\
+}\
 </style>\
 ';
 
 	$.append(document.body, css);
 };
+
+if (['interactive', 'complete'].indexOf(document.readyState) != -1) {
+  main.init();
+}
+else {
+  document.addEventListener('DOMContentLoaded', main.init, false);
+}

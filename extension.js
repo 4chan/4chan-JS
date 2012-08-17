@@ -1067,13 +1067,16 @@ parser.handleMouseMove = function(e)
 /**
  * Quick reply
  */
-var QR = {
-  currentTid: null,
-  cooldown: null,
-  auto: false,
-  baseDelay: 30500,
-  sageDelay: 60500,
-  captchaInterval: null
+var QR = {};
+
+QR.init = function() {
+  this.currentTid = null;
+  this.cooldown = null;
+  this.auto = false;
+  this.baseDelay = 30500;
+  this.sageDelay = 60500;
+  this.captchaDelay = 240500;
+  this.captchaInterval = null;
 };
 
 QR.show = function(tid, pid) {
@@ -1196,7 +1199,7 @@ QR.reloadCaptcha = function(focus) {
     if (!el.firstChild.hasAttribute('data-loading')) {
       el.firstChild.setAttribute('data-loading', '1');
       QR.captchaInterval
-        = setInterval(QR.cloneCaptcha, 240500);
+        = setInterval(QR.cloneCaptcha, QR.captchaDelay);
       QR.cloneCaptcha();
       if (focus) {
         $.id('qrCapField').focus();
@@ -1608,14 +1611,15 @@ threadUpdater = {
 };
 
 threadUpdater.init = function() {
-	var frag, navlinks, el, label, postCount;
+	var frag, navlinks, el, label, postCount, head;
 	
 	postCount = document.getElementsByClassName('reply').length;
 	navlinks = document.getElementsByClassName('navLinksBot')[0];
 	
 	frag = document.createDocumentFragment();
 	
-	this.iconNode = document.head.querySelector('link[rel="shortcut icon"]');
+	head = document.head || $.tag('head')[0];
+	this.iconNode = head.querySelector('link[rel="shortcut icon"]');
 	this.defaultIcon = this.iconNode.getAttribute('href');
 	//this.iconNode.type = 'image/x-icon';
 	
@@ -2045,6 +2049,16 @@ main.init = function()
   
   config.load();
   
+  if (config.quickReply) {
+    if (!window.FormData) {
+      console.log("QR: Your browser doesn't support XHR2");
+      config.quickReply = false;
+    }
+    else {
+      QR.init();
+    }
+  }
+  
   if (config.threadHiding) {
     threadHiding.load();
   }
@@ -2368,6 +2382,7 @@ div.op > span .postHideButtonCollapsed {\
 	text-decoration: none;\
 	font-size: 0.9em;\
 	margin-left: 5px;\
+	white-space: nowrap;\
 }\
 .ext_fourohfour {\
 	padding: 5px;\

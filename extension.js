@@ -1341,9 +1341,8 @@ QR.submit = function(e) {
       QR.showPostError('Error: ' + xhr.status + ' ' + xhr.statusText);
     };
   }
-  xhr.send(new FormData(document.forms.qrPost));
   btn.value = 'Sending';
-
+  xhr.send(new FormData(document.forms.qrPost));
 };
 
 QR.startCooldown = function(ms) {
@@ -1866,7 +1865,7 @@ draggable = {
   startDrag: function(e) {
     var offs;
     e.preventDefault();
-    draggable.el = e.target.parentNode;
+    draggable.el = this.parentNode;
     draggable.key = draggable.el.getAttribute('data-trackpos');
     offs = draggable.el.getBoundingClientRect();
     draggable.dx = e.clientX - offs.left;

@@ -738,45 +738,6 @@ parser.imageSearchButton = function( e )
 	window.open( url );
 };
 
-parser.imageClick = function( e )
-{
-	obj = e.target;
-	if( !obj.getAttribute('data-md5') ) return true;
-
-	var id = $.parseNo(obj.parentNode.parentNode.getAttribute('id'));
-
-	if( e.button == 1 || e.button == 2 ) return true;
-	e.preventDefault();
-	parser.expandImage(id);
-
-};
-
-parser.expandImage = function(id)
-{
-	var img = $('#f' + id + ' .fileThumb img');
-
-	if( img.getAttribute('src').match(/(\/thumb\/|spoiler)/) ) {
-		img.removeAttribute('style');
-
-		if( !img.getAttribute('data-thumburl') ) {
-			img.style.opacity = 0.5;
-		}
-
-		img.setAttribute('data-thumburl', img.getAttribute('src'));
-		img.setAttribute('src', img.parentNode.getAttribute('href'));
-
-		$.load(img, function() {
-			this.style.opacity = 1;
-
-			this.parentNode.className += ' fitToPage';
-		});
-	} else {
-		img.onload = null;
-		img.setAttribute('src', img.getAttribute('data-thumburl'));
-		img.parentNode.className = img.parentNode.className.replace(' fitToPage', '');
-	}
-};
-
 parser.openQuickReply = function(tid, pid)
 {
 	var threadId = tid;
@@ -1065,6 +1026,39 @@ parser.handleMouseMove = function(e)
 };
 
 /**
+ * Image expansion
+ */
+ImageExpansion = {};
+
+ImageExpansion.expand = function(img)
+{
+  img.onload = img.onerror = null;
+  if (img.hasAttribute('style')) {
+    img.removeAttribute('style');
+  }
+  if (!$.hasClass(img, 'fitToPage')) {
+    img.style.opacity = 0.5;
+    img.setAttribute('data-thumburl', img.getAttribute('src'));
+    img.onload = ImageExpansion.onExpanded;
+    img.onerror = ImageExpansion.onExpanded;
+    img.setAttribute('src', img.parentNode.getAttribute('href'));
+  }
+  else {
+    img.setAttribute('src', img.getAttribute('data-thumburl'));
+    $.removeClass(img, 'fitToPage');
+  }
+};
+
+ImageExpansion.onExpanded = function(e) {
+  this.onload = this.onerror = null;
+  this.style.opacity = 1;
+  $.addClass(this, 'fitToPage');
+  if (this.naturalWidth) {
+    
+  }
+};
+
+/**
  * Quick reply
  */
 var QR = {};
@@ -1221,7 +1215,8 @@ QR.onClick = function(e) {
     QR.reloadCaptcha(true);
   }
   else if (t.type == 'submit') {
-    QR.submit(e);
+    e.preventDefault();
+    QR.submit();
   }
   else if (t.id == 'qrClose') {
     QR.close();
@@ -1251,10 +1246,6 @@ QR.submit = function(e) {
   
   QR.hidePostError();
   
-  if (e) {
-    e.preventDefault();
-  }
-  
   btn = $.id('quickReply').querySelector('input[type="submit"]');
   
   if (QR.cooldown) {
@@ -1268,6 +1259,12 @@ QR.submit = function(e) {
   }
   
   QR.auto = false;
+  
+  if ((field = $.id('qrCapField')).value == '') {
+    QR.showPostError('You forgot to type in the CAPTCHA.');
+    field.focus();
+    return;
+  }
   
   if (field = $.byName('name')[1]) {
     main.setCookie('4chan_name', field.value);
@@ -1931,6 +1928,7 @@ settingsMenu.options = {
   threadHiding: 'Thread hiding',
   threadWatcher: 'Thread watcher',
   threadUpdater: 'Thread updater',
+  imageExpansion: 'Image expansion',
   pageTitle: 'Excerpts in page title',
   backlinks: 'Backlinks',
   quotePreview: 'Quote previews',
@@ -2010,6 +2008,7 @@ var config = {
   threadHiding: true,
   threadWatcher: true,
   threadUpdater: true,
+  imageExpansion: true,
   pageTitle: true,
   backlinks: true,
   quotePreview: true,
@@ -2162,9 +2161,8 @@ main.onThreadClick = function(e) {
   var t, ids, cmd;
   
   t = e.target;
-  cmd = t.getAttribute('data-cmd');
   
-  if (cmd) {
+  if (cmd = t.getAttribute('data-cmd')) {
     e.preventDefault();
     if (cmd == 'qr') {
       ids = t.getAttribute('data-tid').split('-'); // tid, pid
@@ -2184,13 +2182,10 @@ main.onThreadClick = function(e) {
       location.href += '#top';
     }
   }
-  // image expansion temporary fix
-  else if (/fileThumb/.test(t.parentNode.className)) {
+  else if (config.imageExpansion && e.which == 1
+    && t.hasAttribute('data-md5')) {
     e.preventDefault();
-    parser.expandImage(t.parentNode.parentNode.id.slice(1));
-  }
-  else if (t.href && t.href.indexOf('quote') != -1) {
-    //
+    ImageExpansion.expand(t);
   }
 }
 
@@ -2483,12 +2478,15 @@ div.op > span .postHideButtonCollapsed {\
   font-family: monospace;\
   background-color: #E62020;\
   color: white;\
-  padding: 3px 20px;\
+  padding: 3px 5px;\
   text-shadow: 0 1px rgba(0,0,0,0.2);\
   font-size: 0.8em;\
 }\
 #qrError a {\
   color: white;\
+}\
+.fitToPage {\
+  width: 100%;\
 }\
 </style>\
 ';

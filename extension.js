@@ -1031,7 +1031,12 @@ ThreadHiding.show = function(tid) {
   sa.removeAttribute('data-hidden');
   sa.firstChild.src = Parser.icons.minus;
   post.insertBefore(sa, post.firstChild);
-  post.insertBefore(summary.firstChild, message);
+  if ($.hasClass(message.previousSibling, 'backlink')) {
+    post.insertBefore(summary.firstChild, message.previousSibling);
+  }
+  else {
+    post.insertBefore(summary.firstChild, message);
+  }
   
   thread.parentNode.removeChild(summary);
   thread.style.display = 'block';
@@ -1049,9 +1054,9 @@ ThreadHiding.hide = function(tid) {
   sa.setAttribute('data-hidden', tid);
   sa.firstChild.src = Parser.icons.plus;
   
-  summary = document.createElement('summary');
+  summary = document.createElement('div');
   summary.id = 'summary-' + tid;
-  summary.className = 'summary';
+  summary.className = 'summary post';
   summary.appendChild(sa);
   summary.appendChild(document.getElementById('pi' + tid));
   

@@ -408,18 +408,18 @@ Parser.parseBacklinks = function(pid, tid)
   
   for (i = 0; j = backlinks[i]; ++i) {
     // [tid, pid]
-    ids = j.getAttribute('href').split('#');
+    ids = j.getAttribute('href').split('#p');
     
     if (!ids[1]) {
       continue;
     }
     
-    if (ids[1].slice(1) == Main.tid) {
+    if (ids[1] == Main.tid) {
       j.textContent = '>>OP';
       //j.textContent += ' (OP)';
     }
     
-    if (!(target = document.getElementById(ids[1]))) {
+    if (!(target = document.getElementById('m' + ids[1]))) {
       if (Main.tid && ids[0].charAt(0) != '/') {
         j.className += ' crosslink';
       }
@@ -434,22 +434,20 @@ Parser.parseBacklinks = function(pid, tid)
     linklist[ids[1]] = true;
     
     // Backlink node
-    bid = ids[1].slice(1);
     bl = document.createElement('span');
-    bl.id = 'bli_' + bid + '_' + pid;
     bl.innerHTML =
       '<a href="#p' + pid + '" class="quotelink">&gt;&gt;' + pid + '</a>';
     
     // Backlinks container
-    if (!(el = document.getElementById('bl_' + bid))) {
+    if (!(el = document.getElementById('bl_' + ids[1]))) {
       el = document.createElement('hr');
       el.className = 'backlinkHr';
-      target.appendChild(el);
+      //target.appendChild(el);
       el = document.createElement('div');
-      el.id = 'bl_' + bid;
+      el.id = 'bl_' + ids[1];
       el.className = 'backlink';
-      el.innerHTML = '<strong>Replies to this post:</strong><br></div>';
-      target.appendChild(el);
+      el.innerHTML = 'Quoted by: ';
+      target.parentNode.insertBefore(el, target);
     }
     
     el.appendChild(bl);
@@ -1896,7 +1894,7 @@ div.op > span .postHideButtonCollapsed {\
   position: fixed;\
   display: inline-block;\
   right: 20px;\
-  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.35);\
+  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
   padding: 3px;\
 }\
 #settingsMenu label {\
@@ -1916,7 +1914,7 @@ div.op > span .postHideButtonCollapsed {\
 }\
 #quickReply {\
   position: fixed;\
-  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.35);\
+  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
 }\
 #qrHeader {\
   height: 18px;\
@@ -1943,7 +1941,7 @@ div.op > span .postHideButtonCollapsed {\
   display: block;\
   position: absolute;\
   padding: 3px;\
-  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.35);\
+  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
 }\
 #watchList {\
   margin: 0;\
@@ -1985,11 +1983,15 @@ div.op > span .postHideButtonCollapsed {\
 }\
 #quote-preview {\
   position: absolute;\
-  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.35);\
+  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
   padding: 3px 6px 6px 3px;\
 }\
 .deadlink {\
   text-decoration: line-through;\
+}\
+div.backlink {\
+  margin-left: 15px;\
+  font-size: 0.8em !important;\
 }\
 ';
 

@@ -4,20 +4,10 @@
  *                              *
  ********************************/
 
-$ = function( selector, root )
-{
-	if( !/ /.test(selector) ) {
-		if( selector.charAt(0) === '#' && !root ) return document.getElementById(selector.substr(1));
-
-		if( selector.charAt(0) === '.' ) {
-			if( root == null ) root = document.body;
-			return root.getElementsByClassName(selector.substr(1))[0];
-		}
-	}
-
-	if( root == null ) root = document.body;
-	return root.querySelector( selector );
-};
+/**
+ * Helpers
+ */
+$ = {};
 
 $.id = function(id) {
   return document.getElementById(id);
@@ -68,17 +58,6 @@ else {
   }
 }
 
-$.ga = function( selector, root )
-{
-	if( typeof selector != 'string' ) return selector;
-	if( typeof root == 'string' ) root = $(root);
-
-	if( root == null ) root = document.body;
-
-	if( !/ /.test(selector) && selector.charAt(0) === '.' ) return root.getElementsByClassName(selector.substr(1));
-	return root.querySelectorAll( selector );
-};
-
 $.get = function(url, callbacks, headers) {
   var key, xhr;
   
@@ -100,224 +79,6 @@ $.get = function(url, callbacks, headers) {
   xhr.send(null);
   return xhr;
 };
-
-$.remove = function( selector, remove )
-{
-	var remove = $.ga( remove, selector );
-	var len = remove.length;
-
-	for( var i = 0; i < len; i++ ) {
-		if( remove[i] ) remove[i].parentNode.removeChild(remove[i]);
-	}
-};
-
-$.css = function( selector, css )
-{
-	selector = $.ga( selector );
-	var len = selector.length;
-	var key = css[0];
-	var val = css[1];
-	var regKey = new RegExp(key);
-	var repReg = new RegExp("(" + key + "): ?([^;]);?" );
-
-	for( var i = 0; i < len; i++ ) {
-		var cur = selector[i];
-		var style = cur.getAttribute('style') ? cur.getAttribute('style') : '';
-		if( style != '' && style.substr(style.length-1) != ';' ) style += ';';
-
-
-		if( regKey.test(style) ) {
-			cur.setAttribute('style', style.replace(repReg, key + ':' + val + ';'));
-		} else {
-			cur.setAttribute('style', style + key + ':' + val + ';');
-		}
-	}
-};
-
-$.round = function( value, precision )
-{
-	// From php.js
-	// http://phpjs.org/functions/round:505
-	var m, f, isHalf, sgn; // Helper variables
-    precision |= 0; // Making sure precision is integer
-    m = Math.pow(10, precision);
-    value *= m;
-    sgn = (value > 0) | -(value < 0); // Sign of the number
-    isHalf = value % 1 === 0.5 * sgn;
-    f = Math.floor(value);
-
-	if( isHalf ) {
-		value = f + (sgn > 0);
-	}
-
-	return (isHalf ? value: Math.round(value)) / m;
-};
-
-$.click = function( elem, bindFunction )
-{
-	elem.addEventListener('click', bindFunction, true);
-};
-
-$.unbind = function( elem, bind )
-{
-	elem.removeEventListener(bind);
-};
-
-$.bind = function( elem, bind, bindTo )
-{
-	elem.addEventListener(bind, bindTo, true);
-};
-
-$.submit = function( elem, bindFunction )
-{
-	elem.addEventListener('submit', bindFunction, true);
-};
-
-$.load = function( elem, bindFunction )
-{
-	elem.addEventListener('load', bindFunction, true);
-};
-
-$.mouseover = function( elem, bindFunction )
-{
-	elem.addEventListener('mouseover', bindFunction, true);
-};
-
-$.mouseout = function( elem, bindFunction )
-{
-	elem.addEventListener('mouseout', bindFunction, true);
-};
-
-$.mousemove = function( elem, bindFunction )
-{
-	elem.addEventListener( 'mousemove', bindFunction, true );
-};
-
-$.mousedown = function( elem, bindFunction )
-{
-	elem.addEventListener( 'mousedown', bindFunction, true );
-};
-
-$.mouseup = function( elem, bindFunction )
-{
-	elem.addEventListener( 'mouseup', bindFunction, true );
-};
-
-$.keydown = function( elem, bindFunction )
-{
-	elem.addEventListener( 'keydown', bindFunction, true );
-};
-
-$.scroll = function( elem, bindFunction )
-{
-	elem.addEventListener( 'DOMMouseScroll', bindFunction, true );
-};
-
-$.parseNo = function(id)
-{
-	var no = id.match(/(\d+)$/);
-	if( !no ) {
-		console.log('Could not parse id from ' + id);
-		return false;
-	}
-
-	return no[1];
-};
-
-$.parseButton = function(id)
-{
-	var button = id.match(/_(\d+)_(\d+)$/);
-	if( !button ) {
-		console.log('Could not parse thread/id from ' + id);
-		return false;
-	}
-
-	return [button[1], button[2]];
-};
-
-$.prepend = function( selector, prepend )
-{
-	if( typeof selector == 'string' ) selector = $(selector);
-	if( typeof prepend == 'string' ) prepend = $.parseHtml(prepend);
-
-	var nodeSelect = 0;
-
-	if( prepend.length > 1 && prepend.nodeType != 3 ) {
-		var len = prepend.length;
-		for( var i = 0; i < len; i++ ) {
-			if( typeof prepend[i] == 'string' ) prepend[i] = $.parseHtml(prepend[i]);
-			selector.insertBefore(prepend[i], selector.childNodes[nodeSelect]);
-			nodeSelect++;
-		}
-
-		return;
-	}
-
-	selector.insertBefore(prepend, selector.childNodes[nodeSelect]);
-};
-
-$.append = function( selector, append )
-{
-	if( typeof selector == 'string' ) selector = $(selector);
-	if( typeof append == 'string' ) append = $.parseHtml(append);
-
-	if( append.length > 1 && append.nodeType != 3 ) {
-		var len = append.length;
-		for( var i = 0; i < len; i++ ) {
-			if( typeof append[i] == 'string' ) append[i] = $.parseHtml(append[i]);
-			selector.appendChild(append[i]);
-		}
-
-		return;
-	}
-
-	selector.appendChild(append);
-};
-
-$.after = function( selector, after )
-{
-	if( typeof selector == 'string' ) selector = $(selector);
-	if( typeof after == 'string' ) after = $.parseHtml(after);
-
-	var parent = selector.parentNode;
-
-	if( parent.lastChild == selector ) {
-		parent.appendChild(after);
-	} else {
-		parent.insertBefore(after, selector.nextSibling);
-	}
-};
-
-$.html = function( selector, html )
-{
-	if( typeof selector == 'string' ) selector = $(selector);
-	if( typeof html == 'string' ) html = $.parseHtml(html);
-
-	// first scrap anything we have
-	selector.innerHTML = '';
-
-	// start appending!
-	$.append( selector, html );
-};
-
-
-$.parseHtml = function(html)
-{
-	var root;
-
-	if( html.match(/</) ) {
-		root = document.createElement('div');
-		root.innerHTML = html;
-
-		return root.childNodes[0];
-	} else {
-		root = document.createTextNode( html );
-	}
-
-	return root;
-};
-
-// Take a JSON array and spit out 4chan HTML
 
 /**
  * Parser
@@ -707,41 +468,33 @@ QuotePreview.resolve = function(link) {
   
   self = QuotePreview;
   
-  t = link.getAttribute('href').split('#');
+  // [ string, board, tid, pid ]
+  t = link.getAttribute('href')
+    .match(/^(?:\/([^\/]+)\/)?(?:res\/)?([0-9]+)?#p([0-9]+)$/);
   
-  if (post = document.getElementById(t[1])) {
+  if (!t) {
+    return;
+  }
+  
+  // Quoted post in scope
+  if (post = document.getElementById('p' + t[3])) {
     self.show(link, post);
   }
+  // Quoted post out of scope
   else {
-    t[1] = t[1].slice(1);
-    // Crossboard
-    if (t[0].charAt(0) == '/') {
-      ids = t[0].split('/');
-      if (self.cachedKey == [ids[1], ids[3], t[1]].join('-')) {
-        console.log('From cache');
-        self.show(link, self.cachedNode, true);
-      }
-      else {
-        self.timeout = setTimeout(
-          self.showRemote,
-          self.debounce,
-          link, ids[1], ids[3], t[1]
-        );
-      }
+    if (!t[1]) {
+      t[1] = Main.board;
     }
-    // Crossthread or not in scope
+    if (self.cachedKey == [t[1], t[2], t[3]].join('-')) {
+      console.log('From cache');
+      self.show(link, self.cachedNode, true);
+    }
     else {
-      if (self.cachedKey == [Main.board, t[0], t[1]].join('-')) {
-        console.log('From cache');
-        self.show(link, self.cachedNode, true);
-      }
-      else {
-        self.timeout = setTimeout(
-          self.showRemote,
-          self.debounce,
-          link, Main.board, t[0], t[1]
-        );
-      }
+      self.timeout = setTimeout(
+        self.showRemote,
+        self.debounce,
+        link, t[1] || Main.board, t[2], t[3]
+      );
     }
   }
 };

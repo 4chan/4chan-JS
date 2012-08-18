@@ -346,7 +346,7 @@ Parser.parsePost = function(pid, tid) {
   cnt = document.createElement('div');
   cnt.className = 'extControls';
   
-  if (Config.quickReply) {
+  if (QR.enabled) {
     el = document.createElement('img');
     el.className = 'extButton';
     el.src = Parser.icons.quote;
@@ -357,24 +357,30 @@ Parser.parsePost = function(pid, tid) {
     cnt.appendChild(el);
   }
   
-  el = document.createElement('img');
-  el.className = 'extButton';
-  el.src = Parser.icons.report;
-  el.setAttribute('data-cmd', 'report');
-  el.setAttribute('data-tid', pid);
-  el.title = 'Report post';
-  el.alt = '!';
-  cnt.appendChild(el);
-
-  el = document.createElement('img');
-  el.className = 'extButton';
-  el.src = Parser.icons.up;
-  el.setAttribute('data-cmd', 'totop');
-  el.title = 'Back to top';
-  el.alt = '▴';
-  cnt.appendChild(el);
+  if (Config.reportButton) {
+    el = document.createElement('img');
+    el.className = 'extButton';
+    el.src = Parser.icons.report;
+    el.setAttribute('data-cmd', 'report');
+    el.setAttribute('data-tid', pid);
+    el.title = 'Report post';
+    el.alt = '!';
+    cnt.appendChild(el);
+  }
   
-  pi.appendChild(cnt);
+  if (Config.toTopButton) {
+    el = document.createElement('img');
+    el.className = 'extButton';
+    el.src = Parser.icons.up;
+    el.setAttribute('data-cmd', 'totop');
+    el.title = 'Back to top';
+    el.alt = '▴';
+    cnt.appendChild(el);
+  }
+  
+  if (cnt.firstChild) {
+    pi.appendChild(cnt);
+  }
   
   if (Config.imageSearch && (fileText = document.getElementById('fT' + pid))) {
     href = fileText.firstElementChild.href;
@@ -677,9 +683,15 @@ ImageExpansion.onExpanded = function(e) {
 /**
  * Quick reply
  */
-var QR = {};
+var QR = {
+  enabled: false
+};
 
 QR.init = function() {
+  this.enabled = !!document.forms.post
+  if (!this.enabled) {
+    return;
+  }
   this.currentTid = null;
   this.cooldown = null;
   this.auto = false;
@@ -1531,6 +1543,34 @@ var Draggable = {
 };
 
 /**
+ * Config
+ */
+var Config = {
+  threadHiding: true,
+  threadWatcher: true,
+  threadUpdater: true,
+  imageExpansion: true,
+  pageTitle: true,
+  backlinks: true,
+  quotePreview: true,
+  quickReply: true,
+  reportButton: true,
+  toTopButton: true,
+  imageSearch: true
+};
+
+Config.load = function() {
+  if (storage = localStorage.getItem('4chan-settings')) {
+    storage = JSON.parse(storage);
+    $.extend(Config, storage);
+  }
+};
+
+Config.save = function() {
+  localStorage.setItem('4chan-settings', JSON.stringify(Config));
+};
+
+/**
  * Settings menu
  */
 var SettingsMenu = {};
@@ -1544,6 +1584,8 @@ SettingsMenu.options = {
   backlinks: 'Backlinks',
   quotePreview: 'Quote preview',
   quickReply: 'Quick reply',
+  reportButton: 'Report button',
+  toTopButton: 'To top button',
   imageSearch: 'Image search'
 };
 
@@ -1612,32 +1654,6 @@ SettingsMenu.close = function() {
   $.id('settingsSave').removeEventListener('click', SettingsMenu.save, false);
   $.id('settingsClose').removeEventListener('click', SettingsMenu.close, false);
   document.body.removeChild($.id('settingsMenu'));
-};
-
-/**
- * Config
- */
-var Config = {
-  threadHiding: true,
-  threadWatcher: true,
-  threadUpdater: true,
-  imageExpansion: true,
-  pageTitle: true,
-  backlinks: true,
-  quotePreview: true,
-  quickReply: true,
-  imageSearch: true
-};
-
-Config.load = function() {
-  if (storage = localStorage.getItem('4chan-settings')) {
-    storage = JSON.parse(storage);
-    $.extend(Config, storage);
-  }
-};
-
-Config.save = function() {
-  localStorage.setItem('4chan-settings', JSON.stringify(Config));
 };
 
 /**
@@ -1811,22 +1827,24 @@ Main.onThreadClick = function(e) {
   
   if (cmd = t.getAttribute('data-cmd')) {
     e.preventDefault();
-    if (cmd == 'qr') {
-      ids = t.getAttribute('data-tid').split('-'); // tid, pid
-      QR.show(ids[0], ids[1]);
-      Main.quotePost(ids[1], true);
-    }
-    else if (cmd == 'hide') {
-      ThreadHiding.toggle(t.getAttribute('data-tid'));
-    }
-    else if (cmd == 'watch') {
-      ThreadWatcher.toggle(t.getAttribute('data-tid'));
-    }
-    else if (cmd == 'report') {
-      Main.reportPost(t.getAttribute('data-tid'));
-    }
-    else if (cmd == 'totop') {
-      location.href += '#top';
+    switch (cmd) {
+      case 'qr':
+        ids = t.getAttribute('data-tid').split('-'); // tid, pid
+        QR.show(ids[0], ids[1]);
+        Main.quotePost(ids[1], true);
+        break;
+      case 'hide':
+        ThreadHiding.toggle(t.getAttribute('data-tid'));
+        break;
+      case 'watch':
+        ThreadWatcher.toggle(t.getAttribute('data-tid'));
+        break;
+      case 'report':
+        Main.reportPost(t.getAttribute('data-tid'));
+        break;
+      case 'totop':
+        location.href += '#top';
+        break;
     }
   }
   else if (Config.imageExpansion && e.which == 1

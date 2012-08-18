@@ -1655,7 +1655,7 @@ Main.init = function()
   document.removeEventListener('DOMContentLoaded', Main.init, false);
   
   if (Main.stylesheet = Main.getCookie(style_group)) {
-    Main.stylesheet = Main.stylesheet.toLowerCase().replace(' ', '_');
+    Main.stylesheet = Main.stylesheet.toLowerCase().replace(/ /g, '_');
   }
   else {
     Main.stylesheet =
@@ -1919,13 +1919,11 @@ div.op > span .postHideButtonCollapsed {\
   box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.35);\
 }\
 #qrHeader {\
+  height: 18px;\
   text-align: center;\
-  line-height: 1.2;\
 }\
 #qrClose {\
   float: right;\
-  font-size: 1.5em;\
-  text-decoration: none;\
 }\
 #qrCaptcha {\
   width: 300px;\

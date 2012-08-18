@@ -387,7 +387,7 @@ Parser.parsePost = function(pid, tid) {
     el = document.createElement('div');
     el.className = 'extControls';
     el.innerHTML =
-      '<a href="http://www.google.com/searchbyimage?image_url=' + href
+      '<a href="//www.google.com/searchbyimage?image_url=' + href
       + '" target="_blank" title="Google Image Search"><img class="extButton" src="'
       + Parser.icons.gis + '" alt="G"></a><a href="http://iqdb.org/?url='
       + href + '" target="_blank" title="iqdb"><img class="extButton" src="'

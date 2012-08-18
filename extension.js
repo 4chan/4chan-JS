@@ -240,11 +240,15 @@ Parser.buildHTMLFromJSON = function(data, board) {
       + fileBuildStart + fileInfo + fileBuildEnd + imgSrc + '</div>';
   }
   
-  shortSubject = data.sub;
-  if (shortSubject.length > 28) {
-    shortSubject = data.sub.replace('&#44;', ',');
-    shortSubject = '<span title="' + shortSubject + '">'
-      + shortSubject.slice(0, 23) + '(...)</span>';
+  if (shortSubject = data.sub) {
+    if (shortSubject.length > 28) {
+      shortSubject = data.sub.replace('&#44;', ',');
+      shortSubject = '<span title="' + shortSubject + '">'
+        + shortSubject.slice(0, 23) + '(...)</span>';
+    }
+  }
+  else {
+    data.sub = '';
   }
   
   container.className = 'postContainer replyContainer';

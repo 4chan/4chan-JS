@@ -1901,7 +1901,7 @@ div.op > span .postHideButtonCollapsed {\
 }\
 .extButton {\
   cursor: pointer;\
-  vertical-align: text-top;\
+  vertical-align: bottom;\
 }\
 #threadUpdateStatus {\
   margin-left: 0.5ex;\

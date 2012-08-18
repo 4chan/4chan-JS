@@ -899,7 +899,7 @@ QR.show = function(tid, pid) {
   
   if (QR.currentTid) {
     if (!Main.tid && QR.currentTid != tid) {
-      $.id('qrTid').textContent = QR.currentTid = tid;
+      $.id('qrTid').textContent = $.id('qrResto').value = QR.currentTid = tid;
       $.byName('com')[1].value = '';
     }
     return;

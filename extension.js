@@ -1906,7 +1906,8 @@ div.op > span .postHideButtonCollapsed {\
 }\
 .extButton {\
   cursor: pointer;\
-  vertical-align: bottom;\
+  position: relative;\
+  top: 3px;\
 }\
 #threadUpdateStatus {\
   margin-left: 0.5ex;\
@@ -1941,10 +1942,12 @@ div.op > span .postHideButtonCollapsed {\
   box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
 }\
 #qrHeader {\
-  height: 18px;\
   text-align: center;\
+  padding: 0;\
+  height: 20px;\
 }\
 #qrClose {\
+  top: 1px;\
   float: right;\
 }\
 #qrCaptcha {\

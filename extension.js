@@ -425,8 +425,7 @@ Parser.parseBacklinks = function(pid, tid)
     }
     
     if (ids[1] == Main.tid) {
-      j.textContent = '>>OP';
-      //j.textContent += ' (OP)';
+      j.textContent += ' (OP)';
     }
     
     if (!(target = document.getElementById('m' + ids[1]))) {

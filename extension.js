@@ -1840,7 +1840,7 @@ Main.onThreadClick = function(e) {
         Main.reportPost(t.getAttribute('data-tid'));
         break;
       case 'totop':
-        location.href += '#top';
+        location.href = '#top';
         break;
     }
   }

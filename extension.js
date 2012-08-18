@@ -961,7 +961,9 @@ QR.submit = function(e) {
         QR.reloadCaptcha();
         qrFile = document.getElementById('qrFile').parentNode;
         qrFile.innerHTML = qrFile.innerHTML;
-        setTimeout(ThreadUpdater.update, 500);
+        if (Config.threadUpdater) {
+          setTimeout(ThreadUpdater.update, 500);
+        }
         return;
       }
     }

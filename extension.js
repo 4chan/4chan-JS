@@ -2183,9 +2183,4 @@ Config.ss = function( opt, setting )
 	localStorage['4chanext_' + opt] = setting;
 };
 
-if (['interactive', 'complete'].indexOf(document.readyState) != -1) {
-  Main.init();
-}
-else {
-  document.addEventListener('DOMContentLoaded', Main.init, false);
-}
+document.addEventListener('DOMContentLoaded', Main.init, false);

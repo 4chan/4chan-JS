@@ -446,9 +446,6 @@ Parser.parseBacklinks = function(pid, tid)
     
     // Backlinks container
     if (!(el = document.getElementById('bl_' + ids[1]))) {
-      el = document.createElement('hr');
-      el.className = 'backlinkHr';
-      //target.appendChild(el);
       el = document.createElement('div');
       el.id = 'bl_' + ids[1];
       el.className = 'backlink';

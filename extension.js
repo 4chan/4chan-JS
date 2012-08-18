@@ -79,24 +79,26 @@ $.ga = function( selector, root )
 	return root.querySelectorAll( selector );
 };
 
-$.get = function( url, callbacks, headers )
-{
-	var key, x = new XMLHttpRequest();
-	x.open( 'GET', url );
-	x.onload = onload;
-	x.onerror = onerror;
-	x.timeout = 25000;
-	if (callbacks) {
-		for (key in callbacks) {
-			x[key] = callbacks[key];
-		}
-	}
-	if (headers) {
-		for (key in headers) {
-			x.setRequestHeader(key, headers[key]);
-		}
-	}
-	x.send(null);
+$.get = function(url, callbacks, headers) {
+  var key, xhr;
+  
+  xhr = new XMLHttpRequest();
+  xhr.open('GET', url);
+  xhr.onload = onload;
+  xhr.onerror = onerror;
+  xhr.timeout = 25000;
+  if (callbacks) {
+    for (key in callbacks) {
+      xhr[key] = callbacks[key];
+    }
+  }
+  if (headers) {
+    for (key in headers) {
+      xhr.setRequestHeader(key, headers[key]);
+    }
+  }
+  xhr.send(null);
+  return xhr;
 };
 
 $.remove = function( selector, remove )
@@ -316,299 +318,241 @@ $.parseHtml = function(html)
 };
 
 // Take a JSON array and spit out 4chan HTML
-$.buildHTMLFromJSON = function( arr, board )
-{
-	var
-		container = document.createElement('div'),
-		isOP = false,
-		
-		userId,
-		fileDims = '',
-		imgSrc = '',
-		fileBuildStart = '',
-		fileBuildEnd = '',
-		fileInfo = '',
-		fileHtml = '',
-		shortSubject = '',
-		fileSize = '',
-		fileClass = '',
-		shortFile = '',
-		longFile = '',
-		capcodeStart = '',
-		capcodeClass = '',
-		capcode = '',
-		flag,
-		highlight = '',
-		emailStart = '',
-		emailEnd = '',
-			
-		staticPath = '//static.4chan.org',
-		imgDir = '//images.4chan.org/' + board + '/src';
-	
-	if (arr.resto == 0) {
-		isOP = true;
-		arr.resto = arr.no;
-	}
-	
-	var noLink = arr.resto + '#p' + arr.no;
-	var quoteLink = noLink.replace('p', 'q');
-
-	if ((arr.capcode == 'none') && arr.id) {
-		userId = ' <span class="posteruid id_'
-			+ arr.id + '">(ID: <span class="hand" title="Highlight posts by this ID">'
-			+ arr.id + '</span>)</span> ';
-	}
-	else {
-		userId = '';
-	}
-	
-	switch( arr.capcode ) {
-		case 'admin':
-			capcodeStart = ' <strong class="capcode hand id_admin" title="Highlight posts by the Administrator">## Admin</strong>';
-			capcodeClass = ' capcodeAdmin';
-
-			capcode = ' <img src="' + staticPath + '/image/adminicon.gif" alt="This user is the 4chan Administrator." title="This user is the 4chan Administrator." class="identityIcon"/>';
-			break;
-		
-		case 'mod':
-			capcodeStart = ' <strong class="capcode hand id_mod" title="Highlight posts by Moderators">## Moderator</strong>';
-			capcodeClass = ' capcodeMod';
-
-			capcode = ' <img src="' + staticPath + '/image/modicon.gif" alt="This user is a 4chan Moderator." title="This user is a 4chan Moderator." class="identityIcon"/>';
-			break;
-
-		case 'developer':
-			capcodeStart = ' <strong class="capcode hand id_developer" title="Highlight posts by Developers">## Developer</strong>';
-			capcodeClass = ' capcodeDeveloper';
-
-			capcode = ' <img src="' + staticPath + '/image/developericon.gif" alt="This user is a 4chan Developer." title="This user is a 4chan Developer." class="identityIcon"/>';
-			break;
-
-		default:
-			break;
-
-	}
-
-	if( arr.email ) {
-		emailStart = '<a href="mailto:' + arr.email.replace(/ /g, '%20') + '" class="useremail">';
-		emailEnd = '</a>';
-	}
-	
-	if (arr.country) {
-		flag = '<img src="' + staticPath + '/image/country/'
-			+ arr.country.toLowerCase() + '.gif" alt="' + arr.country + '" title="'
-			+ arr.country_name + '" class="countryFlag"> ';
-	}
-	else {
-		flag = '';
-	}
-
-	if( arr.ext ) {
-		shortFile = longFile = arr.filename + arr.ext;
-		if( arr.filename.length > 40 ) {
-			shortFile = arr.filename.slice(0, 35) + '(...)' + arr.ext;
-		}
-
-		if( !arr.tn_w && !arr.tn_h && arr.ext == '.gif' ) {
-			arr.tn_w = arr.w;
-			arr.tn_h = arr.h;
-		}
-
-		if( arr.fsize >= 1048576 ) {
-			fileSize = $.round( arr.fsize/1048576, 2 ) + ' M';
-		} else if( arr.fsize > 1024 ) {
-			fileSize = $.round( arr.fsize / 1024 ) + ' K';
-		} else {
-			fileSize = arr.fsize + ' ';
-		}
-
-		if( arr.spoiler ) {
-			fileSize = 'Spoiler Image, ' + fileSize;
-			fileClass = ' imgspoiler';
-
-			var fileThumb = '//static.4chan.org/image/spoiler-' + board + '.png';
-			arr.tn_w = 100;
-			arr.tn_h = 100;
-		} else {
-			fileThumb = '//thumbs.4chan.org/' + board + '/thumb/' + arr.tim + 's.jpg';
-		}
-
-		imgSrc = '<a class="fileThumb' + fileClass + '" href="' + imgDir + '/' + arr.tim + arr.ext + '" target="_blank"><img src="' + fileThumb + '" alt="' + fileSize + 'B" data-md5="' + arr.md5 + '" style="height: ' + arr.tn_h + 'px; width: ' + arr.tn_w + 'px;"></a>';
-
-		if( arr.filedeleted ) {
-			imgSrc = '<span class="fileThumb"><img src="' + staticPath + '/image/filedeleted-res.gif" alt="File deleted."></span>';
-			fileInfo = '';
-		} else {
-			fileDims = arr.ext == '.pdf' ? 'PDF' : arr.w + 'x' + arr.h;
-			fileInfo = '<span class="fileText" id="fT' + arr.no + '">File: <a href="' + imgDir + '/' + arr.tim + arr.ext + '" target="_blank">' + arr.tim + arr.ext + '</a>-(' + fileSize + 'B, ' + fileDims + ', <span title="' + longFile + '">' + shortFile + '</span>)</span>';
-		}
-
-		fileBuildStart = fileInfo ? '<div class="fileInfo">' : '';
-		fileBuildEnd = fileInfo ? '</div>' : '';
-
-		fileHtml = '<div id="f' + arr.no + '" class="file">'
-			+ fileBuildStart + fileInfo + fileBuildEnd + imgSrc + '</div>';
-	}
-
-	shortSubject = arr.sub;
-	if( shortSubject.length > 28 ) {
-		shortSubject = arr.sub.replace('&#44;', ',');
-		shortSubject = '<span title="' + shortSubject + '">' + shortSubject.substring(0, 23) + '(...)</span>';
-	}
-
-	container.className = 'postContainer replyContainer';
-	container.id = 'pc' + arr.no;
-	
-	container.innerHTML =
-		'<div class="sideArrows" id="sa' + arr.no + '">&gt;&gt;</div>' +
-		'<div id="p' + arr.no + '" class="post ' + (isOP ? 'op' : 'reply') + highlight + '">' +
-			'<div class="postInfoM mobile" id="pim' + arr.no + '">' +
-				'<span class="nameBlock' + capcodeClass + '"> ' + emailStart +
-				'<span class="name">' + arr.name + '</span>' +
-				emailEnd + capcodeStart + emailEnd + userId + flag +
-				'<br><span class="subject">' + arr.sub +
-				'</span></span><span class="dateTime postNum" data-utc="' + arr.time + '">' +
-				arr.now + '<br><em><a href="' + arr.no + '#p' + arr.no + '">No.</a>' +
-				'<a href="javascript:quote(\'' + arr.no + '\');">' + arr.no + '</a></em></span>' +
-			'</div>' +
-			(isOP ? fileHtml : '') +
-			'<div class="postInfo desktop" id="pi' + arr.no + '">' +
-				'<input type="checkbox" name="' + arr.no + '" value="delete"> ' +
-				'<span class="subject">' + arr.sub + '</span> ' +
-				'<span class="nameBlock' + capcodeClass + '"> ' +
-					emailStart + '<span class="name">' + arr.name + '</span>' + emailEnd
-					+ capcodeStart + emailEnd + userId + flag +
-				'</span> ' +
-	
-				'<span class="dateTime" data-utc="' + arr.time + '">' + arr.now + '</span> ' +
-	
-				'<span class="postNum desktop">' +
-					'<a href="' + noLink + '" title="Highlight this post">No.</a><a href="' +
-					quoteLink + '">' + arr.no + '</a>' +
-				'</span>' +
-			'</div>' +
-			(isOP ? '' : fileHtml) +
-			'<blockquote class="postMessage" id="m' + arr.no + '">' + arr.com + '</blockquote> ' +
-		'</div>';
-		
-	return container;
-};
-
-$.findPos = function( elem )
-{
-	if( typeof elem == 'string' ) elem = $(elem);
-
-	var leftpos = 0, toppos = 0;
-	if (elem.offsetParent) {
-		do {
-			leftpos += elem.offsetLeft;
-			toppos += elem.offsetTop;
-		} while (elem = elem.offsetParent);
-	}
-
-	return [ toppos, leftpos ];
-};
-
-$.cursorToEnd = function( el )
-{
-	if (typeof el.selectionStart == "number") {
-		el.selectionStart = el.selectionEnd = el.value.length;
-	} else if (typeof el.createTextRange != "undefined") {
-		el.focus();
-		var range = el.createTextRange();
-		range.collapse(false);
-		range.select();
-	}
-};
-
-var drag = new Object();
-drag.dragging = false;
-drag.currentDraggingObject = null;
-drag.curleft = null;
-drag.curtop = null;
-drag.x = null;
-drag.y = null;
-
-$.drag = function(e)
-{
-	var elem = e.target;
-	while( elem.tagName != 'body' ) {
-		if( elem.className && elem.className.match('draggable') ) break;
-		elem = elem.parentNode;
-	}
-
-	if( !elem.className ) return false;
-
-	if( elem.className.match( 'draggable' ) ) {
-		drag.dragging = true;
-		drag.currentDraggingObject = elem;
-
-		drag.curleft = parseInt( elem.style.left + 0 );
-		drag.curtop  = parseInt( elem.style.top );
-
-		drag.x = e.clientX;
-		drag.y = e.clientY;
-
-		$.mousemove(document, function(e) {
-			$.doDrag(e);
-			return false;
-		});
-	}
-};
-
-$.doDrag = function(e)
-{
-	if( !drag.dragging ) return true;
-
-	var obj = drag.currentDraggingObject;
-	obj.style.left = (drag.curleft + e.clientX - drag.x + 'px');
-	obj.style.top  = (drag.curtop + e.clientY - drag.y + 'px');
-
-	return false;
-};
-
-$.endDrag = function()
-{
-	drag.dragging = false;
-};
 
 /**
  * Parser
  */
+var Parser = {};
 
-var parser = new Object();
+Parser.buildHTMLFromJSON = function(data, board) {
+  var
+    container = document.createElement('div'),
+    isOP = false,
+    
+    userId,
+    fileDims = '',
+    imgSrc = '',
+    fileBuildStart = '',
+    fileBuildEnd = '',
+    fileInfo = '',
+    fileHtml = '',
+    shortSubject = '',
+    fileSize = '',
+    fileClass = '',
+    shortFile = '',
+    longFile = '',
+    capcodeStart = '',
+    capcodeClass = '',
+    capcode = '',
+    flag,
+    highlight = '',
+    emailStart = '',
+    emailEnd = '',
+      
+    staticPath = '//static.4chan.org',
+    imgDir = '//images.4chan.org/' + board + '/src';
+  
+  if (data.resto == 0) {
+    isOP = true;
+    data.resto = data.no;
+  }
+  
+  var noLink = data.resto + '#p' + data.no;
+  var quoteLink = noLink.replace('p', 'q');
 
-parser.parseBoard = function()
+  if ((data.capcode == 'none') && data.id) {
+    userId = ' <span class="posteruid id_'
+      + data.id + '">(ID: <span class="hand" title="Highlight posts by this ID">'
+      + data.id + '</span>)</span> ';
+  }
+  else {
+    userId = '';
+  }
+  
+  switch (data.capcode) {
+    case 'admin':
+      capcodeStart = ' <strong class="capcode hand id_admin"'
+        + 'title="Highlight posts by the Administrator">## Admin</strong>';
+      capcodeClass = ' capcodeAdmin';
+    
+      capcode = ' <img src="' + staticPath + '/image/adminicon.gif" '
+        + 'alt="This user is the 4chan Administrator." '
+        + 'title="This user is the 4chan Administrator." class="identityIcon"/>';
+      break;
+    
+    case 'mod':
+      capcodeStart = ' <strong class="capcode hand id_mod" '
+        + 'title="Highlight posts by Moderators">## Moderator</strong>';
+      capcodeClass = ' capcodeMod';
+    
+      capcode = ' <img src="' + staticPath + '/image/modicon.gif" '
+        + 'alt="This user is a 4chan Moderator." '
+        + 'title="This user is a 4chan Moderator." class="identityIcon"/>';
+      break;
+    
+    case 'developer':
+      capcodeStart = ' <strong class="capcode hand id_developer" '
+        + 'title="Highlight posts by Developers">## Developer</strong>';
+      capcodeClass = ' capcodeDeveloper';
+    
+      capcode = ' <img src="' + staticPath + '/image/developericon.gif" '
+        + 'alt="This user is a 4chan Developer." '
+        + 'title="This user is a 4chan Developer." class="identityIcon"/>';
+      break;
+    
+    default:
+      break;
+  }
+
+  if (data.email) {
+    emailStart = '<a href="mailto:' + data.email.replace(/ /g, '%20') + '" class="useremail">';
+    emailEnd = '</a>';
+  }
+  
+  if (data.country) {
+    flag = '<img src="' + staticPath + '/image/country/'
+      + data.country.toLowerCase() + '.gif" alt="' + data.country + '" title="'
+      + data.country_name + '" class="countryFlag"> ';
+  }
+  else {
+    flag = '';
+  }
+
+  if (data.ext) {
+    shortFile = longFile = data.filename + data.ext;
+    if (data.filename.length > 40) {
+      shortFile = data.filename.slice(0, 35) + '(...)' + data.ext;
+    }
+
+    if (!data.tn_w && !data.tn_h && data.ext == '.gif') {
+      data.tn_w = data.w;
+      data.tn_h = data.h;
+    }
+    if (data.fsize >= 1048576) {
+      fileSize = ((0 | (data.fsize / 1048576 * 100 + 0.5)) / 100) + ' M';
+    }
+    else if (data.fsize > 1024) {
+      fileSize = (0 | (data.fsize / 1024 + 0.5)) + ' K';
+    }
+    else {
+      fileSize = data.fsize + ' ';
+    }
+    
+    if (data.spoiler) {
+      fileSize = 'Spoiler Image, ' + fileSize;
+      fileClass = ' imgspoiler';
+      
+      var fileThumb = '//static.4chan.org/image/spoiler-' + board + '.png';
+      data.tn_w = 100;
+      data.tn_h = 100;
+    }
+    else {
+      fileThumb = '//thumbs.4chan.org/' + board + '/thumb/' + data.tim + 's.jpg';
+    }
+    
+    imgSrc = '<a class="fileThumb' + fileClass + '" href="' + imgDir + '/'
+      + data.tim + data.ext + '" target="_blank"><img src="' + fileThumb
+      + '" alt="' + fileSize + 'B" data-md5="' + data.md5
+      + '" style="height: ' + data.tn_h + 'px; width: '
+      + data.tn_w + 'px;"></a>';
+    
+    if (data.filedeleted) {
+      imgSrc = '<span class="fileThumb"><img src="' + staticPath
+      + '/image/filedeleted-res.gif" alt="File deleted."></span>';
+      fileInfo = '';
+    }
+    else {
+      fileDims = data.ext == '.pdf' ? 'PDF' : data.w + 'x' + data.h;
+      fileInfo = '<span class="fileText" id="fT' + data.no
+        + '">File: <a href="' + imgDir + '/' + data.tim + data.ext
+        + '" target="_blank">' + data.tim + data.ext + '</a>-(' + fileSize
+        + 'B, ' + fileDims + ', <span title="' + longFile + '">'
+        + shortFile + '</span>)</span>';
+    }
+    
+    fileBuildStart = fileInfo ? '<div class="fileInfo">' : '';
+    fileBuildEnd = fileInfo ? '</div>' : '';
+    
+    fileHtml = '<div id="f' + data.no + '" class="file">'
+      + fileBuildStart + fileInfo + fileBuildEnd + imgSrc + '</div>';
+  }
+  
+  shortSubject = data.sub;
+  if (shortSubject.length > 28) {
+    shortSubject = data.sub.replace('&#44;', ',');
+    shortSubject = '<span title="' + shortSubject + '">'
+      + shortSubject.slice(0, 23) + '(...)</span>';
+  }
+  
+  container.className = 'postContainer replyContainer';
+  container.id = 'pc' + data.no;
+  
+  container.innerHTML =
+    '<div class="sideArrows" id="sa' + data.no + '">&gt;&gt;</div>' +
+    '<div id="p' + data.no + '" class="post ' + (isOP ? 'op' : 'reply') + highlight + '">' +
+      '<div class="postInfoM mobile" id="pim' + data.no + '">' +
+        '<span class="nameBlock' + capcodeClass + '"> ' + emailStart +
+        '<span class="name">' + data.name + '</span>' +
+        emailEnd + capcodeStart + emailEnd + userId + flag +
+        '<br><span class="subject">' + data.sub +
+        '</span></span><span class="dateTime postNum" data-utc="' + data.time + '">' +
+        data.now + '<br><em><a href="' + data.no + '#p' + data.no + '">No.</a>' +
+        '<a href="javascript:quote(\'' + data.no + '\');">' + data.no + '</a></em></span>' +
+      '</div>' +
+      (isOP ? fileHtml : '') +
+      '<div class="postInfo desktop" id="pi' + data.no + '">' +
+        '<input type="checkbox" name="' + data.no + '" value="delete"> ' +
+        '<span class="subject">' + data.sub + '</span> ' +
+        '<span class="nameBlock' + capcodeClass + '"> ' +
+          emailStart + '<span class="name">' + data.name + '</span>' + emailEnd
+          + capcodeStart + emailEnd + userId + flag +
+        '</span> ' +
+  
+        '<span class="dateTime" data-utc="' + data.time + '">' + data.now + '</span> ' +
+  
+        '<span class="postNum desktop">' +
+          '<a href="' + noLink + '" title="Highlight this post">No.</a><a href="' +
+          quoteLink + '">' + data.no + '</a>' +
+        '</span>' +
+      '</div>' +
+      (isOP ? '' : fileHtml) +
+      '<blockquote class="postMessage" id="m' + data.no + '">' + data.com + '</blockquote> ' +
+    '</div>';
+    
+  return container;
+};
+
+Parser.parseBoard = function()
 {
   var i, threads = document.getElementsByClassName('thread');
   
   for (i = 0; threads[i]; ++i) {
-    parser.parseThread(threads[i].id.slice(1));
+    Parser.parseThread(threads[i].id.slice(1));
   }
 };
 
-parser.parseThread = function(tid, offset) {
+Parser.parseThread = function(tid, offset) {
   var i, thread, posts, el, key;
   
   thread = $.id('t' + tid);
   posts = thread.getElementsByClassName('post');
   
   if (!offset) {
-    if (config.threadHiding) {
+    if (Config.threadHiding) {
       el = document.createElement('span');
       el.id = 'sa' + tid;
       el.innerHTML = '<a class="extButton threadHideButton"'
-        + 'data-cmd="hide" data-tid=" href="javascript:;"'
-        + tid + '" title="Hide thread">[ - ]</a>';
+        + 'data-cmd="hide" data-tid="' + tid
+        + '" href="javascript:;" title="Hide thread">[ - ]</a>';
       posts[0].insertBefore(el, posts[0].firstChild);
-      if (threadHiding.hidden[tid]) {
-        threadHiding.hide(tid);
+      if (ThreadHiding.hidden[tid]) {
+        ThreadHiding.hide(tid);
       }
     }
-    if (config.threadWatcher) {
+    if (Config.threadWatcher) {
       el = document.createElement('a');
       el.className = 'extButton wbtn';
-      if (threadWatcher.watched[key = tid + '-' + main.board]) {
+      if (ThreadWatcher.watched[key = tid + '-' + Main.board]) {
         el.className += ' active';
         el.setAttribute('data-active', '1');
       }
@@ -623,16 +567,16 @@ parser.parseThread = function(tid, offset) {
   }
   
   for (i = offset ? posts.length - offset : 0 ; posts[i]; ++i) {
-    parser.parsePost(posts[i].id.slice(1), tid);
+    Parser.parsePost(posts[i].id.slice(1), tid);
   }
 };
 
-parser.parsePost = function(pid, tid) {
-  var img, quickReply, el, pi;
+Parser.parsePost = function(pid, tid) {
+  var img, quickReply, el, pi, href, fileText;
   
   pi = document.getElementById('pi' + pid);
   
-  if (config.quickReply) {
+  if (Config.quickReply) {
     el = document.createElement('a');
     el.className = 'extButton';
     el.setAttribute('data-cmd', 'qr');
@@ -660,369 +604,248 @@ parser.parsePost = function(pid, tid) {
   el.textContent = '[ ↑ ]';
   pi.appendChild(el);
   
-  if (config.backlinks) {
-    parser.parseBacklink(pid);
+  if (Config.imageSearch && (fileText = document.getElementById('fT' + pid))) {
+    href = fileText.firstElementChild.href;
+    el = document.createElement('span');
+    el.className = 'imageSearch';
+    el.innerHTML =
+      '<a href="http://www.google.com/searchbyimage?image_url=' + href + 
+      '" target="_blank">google</a><a href="http://iqdb.org/?url=' + href +
+      '" target="_blank">iqdb</a>';
+    fileText.parentNode.appendChild(el);
+  }
+  
+  if (Config.backlinks) {
+    Parser.parseBacklinks(pid, tid);
   }
 };
 
-parser.parseBacklink = function( postno )
+Parser.parseBacklinks = function(pid, tid)
 {
-	var len;
-
-	// Get all links
-	var links = $.ga('.quotelink', $('#m' + postno));
-	if( !(len = links.length) ) return;
-
-
-	var currentLink, href, info, board, thread, post, parent, bl, append;
-	board = main.board;
-
-	for( var i = 0; i < len; i++ ) {
-		currentLink = links[i];
-		href = currentLink.getAttribute('href');
-
-		// Is it this board?
-		if( !/(\d+)#p(\d+)$/.test(href) ) continue;
-
-		info = href.match( /(\d+)#p(\d+)$/ );
-		if( !info ) continue;
-
-		thread = info[1];
-		post = info[2];
-
-		// Can we see the post we're trying to put this backlink onto
-		parent = config.gs('x_compat') ? $('#pi' + post) : $('#p' + post);
-		if( !parent ) continue; // no.
-
-		// Yes, do we have a backlink struct already?
-		if( $('#bl_' + postno + '_' + post) ) continue;
-
-		bl = config.gs('x_compat') ? $('#pi' + post) : $('#bl' + post);
-		append = [ '<span id="bl_' + postno + '_' + post + '"><a href="#p' + postno + '" class="quotelink">&gt;&gt;' + postno + '</a></span>', ' ' ];
-
-		if( !bl && !config.gs( 'x_compat' ) ) {
-			$.append( parent, ['<hr class="backlinkHr">', '<div class="backlink" id="bl' + post + '"><strong>Replies to this post:</strong><br></div>' ] );
-			bl = $('#bl' + post);
-		}
-
-		$.append( bl, append );
-	}
-
+  var i, j, msg, backlinks, linklist, ids, target, bid, html, bl, el;
+  
+  msg = document.getElementById('m' + pid);
+  
+  if (!(backlinks = msg.getElementsByClassName('quotelink'))) {
+    return;
+  }
+  
+  linklist = {};
+  
+  for (i = 0; j = backlinks[i]; ++i) {
+    // [tid, pid]
+    ids = j.getAttribute('href').split('#');
+    
+    if (!ids[1]) {
+      continue;
+    }
+    
+    if (ids[1].slice(1) == Main.tid) {
+      j.textContent = '>>OP';
+      //j.textContent += ' (OP)';
+    }
+    
+    if (!(target = document.getElementById(ids[1]))) {
+      if (Main.tid && ids[0].charAt(0) != '/') {
+        j.className += ' crosslink';
+      }
+      continue;
+    }
+    
+    // Already processed?
+    if (linklist[ids[1]]) {
+      continue;
+    }
+    
+    linklist[ids[1]] = true;
+    
+    // Backlink node
+    bid = ids[1].slice(1);
+    bl = document.createElement('span');
+    bl.id = 'bli_' + bid + '_' + pid;
+    bl.innerHTML =
+      '<a href="#p' + pid + '" class="quotelink">&gt;&gt;' + pid + '</a>';
+    
+    // Backlinks container
+    if (!(el = document.getElementById('bl_' + bid))) {
+      el = document.createElement('hr');
+      el.className = 'backlinkHr';
+      target.appendChild(el);
+      el = document.createElement('div');
+      el.id = 'bl_' + bid;
+      el.className = 'backlink';
+      el.innerHTML = '<strong>Replies to this post:</strong><br></div>';
+      target.appendChild(el);
+    }
+    
+    el.appendChild(bl);
+  }
 };
 
-/** IMAGE RELATED FUNCTIONS **/
+/**
+ * Quote preview
+ */
+var QuotePreview = {};
 
-parser.imageSearchButton = function( e )
-{
-	var post = $.parseButton(e.target.getAttribute('id'))[1];
-	var name = e.target.getAttribute('id').match( /^(\w+?)_/ )[1].toLowerCase();
-
-	var image = 'https:' + $('#f' + post + ' .fileThumb img').getAttribute('src');
-	var url = '';
-
-	switch( name )
-	{
-		case 'google':
-			url = 'https://www.google.com/searchbyimage?image_url=' + image;
-			break;
-
-		case 'iqdb':
-
-			break;
-
-		case 'tineye':
-			url = 'https://www.tineye.com/search?url=' + image;
-			break;
-	}
-
-	window.open( url );
+QuotePreview.init = function() {
+  var thread;
+  
+  this.maxWidth = 500;
+  this.debounce = 250;
+  this.timeout = null;
+  this.xhr = null;
+  this.cachedKey = null;
+  this.cachedNode = null;
+  
+  thread = $.id('delform');
+  thread.addEventListener('mouseover', Main.onThreadMouseOver, false);
+  thread.addEventListener('mouseout', Main.onThreadMouseOut, false);
 };
 
-parser.openQuickReply = function(tid, pid)
-{
-	var threadId = tid;
-	var postNo = pid;
-
-	var comment = null, position, float = config.gs('float_qr_box'), form, qrResto, qrForm, calcLeft, calcTop;
-
-	var qrWindow = $('#qrWindow_' + threadId);
-
-	// Do we have a qrWindow already open?
-	if( qrWindow ) {
-		comment = $('textarea[name=com]', qrWindow).innerText;
-
-		// Do we already have content?
-		if( comment ) {
-			comment += config.gs('always_quote_on_new_line') ? "\n" : '';
-			comment += ">>" + post + "\n";
-		} else {
-			comment = '>>' + postNo;
-		}
-
-		if( config.gs('move_qr_window_on_click') && qrWindow.style.position != 'fixed' ) {
-
-		}
-	} else {
-		comment = '>>' + postNo + "\n";
-	}
-
-	position = $.findPos( $('#p' + postNo) );
-
-	form = $('form[name=post]').cloneNode(true);
-	form.setAttribute( 'name', 'qr_' + threadId );
-	form.setAttribute( 'id', 'qr_' + threadId );
-
-	qrResto = document.createElement('input');
-	qrResto.setAttribute( 'type', 'hidden' );
-	qrResto.setAttribute( 'name', 'resto' );
-	qrResto.setAttribute( 'value', threadId );
-
-	form.appendChild( qrResto );
-
-	qrForm =
-		'<div id="qrWindow_' + threadId + '" class="reply qrWindow preview draggable">' +
-			'<div id="qrHeader_' + threadId + '" class="postblock qrHeader">' +
-				'Quick Reply - Thread No.' + threadId +
-					'<span class="qrButtonHolder">' +
-						'<a id="qrFloat_' + threadId + '" title="Scroll With Page" href="javascript:void(0);">[ &gt; ]</a> ' +
-						'<a id="qrClose_' + threadId + '" title="Close Window" href="javascript:void(0);">[ X ]</a>' +
-					'</span>' +
-			'</div>' +
-
-			'<div id="qrForm_' + threadId + '" class="qrForm"></div>' +
-			'<div id="qrMessage_' + threadId + '"></div>' +
-		'</div>';
-
-	$('#bottom').innerHTML += qrForm;
-	$('#qrForm_' + threadId).appendChild(form);
-
-	qrWindow = $('#qrWindow_' + threadId);
-
-	calcLeft = ((window.innerWidth/2) - (qrWindow.offsetWidth/2));
-	calcTop = (position[0] + 40);
-
-	qrWindow.setAttribute( 'style', 'left: ' + calcLeft + 'px; top: ' + calcTop + 'px;' );
-
-	$.remove( '#qrWindow_' + threadId, '.rules' );
-
-	$.click( $('#qrFloat_' + threadId), function() {
-		var id = $.parseNo(this.getAttribute('id'));
-
-	});
-
-	$.click( $('#qrClose_' + threadId), function() {
-		var id = $.parseNo(this.getAttribute('id'));
-		parser.closeQrWindow(id);
-	});
-
-	$.submit($('#qrForm_' + threadId), function(e) {
-		e.preventDefault();
-
-		var id = $.parseNo(this.getAttribute('id'));
-		var form = $('#qr_' + id);
-		$.html('#qrMessage_' + id, '<div class="postblock qrMessage">Submitting post... <span id="upload_progress_' + id + '"></span></div>');
-
-		var formData = new FormData(form);
-
-		var xhr = new XMLHttpRequest();
-		xhr.open( 'POST', form.getAttribute('action') );
-		xhr.onload = function(event)
-		{
-			if( this.status == 200 ) {
-				extra.parseResponse( this.responseText, id );
-			}
-		};
-
-		var previousPercent = 0, percent = 0;
-
-		if( typeof xhr.upload.onprogress == 'object' ) {
-			var upl = $('#upload_progress_' + id);
-			xhr.upload.onprogress = function(e)
-			{
-				if( e.lengthComputable ) {
-					percent = parseInt( ((e.loaded / e.total) * 100).toString().split('.')[0]);
-
-					if( previousPercent != percent ) {
-						upl.innerText = percent + '%';
-					}
-				}
-			};
-		}
-
-		xhr.send(formData);
-		return false;
-	});
-
-	var textarea = $('#qrWindow_' + threadId + ' textarea[name=com]');
-	textarea.value = comment;
-	textarea.focus();
-
-	$.cursorToEnd(textarea);
-	$.mousedown($('#qrHeader_' + threadId), function(e) {
-		$.drag(e);
-	});
-
-	$.mouseup(document, function(e) {
-		$.endDrag(e);
-	});
+QuotePreview.resolve = function(link) {
+  var self, t, post, ids;
+  
+  self = QuotePreview;
+  
+  t = link.getAttribute('href').split('#');
+  
+  if (post = document.getElementById(t[1])) {
+    self.show(link, post);
+  }
+  else {
+    t[1] = t[1].slice(1);
+    // Crossboard
+    if (t[0].charAt(0) == '/') {
+      ids = t[0].split('/');
+      if (self.cachedKey == [ids[1], ids[3], t[1]].join('-')) {
+        console.log('From cache');
+        self.show(link, self.cachedNode, true);
+      }
+      else {
+        self.timeout = setTimeout(
+          self.showRemote,
+          self.debounce,
+          link, ids[1], ids[3], t[1]
+        );
+      }
+    }
+    // Crossthread or not in scope
+    else {
+      if (self.cachedKey == [Main.board, t[0], t[1]].join('-')) {
+        console.log('From cache');
+        self.show(link, self.cachedNode, true);
+      }
+      else {
+        self.timeout = setTimeout(
+          self.showRemote,
+          self.debounce,
+          link, Main.board, t[0], t[1]
+        );
+      }
+    }
+  }
 };
 
-parser.closeQrWindow = function(id)
-{
-	$.remove('#bottom', '#qrWindow_' + id);
+QuotePreview.showRemote = function(link, board, tid, pid) {
+  var onload, onerror;
+  
+  //console.log(board + ' ' + tid + ' ' + pid);
+  
+  link.style.cursor = 'wait';
+  
+  onload = function() {
+    var i, j, el, posts;
+    
+    link.style.cursor = null;
+    
+    if (this.status == 200 || this.status == 304 || this.status == 0) {
+      if (!QuotePreview.xhr) {
+        return;
+      }
+      
+      posts = JSON.parse(this.responseText).posts;
+      
+      for (i = 0; j = posts[i]; ++i) {
+        if (j.no != pid) {
+          continue;
+        }
+        el = $.class('post', Parser.buildHTMLFromJSON(j, board))[0];
+        el.style.display = 'none';
+        el.id = 'quote-preview';
+        
+        QuotePreview.cachedKey = [board, tid, pid].join('-');
+        QuotePreview.cachedNode = el;
+        
+        document.body.appendChild(el);
+        
+        QuotePreview.show(link, el, true);
+        
+        return;
+      }
+    }
+    else if (this.status == 404) {
+      $.addClass(link, 'deadlink');
+    }
+  };
+  
+  onerror = function() {
+    link.style.cursor = null;
+  };
+  
+  QuotePreview.xhr =
+    //$.get('//localtest.4chan.org/' + board + '/res/' + tid + '.json',
+    $.get('//api.4chan.org/' + board + '/res/' + tid + '.json',
+      {
+        onload: onload,
+        onerror: onerror
+      }
+    );
 };
 
-parser.topButtonClick = function(e)
-{
-	var info = $.parseButton(e.target.getAttribute('id'));
-
-	window.location.hash = '';
-	window.location.hash = 't' + info[0];
+QuotePreview.show = function(link, post, remote) {
+    var t, out, clr, rect, left, d, width;
+    
+    width = post.offsetWidth;
+    if (width > QuotePreview.maxWidth) {
+      width = QuotePreview.maxWidth;
+    }
+    
+    if (remote) {
+      post.style.display = null;
+    }
+    else {
+      post = post.cloneNode(true);
+      post.id = 'quote-preview';
+    }
+    
+    if ($.hasClass(post, 'op')) {
+      $.addClass(post, 'reply');
+    }
+    
+    rect = link.getBoundingClientRect();
+    left = rect.left;
+    if ((d = document.documentElement.offsetWidth - rect.left - width) < 0) {
+      left += d;
+    }
+    
+    post.style.left = left + 'px';
+    post.style.top = (rect.top + link.offsetHeight + window.scrollY) + 'px';
+    
+    document.body.appendChild(post);
 };
 
-parser.lastHoverPreview = null;
-parser.showHoverPreview = function(e)
-{
-	var href = e.target.getAttribute('href');
-
-	//console.log(e);
-
-	if( href == parser.lastHoverPreview && parser.hoverPreviewOpen ) return;
-	if( href != parser.lastHoverPreview && parser.hoverPreviewOpen ) parser.closeAllHoverPreviews();
-
-	parser.lastHoverPreview = href;
-	parser.hoverPreviewOpen = true;
-
-	var id = href.match(/#p([0-9]+)$/)[1];
-
-	var postPreview = $('#postPreview' + id);
-
-	if( !postPreview ) {
-		$.append(
-			document.body,
-			'<div id="postPreview' + id + '" class="tooltip" style="max-width: 400px; display: none"></div>'
-		);
-
-		postPreview = $('#postPreview' + id);
-	}
-
-	if( $('#hp' + id) ) {
-		parser.showTooltip( e.target, id );
-		return true;
-	}
-
-	$.html('#postPreview' + id, '<div class="post reply preview posthover" id="hpl' + id + '">Loading...</div>');
-	parser.showTooltip(e.target, id );
-
-	var board = href.match(/([a-z0-9]+)\/res/);
-	board = board ? board[1] : main.board;
-
-	var post = $('#p' + id);
-	var clone = '';
-
-	if( post ) {
-		clone = post.innerHTML;
-
-		$.html(
-			postPreview,
-			'<div id="hp' + id + '" class="post reply preview posthover" style="max-width: 400px;">' + clone + '</div>'
-		);
-
-		$.remove(
-			postPreview,
-			'.sideArrows, input, .buttons, .replyLink, .backlink, hr, a[id], span[id^=bl], .postNum'
-		);
-
-		$.append(
-			$('#hp' + id + ' .postInfo'),
-			'<span class="postNum"></span>'
-		);
-
-		$.html(
-			$('#hp' + id + ' .postInfo .postNum'),
-			[
-				$('#p' + id + ' .postNum a:nth-of-type(1)'),
-				$('#p' + id + ' .postNum a:nth-of-type(2)')
-			]
-		);
-
-		//console.log('trying to show tooltip');
-
-		parser.showTooltip(e.target, id );
-		return true;
-	}
-
-	// We can't find it, find it and display it.
-	var threadId = href.match(/([0-9]+)#/)[1];
-
-	// Open the thread
-	$.get( '//boards.4chan.org/' + board + '/res/' + threadId + '.json', function(data) {
-		data = JSON.parse(data).posts;
-		var len = data.length;
-
-		for( var i = 0; i < len; i++ ) {
-			if( data[i].no != id ) continue;
-
-			$.html(
-				postPreview,
-				'<div id="hp' + id + '" class="post reply preview posthover" style="max-width: 400px;">' + $.buildHTMLFromJSON( data[i], board ) + '</div>'
-			);
-
-			parser.showTooltip(e.target, id);
-			return true;
-		}
-	});
-
-};
-
-parser.showTooltip = function( target, id )
-{
-	var p = $('#postPreview' + id);
-	var hp = $('#hp' + id) || $('#hpl' + id);
-
-	p.setAttribute('style', 'display: inline; visibility: hidden;');
-
-	var linkOffset = $.findPos(target);
-	var linkWidth = target.offsetWidth;
-	var linkHeight = target.offsetHeight;
-	var eHeight = hp.offsetHeight;
-	var eWidth = hp.offsetWidth > 400 ? 400 : hp.offsetWidth;
-
-
-	var win = [ window.innerWidth, window.innerHeight ];
-	if ( ( linkOffset[1] + linkWidth + eWidth ) > (win[0] - 200)) {
-		var toppos = (linkOffset[0] - eHeight / 2);
-		var leftpos = (linkOffset[1] - (eWidth+30));
-		p.setAttribute('style', 'max-width: 400px; top: ' + (toppos) + 'px; left: ' + leftpos + 'px; position: absolute;');
-	} else {
-		toppos = (linkOffset[0] - eHeight / 2) - (linkHeight/2);
-		leftpos = (linkOffset[1] + linkWidth);
-		p.setAttribute('style', 'max-width: 400px; top: ' + (toppos) + 'px; left: ' + leftpos + 'px; position: absolute;');
-	}
-};
-
-parser.hoverPreviewOpen = false;
-parser.closeAllHoverPreviews = function()
-{
-	var tooltips = $.ga('.tooltip');
-	var len = tooltips.length;
-
-	for( var i = 0; i < len; i++ ) {
-		tooltips[i].setAttribute('style', 'display: none');
-	}
-
-	parser.hoverPreviewOpen = false;
-};
-
-parser.handleMouseMove = function(e)
-{
-	if( e.target.className && e.target.className === 'quotelink' ) {
-		parser.showHoverPreview(e);
-	} else {
-		if( parser.hoverPreviewOpen ) {
-			parser.closeAllHoverPreviews();
-		}
-	}
+QuotePreview.remove = function(el) {
+  var cnt;
+  
+  clearTimeout(QuotePreview.timeout);
+  el.style.cursor = null;
+  if (QuotePreview.xhr) {
+    QuotePreview.xhr.abort();
+    QuotePreview.xhr = null;
+  }
+  if (cnt = document.getElementById('quote-preview')) {
+    document.body.removeChild(cnt);
+  }
 };
 
 /**
@@ -1053,9 +876,6 @@ ImageExpansion.onExpanded = function(e) {
   this.onload = this.onerror = null;
   this.style.opacity = 1;
   $.addClass(this, 'fitToPage');
-  if (this.naturalWidth) {
-    
-  }
 };
 
 /**
@@ -1078,7 +898,7 @@ QR.show = function(tid, pid) {
     cd, qrError;
   
   if (QR.currentTid) {
-    if (!main.tid && QR.currentTid != tid) {
+    if (!Main.tid && QR.currentTid != tid) {
       $.id('qrTid').textContent = QR.currentTid = tid;
       $.byName('com')[1].value = '';
     }
@@ -1094,8 +914,8 @@ QR.show = function(tid, pid) {
   cnt.className = 'reply';
   cnt.setAttribute('data-trackpos', 'QR-position');
   
-  if (config['QR-position']) {
-    cnt.style.cssText = config['QR-position'];
+  if (Config['QR-position']) {
+    cnt.style.cssText = Config['QR-position'];
   }
   else {
     cnt.style.right = '0px';
@@ -1157,13 +977,13 @@ QR.show = function(tid, pid) {
   
   document.body.appendChild(cnt);
   
-  if (cd = localStorage.getItem('4chan-cd-' + main.board)) {
+  if (cd = localStorage.getItem('4chan-cd-' + Main.board)) {
     QR.startCooldown(cd);
   }
   
   QR.reloadCaptcha();
   
-  draggable.set($.id('qrHeader'));
+  Draggable.set($.id('qrHeader'));
 };
 
 QR.close = function() {
@@ -1171,7 +991,7 @@ QR.close = function() {
   clearInterval(QR.captchaInterval);
   QR.currentTid = null;
   cnt.removeEventListener('click', QR.onClick, false);
-  draggable.unset($.id('qrHeader'));
+  Draggable.unset($.id('qrHeader'));
   document.body.removeChild(cnt);
 };
 
@@ -1267,13 +1087,13 @@ QR.submit = function(e) {
   }
   
   if (field = $.byName('name')[1]) {
-    main.setCookie('4chan_name', field.value);
+    Main.setCookie('4chan_name', field.value);
   }
   if (field = $.byName('pwd')[1]) {
-    main.setCookie('4chan_pass', field.value);
+    Main.setCookie('4chan_pass', field.value);
   }
   if ((email = $.byName('email')[1]) && email.value != 'sage') {
-    main.setCookie('4chan_email', email.value);
+    Main.setCookie('4chan_email', email.value);
   }
   
   xhr = new XMLHttpRequest();
@@ -1313,7 +1133,7 @@ QR.submit = function(e) {
       }
       
       if (/sage/i.test(email.value)) {
-        if (main.tid) {
+        if (Main.tid) {
           cd = QR.sageDelay;
         }
         else {
@@ -1325,15 +1145,15 @@ QR.submit = function(e) {
       }
       
       cd += Date.now();
-      localStorage.setItem('4chan-cd-' + main.board, cd);
+      localStorage.setItem('4chan-cd-' + Main.board, cd);
       QR.startCooldown(cd);
       
-      if (main.tid) {
+      if (Main.tid) {
         $.byName('com')[1].value = '';
         QR.reloadCaptcha();
         qrFile = document.getElementById('qrFile').parentNode;
         qrFile.innerHTML = qrFile.innerHTML;
-        setTimeout(threadUpdater.update, 500);
+        setTimeout(ThreadUpdater.update, 500);
         return;
       }
     }
@@ -1354,7 +1174,7 @@ QR.startCooldown = function(ms) {
   
   if ((QR.cooldown = 0 | ((ms - Date.now()) / 1000)) <= 0) {
     QR.cooldown = false;
-    localStorage.removeItem('4chan-cd-' + main.board);
+    localStorage.removeItem('4chan-cd-' + Main.board);
     return;
   }
   btn.value = 'CD: ' + QR.cooldown + 's';
@@ -1363,7 +1183,7 @@ QR.startCooldown = function(ms) {
       clearInterval(interval);
       btn.value = 'Submit';
       QR.cooldown = false;
-      localStorage.removeItem('4chan-cd-' + main.board);
+      localStorage.removeItem('4chan-cd-' + Main.board);
       if (QR.auto) {
         QR.submit();
       }
@@ -1377,20 +1197,20 @@ QR.startCooldown = function(ms) {
 /**
  * Thread hiding
  */
-var threadHiding = {};
+var ThreadHiding = {};
 
-threadHiding.hidden = {};
+ThreadHiding.hidden = {};
 
-threadHiding.toggle = function(tid) {
+ThreadHiding.toggle = function(tid) {
   if ($.id('sa' + tid).hasAttribute('data-hidden')) {
-    threadHiding.show(tid);
+    ThreadHiding.show(tid);
   } else {
-    threadHiding.hide(tid);
+    ThreadHiding.hide(tid);
   }
-  threadHiding.save();
+  ThreadHiding.save();
 };
 
-threadHiding.show = function(tid) {
+ThreadHiding.show = function(tid) {
   var post, message, summary, thread, sa;
   
   post = $.id('p' + tid);
@@ -1407,10 +1227,10 @@ threadHiding.show = function(tid) {
   thread.parentNode.removeChild(summary);
   thread.style.display = 'block';
   
-  delete threadHiding.hidden[tid];
+  delete ThreadHiding.hidden[tid];
 };
 
-threadHiding.hide = function(tid) {
+ThreadHiding.hide = function(tid) {
   var summary, sa, thread;
   
   thread = $.id('t' + tid);
@@ -1428,62 +1248,63 @@ threadHiding.hide = function(tid) {
   
   thread.parentNode.insertBefore(summary, thread);
   
-  threadHiding.hidden[tid] = Date.now();
+  ThreadHiding.hidden[tid] = Date.now();
 };
 
-threadHiding.load = function() {
+ThreadHiding.load = function() {
   var now, tid, storage, purgeThreshold, purgeCount;
   
   now = Date.now();
   purgeThreshold = 7 * 86400000;
   purgeCount = 0;
   
-  if (storage = localStorage.getItem('4chan-hide-' + main.board)) {
-    threadHiding.hidden = JSON.parse(storage);
+  if (storage = localStorage.getItem('4chan-hide-' + Main.board)) {
+    ThreadHiding.hidden = JSON.parse(storage);
   }
   
-  for (tid in threadHiding.hidden) {
-    if (now - threadHiding.hidden[tid] > purgeThreshold) {
+  for (tid in ThreadHiding.hidden) {
+    if (now - ThreadHiding.hidden[tid] > purgeThreshold) {
       ++purgeCount;
-      delete threadHiding.hidden[tid];
+      delete ThreadHiding.hidden[tid];
     }
   }
   
   if (purgeCount) {
     console.log('Purged ' + purgeCount + ' hidden threads');
-    threadHiding.save();
+    ThreadHiding.save();
   }
 };
 
-threadHiding.save = function() {
-  for (var i in threadHiding.hidden) {
-    localStorage.setItem('4chan-hide-' + main.board,
-      JSON.stringify(threadHiding.hidden)
+ThreadHiding.save = function() {
+  for (var i in ThreadHiding.hidden) {
+    localStorage.setItem('4chan-hide-' + Main.board,
+      JSON.stringify(ThreadHiding.hidden)
     );
     return;
   }
-  localStorage.removeItem('4chan-hide-' + main.board);
+  localStorage.removeItem('4chan-hide-' + Main.board);
 };
 
 /**
  * Thread watcher
  */
-var threadWatcher = {
+var ThreadWatcher = {
   listNode: null,
   watched: {},
 };
 
-threadWatcher.watched = {};
+ThreadWatcher.watched = {};
 
-threadWatcher.init = function() {
+ThreadWatcher.init = function() {
   var cnt, html;
   
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
+  cnt.className = 'reply';
   cnt.setAttribute('data-trackpos', 'TW-position');
   
-  if (config['TW-position']) {
-    cnt.style.cssText = config['TW-position'];
+  if (Config['TW-position']) {
+    cnt.style.cssText = Config['TW-position'];
   }
   else {
     cnt.style.left = '10px';
@@ -1492,39 +1313,39 @@ threadWatcher.init = function() {
   
   cnt.innerHTML = '<div class="drag" id="twHeader">Thread Watcher</div>';
   
-  threadWatcher.listNode = document.createElement('ul');
-  threadWatcher.listNode.id = 'watchList';
-  threadWatcher.reload();
-  cnt.appendChild(threadWatcher.listNode);
+  ThreadWatcher.listNode = document.createElement('ul');
+  ThreadWatcher.listNode.id = 'watchList';
+  ThreadWatcher.reload();
+  cnt.appendChild(ThreadWatcher.listNode);
   
   document.body.appendChild(cnt);
   
-  cnt.addEventListener('click', threadWatcher.onClick, false);
-  draggable.set($.id('twHeader'));
+  cnt.addEventListener('click', ThreadWatcher.onClick, false);
+  Draggable.set($.id('twHeader'));
 };
 
-threadWatcher.reload = function(full) {
+ThreadWatcher.reload = function(full) {
   var i, storage, html, tuid, key, buttons, bn;
   
   html = '';
   if (storage = localStorage.getItem('4chan-watch')) {
-    threadWatcher.watched = JSON.parse(storage);
+    ThreadWatcher.watched = JSON.parse(storage);
     
-    for (key in threadWatcher.watched) {
+    for (key in ThreadWatcher.watched) {
       tuid = key.split('-');
       html += '<li id="watch-' + key
         + '"><span class="pointer" data-cmd="unwatch" data-tid="'
         + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
-        + main.linkToThread(tuid[0], tuid[1]) + '">/'
+        + Main.linkToThread(tuid[0], tuid[1]) + '">/'
         + tuid[1] + '/ - '
-        + threadWatcher.watched[key] + '</a></li>';
+        + ThreadWatcher.watched[key] + '</a></li>';
     }
     
     if (full) {
       buttons = $.class('wbtn', $.id('delform'));
       for (i = 0; btn = buttons[i]; ++i) {
-        key = btn.getAttribute('data-tid') + '-' + main.board;
-        if (threadWatcher.watched[key]) {
+        key = btn.getAttribute('data-tid') + '-' + Main.board;
+        if (ThreadWatcher.watched[key]) {
           if (!btn.hasAttribute('data-active')) {
             btn.className += ' active';
             btn.setAttribute('data-active', '1')
@@ -1540,57 +1361,59 @@ threadWatcher.reload = function(full) {
     }
   }
   
-  threadWatcher.listNode.innerHTML = html;
+  ThreadWatcher.listNode.innerHTML = html;
 };
 
-threadWatcher.onClick = function(e) {
+ThreadWatcher.onClick = function(e) {
   var t = e.target;
   if (t.hasAttribute('data-tid')) {
-    threadWatcher.toggle(
+    ThreadWatcher.toggle(
       t.getAttribute('data-tid'),
       t.getAttribute('data-board')
     );
   }
 };
 
-threadWatcher.toggle = function(tid, board, synced) {
+ThreadWatcher.toggle = function(tid, board, synced) {
   var key, label, btn;
   
-  key = tid + '-' + (board || main.board);
+  key = tid + '-' + (board || Main.board);
   
-  if (threadWatcher.watched[key]) {
-    delete threadWatcher.watched[key];
+  if (ThreadWatcher.watched[key]) {
+    delete ThreadWatcher.watched[key];
     if (btn = $.id('wbtn-' + key)) {
       btn.className = btn.className.replace(/ active/, '');
       btn.removeAttribute('data-active');
     }
   }
   else {
-    if ((label = $.class('subject', $.id('pi' + tid))[0].textContent)
-      || (label = $.id('m' + tid).textContent)) {
+    if (label = $.class('subject', $.id('pi' + tid))[0].textContent) {
       label = label.slice(0, 35);
+    }
+    else if (label = $.id('m' + tid).innerHTML) {
+      label = label.replace(/<br>/, ' ').replace(/<[^>]*?>/, '').slice(0, 35);
     }
     else {
       label = tid;
     }
-    threadWatcher.watched[key] = label;
+    ThreadWatcher.watched[key] = label;
     if (btn = $.id('wbtn-' + key)) {
       btn.className += ' active';
       btn.setAttribute('data-active', '1');
     }
   }
-  threadWatcher.save();
-  threadWatcher.reload();
+  ThreadWatcher.save();
+  ThreadWatcher.reload();
 };
 
-threadWatcher.save = function() {
-  localStorage.setItem('4chan-watch', JSON.stringify(threadWatcher.watched));
+ThreadWatcher.save = function() {
+  localStorage.setItem('4chan-watch', JSON.stringify(ThreadWatcher.watched));
 };
 
 /**
  * Thread updater
  */
-threadUpdater = {
+var ThreadUpdater = {
   unread: false,
   iconNode: null,
   defaultIcon: '',
@@ -1607,7 +1430,7 @@ threadUpdater = {
 	statusNode: null
 };
 
-threadUpdater.init = function() {
+ThreadUpdater.init = function() {
 	var frag, navlinks, el, label, postCount, head;
 	
 	postCount = document.getElementsByClassName('reply').length;
@@ -1652,7 +1475,7 @@ threadUpdater.init = function() {
 	navlinks.appendChild(frag);
 };
 
-threadUpdater.start = function() {
+ThreadUpdater.start = function() {
 	this.auto = true;
 	this.force = this.updating = false;
 	this.lastUpdated = Date.now();
@@ -1662,7 +1485,7 @@ threadUpdater.start = function() {
 	this.pulse();
 };
 
-threadUpdater.stop = function() {
+ThreadUpdater.stop = function() {
 	this.auto = this.updating = this.force = false;
 	this.statusNode.textContent = '';
 	this.setIcon(this.defaultIcon);
@@ -1671,14 +1494,14 @@ threadUpdater.stop = function() {
 	clearTimeout(this.pulseInterval);
 };
 
-threadUpdater.pulse = function() {
-	var self = threadUpdater;
+ThreadUpdater.pulse = function() {
+	var self = ThreadUpdaterhreadUpdater;
 	self.statusNode.textContent =
 		self.delay - (0 | (Date.now() - self.lastUpdated) / 1000);
 	self.pulseInterval = setTimeout(self.pulse, 1000);
 };
 
-threadUpdater.adjustDelay = function(postCount, force)
+ThreadUpdater.adjustDelay = function(postCount, force)
 {
 	if (!force) {
 		if (postCount == 0) {
@@ -1699,35 +1522,35 @@ threadUpdater.adjustDelay = function(postCount, force)
 	console.log(postCount + ' new post(s), delay is ' + this.delay + ' seconds');
 };
 
-threadUpdater.onScroll = function() {
+ThreadUpdater.onScroll = function() {
   if (document.documentElement.scrollTopMax ==
     document.documentElement.scrollTop) {
-    threadUpdater.setIcon(threadUpdater.defaultIcon);
-    threadUpdater.unread = false;
+    ThreadUpdater.setIcon(ThreadUpdater.defaultIcon);
+    ThreadUpdater.unread = false;
   }
 };
 
-threadUpdater.onUpdateClick = function(e) {
+ThreadUpdater.onUpdateClick = function(e) {
 	e.preventDefault();
-	threadUpdater.force = true;
-	threadUpdater.update();
+	ThreadUpdater.force = true;
+	ThreadUpdater.update();
 };
 
-threadUpdater.onAutoClick = function(e) {
+ThreadUpdater.onAutoClick = function(e) {
 	if (this.hasAttribute('checked')) {
 		this.removeAttribute('checked');
-		threadUpdater.stop();
+		ThreadUpdater.stop();
 	}
 	else {
 		this.setAttribute('checked', 'checked');
-		threadUpdater.start();
+		ThreadUpdater.start();
 	}
 };
 
-threadUpdater.update = function() {
+ThreadUpdater.update = function() {
 	var self, now = Date.now();
 	
-	self = threadUpdater;
+	self = ThreadUpdater;
 	
 	if (self.updating) {
 		console.log('Already updating');
@@ -1745,8 +1568,8 @@ threadUpdater.update = function() {
 	
 	self.statusNode.textContent = 'Updating...';
 	
-	//$.get('http://localtest.4chan.org/' + main.board + '/res/' + main.tid + '.json',
-	$.get('//api.4chan.org/' + main.board + '/res/' + main.tid + '.json',
+	//$.get('http://localtest.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
+	$.get('//api.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
 		{
 			onload: self.onload,
 			onerror: self.onerror,
@@ -1758,10 +1581,10 @@ threadUpdater.update = function() {
 	);
 };
 
-threadUpdater.onload = function() {
+ThreadUpdater.onload = function() {
   var i, self, nodes, thread, newposts, frag, postcount, lastrep, lastid, lastoffset;
   
-  self = threadUpdater;
+  self = ThreadUpdater;
   nodes = [];
   
   self.statusNode.textContent = '';
@@ -1769,7 +1592,7 @@ threadUpdater.onload = function() {
   if (this.status == 200) {
     self.lastModified = this.getResponseHeader('Last-Modified');
     
-    thread = document.getElementById('t' + main.tid);
+    thread = document.getElementById('t' + Main.tid);
     
     lastrep = thread.childNodes[thread.childElementCount - 1];
     lastid = +lastrep.id.slice(2);
@@ -1792,15 +1615,15 @@ threadUpdater.onload = function() {
     
     if (nodes[0]) {
       if (!self.unread) {
-        self.setIcon(self.icons[main.type]);
+        self.setIcon(self.icons[Main.type]);
       }
       
       frag = document.createDocumentFragment();
       for (i = nodes.length - 1; i >= 0; i--) {
-        frag.appendChild($.buildHTMLFromJSON(nodes[i], main.board));
+        frag.appendChild(Parser.buildHTMLFromJSON(nodes[i], Main.board));
       }
       thread.appendChild(frag);
-      parser.parseThread(thread.id.slice(1), nodes.length);
+      Parser.parseThread(thread.id.slice(1), nodes.length);
       window.scrollBy(0, lastrep.offsetTop - lastoffset);
     }
   }
@@ -1820,28 +1643,28 @@ threadUpdater.onload = function() {
   self.updating = self.force = false;
 };
 
-threadUpdater.onerror = function() {
-	var self = threadUpdater;
+ThreadUpdater.onerror = function() {
+	var self = ThreadUpdater;
 	self.statusNode.textContent = 'Connection Error';
 	self.lastUpdated = Date.now();
 	self.adjustDelay(0, self.force);
 	self.updating = self.force = false;
 };
 
-threadUpdater.onabort = function() {
+ThreadUpdater.onabort = function() {
 	// body...
 };
 
-threadUpdater.ontimeout = function() {
+ThreadUpdater.ontimeout = function() {
 	// body...
 };
 
-threadUpdater.setIcon = function(data) {
+ThreadUpdater.setIcon = function(data) {
   this.iconNode.href = data;
   document.head.appendChild(this.iconNode);
 };
 
-threadUpdater.icons = {
+ThreadUpdater.icons = {
   ws: 'data:image/gif;base64,R0lGODlhEAAQAJEDAC6Xw////wAAAAAAACH5BAEAAAMALAAAAAAQABAAAAI2nI+pq+L9jABUoFkPBs5Rrn1cEGyg1Alkai1qyVxrPLCdW63Z9aU9v9u0JJzT5JiwDGtMGqMAADs=',
   nws: 'data:image/gif;base64,R0lGODlhEAAQAJEDAP///2bMMwAAAAAAACH5BAEAAAMALAAAAAAQABAAAAI2nI+pq+L9jAhUoFkPDs5Rrn0cAGyg1Alkai1qyVxrPLCdW63Z9aU9v9u0JJzT5JiwDGtMGqMAADs=',
   dead: 'data:image/gif;base64,R0lGODlhEAAQAJECAAAAAPAAAAAAAAAAACH5BAEAAAIALAAAAAAQABAAAAIvlI+pq+P9zAh0oFkPDlbs7lFZKIJOJJ3MyraoB14jFpOcVMpzrnF3OKlZYsMWowAAOw=='
@@ -1850,53 +1673,53 @@ threadUpdater.icons = {
 /**
  * Draggable helper
  */
-draggable = {
+var Draggable = {
   el: null,
   key: null,
   dx: null, dy: null, right: null, bottom: null,
   
   set: function(handle) {
-    handle.addEventListener('mousedown', draggable.startDrag, false);
+    handle.addEventListener('mousedown', Draggable.startDrag, false);
   },
   
   unset: function(handle) {
-    handle.removeEventListener('mousedown', draggable.startDrag, false);
+    handle.removeEventListener('mousedown', Draggable.startDrag, false);
   },
   
   startDrag: function(e) {
     var offs;
     e.preventDefault();
-    draggable.el = this.parentNode;
-    draggable.key = draggable.el.getAttribute('data-trackpos');
-    offs = draggable.el.getBoundingClientRect();
-    draggable.dx = e.clientX - offs.left;
-    draggable.dy = e.clientY - offs.top;
-    draggable.right = document.documentElement.clientWidth - offs.width;
-    draggable.bottom = document.documentElement.clientHeight - offs.height;
-    document.addEventListener('mouseup', draggable.endDrag, false);
-    document.addEventListener('mousemove', draggable.onDrag, false);
+    Draggable.el = this.parentNode;
+    Draggable.key = Draggable.el.getAttribute('data-trackpos');
+    offs = Draggable.el.getBoundingClientRect();
+    Draggable.dx = e.clientX - offs.left;
+    Draggable.dy = e.clientY - offs.top;
+    Draggable.right = document.documentElement.clientWidth - offs.width;
+    Draggable.bottom = document.documentElement.clientHeight - offs.height;
+    document.addEventListener('mouseup', Draggable.endDrag, false);
+    document.addEventListener('mousemove', Draggable.onDrag, false);
   },
   
   endDrag: function(e) {
-    document.removeEventListener('mouseup', draggable.endDrag, false);
-    document.removeEventListener('mousemove', draggable.onDrag, false);
-    if (draggable.key) {
-      config[draggable.key] = draggable.el.style.cssText;
-      config.save();
+    document.removeEventListener('mouseup', Draggable.endDrag, false);
+    document.removeEventListener('mousemove', Draggable.onDrag, false);
+    if (Draggable.key) {
+      Config[Draggable.key] = Draggable.el.style.cssText;
+      Config.save();
     }
-    delete draggable.el;
+    delete Draggable.el;
   },
   
   onDrag: function(e) {
     var left, top, style;
-    left = e.clientX - draggable.dx;
-    top = e.clientY - draggable.dy;
-    style = draggable.el.style;
+    left = e.clientX - Draggable.dx;
+    top = e.clientY - Draggable.dy;
+    style = Draggable.el.style;
     if (left < 1) {
       style.left = '0px';
       style.right = null;
     }
-    else if (draggable.right < left) {
+    else if (Draggable.right < left) {
       style.left = null;
       style.right = '0px';
     }
@@ -1908,7 +1731,7 @@ draggable = {
       style.top = '0px';
       style.bottom = null;
     }
-    else if (draggable.bottom < top) {
+    else if (Draggable.bottom < top) {
       style.bottom = '0px';
       style.top = null;
     }
@@ -1922,55 +1745,57 @@ draggable = {
 /**
  * Settings menu
  */
-var settingsMenu = {};
+var SettingsMenu = {};
 
-settingsMenu.options = {
+SettingsMenu.options = {
   threadHiding: 'Thread hiding',
   threadWatcher: 'Thread watcher',
   threadUpdater: 'Thread updater',
   imageExpansion: 'Image expansion',
   pageTitle: 'Excerpts in page title',
   backlinks: 'Backlinks',
-  quotePreview: 'Quote previews',
-  quickReply: 'Quick reply'
+  quotePreview: 'Quote preview',
+  quickReply: 'Quick reply',
+  imageSearch: 'Image search'
 };
 
-settingsMenu.save = function() {
+SettingsMenu.save = function() {
   var i, options, el, key;
   
   options = $.id('settingsMenu').getElementsByClassName('menuOption');
   
   for (i = 0; el = options[i]; ++i) {
     key = el.getAttribute('data-option');
-    config[key] = el.type == 'checkbox' ? el.checked : el.value;
+    Config[key] = el.type == 'checkbox' ? el.checked : el.value;
   }
   
-  config.save();
-  settingsMenu.close();
+  Config.save();
+  SettingsMenu.close();
 };
 
-settingsMenu.toggle = function(e) {
+SettingsMenu.toggle = function(e) {
   e.preventDefault();
   if ($.id('settingsMenu')) {
-    settingsMenu.close();
+    SettingsMenu.close();
   }
   else {
-    settingsMenu.open(this.id == 'settingsWindowLinkBot');
+    SettingsMenu.open(this.id == 'settingsWindowLinkBot');
   }
 };
 
-settingsMenu.open = function(bottom) {
+SettingsMenu.open = function(bottom) {
   var key, html, btn;
   
   cnt = document.createElement('div');
   cnt.id = 'settingsMenu';
+  cnt.className = 'reply';
   cnt.style[bottom ? 'bottom' : 'top'] = '20px';
   
   html = '';
-  for (key in settingsMenu.options) {
+  for (key in SettingsMenu.options) {
     html += '<label><input type="checkbox" class="menuOption" data-option="'
-      + key + '"' + (config[key] ? ' checked="checked">' : '>')
-      + settingsMenu.options[key] + '</label>';
+      + key + '"' + (Config[key] ? ' checked="checked">' : '>')
+      + SettingsMenu.options[key] + '</label>';
   }
   
   cnt.innerHTML = html + '<hr>';
@@ -1978,13 +1803,13 @@ settingsMenu.open = function(bottom) {
   btn = document.createElement('button');
   btn.id = 'settingsSave';
   btn.textContent = 'Save';
-  btn.addEventListener('click', settingsMenu.save, false);
+  btn.addEventListener('click', SettingsMenu.save, false);
   cnt.appendChild(btn);
   
   btn = document.createElement('button');
   btn.id = 'settingsClose';
   btn.textContent = 'Close';
-  btn.addEventListener('click', settingsMenu.close, false);
+  btn.addEventListener('click', SettingsMenu.close, false);
   cnt.appendChild(btn);
   
   btn = document.createElement('button');
@@ -1995,16 +1820,16 @@ settingsMenu.open = function(bottom) {
   document.body.appendChild(cnt);
 };
 
-settingsMenu.close = function() {
-  $.id('settingsSave').removeEventListener('click', settingsMenu.save, false);
-  $.id('settingsClose').removeEventListener('click', settingsMenu.close, false);
+SettingsMenu.close = function() {
+  $.id('settingsSave').removeEventListener('click', SettingsMenu.save, false);
+  $.id('settingsClose').removeEventListener('click', SettingsMenu.close, false);
   document.body.removeChild($.id('settingsMenu'));
 };
 
 /**
  * Config
  */
-var config = {
+var Config = {
   threadHiding: true,
   threadWatcher: true,
   threadUpdater: true,
@@ -2012,97 +1837,98 @@ var config = {
   pageTitle: true,
   backlinks: true,
   quotePreview: true,
-  quickReply: true
+  quickReply: true,
+  imageSearch: true
 };
 
-config.load = function() {
+Config.load = function() {
   if (storage = localStorage.getItem('4chan-settings')) {
     storage = JSON.parse(storage);
-    $.extend(config, storage);
+    $.extend(Config, storage);
   }
 };
 
-config.save = function() {
-  localStorage.setItem('4chan-settings', JSON.stringify(config));
+Config.save = function() {
+  localStorage.setItem('4chan-settings', JSON.stringify(Config));
 };
 
 /**
  * Main
  */
-var main = {};
+var Main = {};
 
-main.init = function()
+Main.init = function()
 {
   //var start = Date.now();
   var params, storage;
   
-  document.removeEventListener('DOMContentLoaded', main.init, false);
+  document.removeEventListener('DOMContentLoaded', Main.init, false);
   
-  injCss();
+  Main.addCSS();
   
-  main.type = style_group.split('_')[0];
+  Main.type = style_group.split('_')[0];
   
   params = location.pathname.split(/\//);
-  main.board = params[1];
-  main.tid = params[3];
+  Main.board = params[1];
+  Main.tid = params[3];
   
-  config.load();
+  Config.load();
   
-  if (config.quickReply) {
+  if (Config.quickReply) {
     if (!window.FormData) {
-      console.log("QR: Your browser doesn't support XHR2");
-      config.quickReply = false;
+      console.log("This browser doesn't support XHR2");
+      Config.quickReply = false;
     }
     else {
       QR.init();
     }
   }
   
-  if (config.threadHiding) {
-    threadHiding.load();
+  if (Config.threadHiding) {
+    ThreadHiding.load();
   }
   
-  if (config.threadWatcher) {
-    threadWatcher.init();
+  if (Config.threadWatcher) {
+    ThreadWatcher.init();
   }
   
-  if (main.tid) {
-    if (config.pageTitle) {
-      main.setTitle();
+  if (Main.tid) {
+    if (Config.pageTitle) {
+      Main.setTitle();
     }
-    parser.parseThread(main.tid);
-    if (config.threadUpdater) {
-      threadUpdater.init();
+    Parser.parseThread(Main.tid);
+    if (Config.threadUpdater) {
+      ThreadUpdater.init();
     }
   }
   else {
-    parser.parseBoard();
+    Parser.parseBoard();
   }
   
-  if (config.quotePreview) {
-    $.mousemove(document, parser.handleMouseMove);
+  if (Config.quotePreview) {
+    QuotePreview.init();
   }
   
-  $.id('delform').addEventListener('click', main.onThreadClick, false);
-  window.addEventListener('storage', main.syncStorage, false);
+  $.id('delform').addEventListener('click', Main.onThreadClick, false);
+  window.addEventListener('storage', Main.syncStorage, false);
   
-  $.id('settingsWindowLink').addEventListener('click', settingsMenu.toggle, false);
-  $.id('settingsWindowLinkBot').addEventListener('click', settingsMenu.toggle, false);
+  $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
+  $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
 	
 	//console.info('4chanJS took: ' + (Date.now() - start) + 'ms');
 };
 
-main.setTitle = function() {
+Main.setTitle = function() {
   var title;
   
-  title = $.class('subject', $.id('pi' + main.tid))[0].textContent ||
-    $.id('m' + main.tid).textContent.replace(/<br>/g, ' ').slice(0, 30) ||
-    main.tid;
+  title = $.class('subject', $.id('pi' + Main.tid))[0].textContent ||
+    $.id('m' + Main.tid).textContent.replace(/<br>/g, ' ').slice(0, 30) ||
+    Main.tid;
   
-  document.title = '/' + main.board + '/ - ' + title;
+  document.title = '/' + Main.board + '/ - ' + title;
 };
 
-main.quotePost = function(pid, qr) {
+Main.quotePost = function(pid, qr) {
   var q, pos, sel, ta;
   
   if (qr) {
@@ -2133,7 +1959,7 @@ main.quotePost = function(pid, qr) {
   }
 };
 
-main.setCookie = function(key, value) {
+Main.setCookie = function(key, value) {
   var d = new Date();
   d.setTime(d.getTime() + 7 * 86400000);
   document.cookie =
@@ -2142,7 +1968,7 @@ main.setCookie = function(key, value) {
     'path=/; domain=.4chan.org';
 };
 
-main.syncStorage = function(e) {
+Main.syncStorage = function(e) {
   var key = e.key.split('-');
   
   if (key[0] != '4chan') {
@@ -2150,14 +1976,14 @@ main.syncStorage = function(e) {
   }
   
   if (key[1] == 'watch' && e.newValue) {
-    threadWatcher.reload(true);
+    ThreadWatcher.reload(true);
   }
-  else if (key[1] == 'cd' && e.newValue && main.board == key[2]) {
+  else if (key[1] == 'cd' && e.newValue && Main.board == key[2]) {
     QR.startCooldown(e.newValue);
   }
 }
 
-main.onThreadClick = function(e) {
+Main.onThreadClick = function(e) {
   var t, ids, cmd;
   
   t = e.target;
@@ -2167,40 +1993,230 @@ main.onThreadClick = function(e) {
     if (cmd == 'qr') {
       ids = t.getAttribute('data-tid').split('-'); // tid, pid
       QR.show(ids[0], ids[1]);
-      main.quotePost(ids[1], true);
+      Main.quotePost(ids[1], true);
     }
     else if (cmd == 'hide') {
-      threadHiding.toggle(t.getAttribute('data-tid'));
+      ThreadHiding.toggle(t.getAttribute('data-tid'));
     }
     else if (cmd == 'watch') {
-      threadWatcher.toggle(t.getAttribute('data-tid'));
+      ThreadWatcher.toggle(t.getAttribute('data-tid'));
     }
     else if (cmd == 'report') {
-      main.reportPost(t.getAttribute('data-tid'));
+      Main.reportPost(t.getAttribute('data-tid'));
     }
     else if (cmd == 'totop') {
       location.href += '#top';
     }
   }
-  else if (config.imageExpansion && e.which == 1
+  else if (Config.imageExpansion && e.which == 1
     && t.hasAttribute('data-md5')) {
     e.preventDefault();
     ImageExpansion.expand(t);
   }
 }
 
-main.reportPost = function(pid) {
+Main.onThreadMouseOver = function(e) {
+  if (Config.quotePreview && $.hasClass(e.target, 'quotelink')) {
+    QuotePreview.resolve(e.target);
+  }
+}
+
+Main.onThreadMouseOut = function(e) {
+  if (Config.quotePreview && $.hasClass(e.target, 'quotelink')) {
+    QuotePreview.remove(e.target);
+  }
+}
+
+
+Main.addCSS = function()
+{
+  var style, css = '\
+.postHidden blockquote,\
+.postHidden hr,\
+.postHidden > div:not(.postInfo),\
+.postHidden .file,\
+.postHidden .buttons {\
+  display: none !important;\
+}\
+.postHidden {\
+  padding-right: 5px!important;\
+}\
+.preview div.post div.file div.fileInfo {\
+  margin-left: 0px !important;\
+}\
+.threadHideButton {\
+  float: left;\
+  margin-right: 5px;\
+}\
+\
+div.op > span .postHideButtonCollapsed {\
+  margin-right: 1px;\
+}\
+.postInfo,\
+.file {\
+  white-space: nowrap;\
+  text-overflow: ellipsis;\
+}\
+.extButton {\
+  cursor: pointer;\
+  color: inherit;\
+  text-decoration: none;\
+  font-size: 0.9em;\
+  margin-left: 5px;\
+}\
+.ext_fourohfour {\
+  padding: 5px;\
+  text-align: center;\
+}\
+#threadUpdateStatus {\
+  margin-left: 0.5ex;\
+}\
+.summary .postInfo {\
+  display: inline;\
+}\
+#settingsMenu {\
+  position: fixed;\
+  display: inline-block;\
+  right: 20px;\
+  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.35);\
+  padding: 3px;\
+}\
+#settingsMenu label {\
+  display: block;\
+  user-select: none;\
+  -moz-user-select: none;\
+  -webkit-user-select: none;\
+}\
+.pointer {\
+  cursor: pointer;\
+}\
+.drag {\
+  cursor: move;\
+  user-select: none;\
+  -moz-user-select: none;\
+  -webkit-user-select: none;\
+}\
+.active {\
+  font-weight: bold;\
+}\
+#quickReply {\
+  position: fixed;\
+  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.35);\
+}\
+#qrHeader {\
+  padding: 5px;\
+  text-align: center;\
+  line-height: 1em;\
+}\
+#qrClose {\
+  float: right;\
+  font-size: 1.5em;\
+  text-decoration: none;\
+}\
+#qrCaptcha {\
+  width: 300px;\
+  cursor: pointer;\
+  border: 1px solid #DFDFDF;\
+}\
+#qrCapField {\
+  border: 1px solid #aaa;\
+  width: 300px;\
+  padding: 0;\
+  margin-bottom: 2px;\
+  font-size: 11pt;\
+  display: block;\
+}\
+#threadWatcher {\
+  max-width: 250px;\
+  display: block;\
+  position: absolute;\
+  padding: 3px;\
+  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.35);\
+}\
+#watchList {\
+  margin: 0;\
+  padding: 0;\
+  user-select: none;\
+  -moz-user-select: none;\
+  -webkit-user-select: none;\
+}\
+#watchList a {\
+  text-decoration: none;\
+}\
+#watchList li {\
+  overflow: hidden;\
+  white-space: nowrap;\
+  text-overflow: ellipsis;\
+}\
+#qrCapField:invalid {\
+  box-shadow: none;\
+}\
+#qrError {\
+  display: none;\
+  padding: 5px;\
+  font-family: monospace;\
+  background-color: #E62020;\
+  color: white;\
+  padding: 3px 5px;\
+  text-shadow: 0 1px rgba(0, 0, 0, 0.20);\
+  font-size: 0.8em;\
+}\
+#qrError a {\
+  color: white;\
+}\
+.fitToPage {\
+  width: 100%;\
+  max-width: 100%;\
+}\
+.imageSearch {\
+  margin-left: 7px;\
+}\
+.imageSearch a {\
+  color: inherit;\
+  margin-left: 5px;\
+  text-decoration: none;\
+}\
+.imageSearch a:hover {\
+  text-decoration: underline;\
+}\
+.imageSearch:before {\
+  content: "»";\
+}\
+.crosslink:after {\
+  content: " →";\
+}\
+#quote-preview {\
+  position: absolute;\
+  box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.35);\
+  padding: 3px 6px 6px 3px;\
+}\
+#quote-preview img {\
+  max-width: 152px;\
+  max-height: 152px;\
+}\
+.deadlink {\
+  text-decoration: line-through;\
+}\
+';
+
+  style = document.createElement('style');
+  style.setAttribute('type', 'text/css');
+  style.textContent = css;
+  (document.head || $.tag('head')[0]).appendChild(style);
+};
+
+Main.reportPost = function(pid) {
   window.open('https://sys.4chan.org/'
-    + main.board + '/imgboard.php?mode=report&no=' + pid
+    + Main.board + '/imgboard.php?mode=report&no=' + pid
     , Date.now(),
     "toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,width=680,height=200");
 };
 
-main.linkToThread = function(tid, board) {
-  return '//' + location.host + '/' + (board || main.board) + '/res/' + tid;
+Main.linkToThread = function(tid, board) {
+  return '//' + location.host + '/' + (board || Main.board) + '/res/' + tid;
 };
 
-config.firstRun = function()
+Config.firstRun = function()
 {
 	var settings = {
 		"disable_all_features":"false",
@@ -2330,7 +2346,7 @@ config.firstRun = function()
 	localStorage['4chanext_firstrun'] = 'true';
 };
 
-config.gs = function( opt )
+Config.gs = function( opt )
 {
 	var setting = localStorage['4chanext_' + opt];
 	if( setting === 'true' ) return true;
@@ -2339,164 +2355,14 @@ config.gs = function( opt )
 	return setting;
 };
 
-config.ss = function( opt, setting )
+Config.ss = function( opt, setting )
 {
 	localStorage['4chanext_' + opt] = setting;
 };
 
-/********************************
- *                              *
- *          END: CONFIG         *
- *                              *
- ********************************/
-
-injCss = function()
-{
-	var css = '\
-<style type="text/css">\
-.postHidden blockquote, .postHidden hr, .postHidden > div:not(.postInfo), .postHidden .file, .postHidden .buttons {\
-	display: none!important;\
-}\
-.postHidden {\
-	padding-right: 5px!important;\
-}\
-.preview div.post div.file div.fileInfo {\
-	margin-left: 0px!important;\
-}\
-.threadHideButton {\
-	float: left;\
-	margin-right: 5px;\
-}\
-\
-div.op > span .postHideButtonCollapsed {\
-	margin-right: 1px;\
-}\
-.extButton {\
-  cursor: pointer;\
-  color: inherit;\
-	text-decoration: none;\
-	font-size: 0.9em;\
-	margin-left: 5px;\
-	white-space: nowrap;\
-}\
-.ext_fourohfour {\
-	padding: 5px;\
-	text-align: center;\
-}\
-#threadUpdateStatus {\
-  margin-left: 0.5ex;\
-}\
-.summary .postInfo {\
-	display: inline;\
-}\
-.qrHeader {\
-  cursor: move;\
-  user-select: none;\
-  -moz-user-select: none;\
-  -webkit-user-select: none;\
-}\
-#settingsMenu {\
-  position: fixed;\
-  display: inline-block;\
-  right: 20px;\
-  background: #D9BFB7;\
-  border: 1px solid gray;\
-  padding: 3px;\
-}\
-#settingsMenu label {\
-  display: block;\
-  user-select: none;\
-  -moz-user-select: none;\
-  -webkit-user-select: none;\
-}\
-.pointer {\
-  cursor: pointer;\
-}\
-.drag {\
-  cursor: move;\
-  user-select: none;\
-  -moz-user-select: none;\
-  -webkit-user-select: none;\
-}\
-.active {\
-  font-weight: bold;\
-}\
-#qrCaptcha {\
-  width: 300px;\
-  cursor: pointer;\
-}\
-#quickReply {\
-  position: fixed;\
-  box-shadow: 0px 0px 2px rgba(0,0,0,0.5);\
-}\
-#qrHeader {\
-  padding: 5px;\
-  text-align: center;\
-  line-height: 1em;\
-}\
-#qrClose {\
-  float: right;\
-  font-size: 1.5em;\
-  text-decoration: none;\
-}\
-#qrCaptcha {\
-  border: 1px solid #DFDFDF;\
-}\
-#qrCapField {\
-  border: 1px solid #aaa;\
-  width: 300px;\
-  padding: 0;\
-  margin-bottom: 2px;\
-  font-size: 11pt;\
-  display: block;\
-}\
-#threadWatcher {\
-  max-width: 250px;\
-  position: absolute;\
-  background: #D9BFB7;\
-  border: 1px solid gray;\
-  padding: 3px;\
-}\
-#watchList {\
-  margin: 0;\
-  padding: 0;\
-}\
-#watchList a {\
-  text-decoration: none;\
-}\
-#watchList li {\
-  overflow: hidden;\
-  white-space: nowrap;\
-  text-overflow: ellipsis;\
-}\
-#qrCapField:invalid {\
-  box-shadow: none;\
-}\
-#qrError {\
-  display: none;\
-  padding: 5px;\
-  font-family: monospace;\
-  background-color: #E62020;\
-  color: white;\
-  padding: 3px 5px;\
-  text-shadow: 0 1px rgba(0,0,0,0.2);\
-  font-size: 0.8em;\
-}\
-#qrError a {\
-  color: white;\
-}\
-.fitToPage {\
-  width: 100%;\
-}\
-</style>\
-';
-
-	$.append(document.body, css);
-};
-
 if (['interactive', 'complete'].indexOf(document.readyState) != -1) {
-  main.init();
+  Main.init();
 }
 else {
-  document.addEventListener('DOMContentLoaded', main.init, false);
+  document.addEventListener('DOMContentLoaded', Main.init, false);
 }

@@ -505,6 +505,7 @@ QuotePreview.init = function() {
   this.xhr = null;
   this.cachedKey = null;
   this.cachedNode = null;
+  this.highlight = null;
   
   thread = $.id('delform');
   thread.addEventListener('mouseover', Main.onThreadMouseOver, false);
@@ -512,7 +513,7 @@ QuotePreview.init = function() {
 };
 
 QuotePreview.resolve = function(link) {
-  var self, t, post, ids;
+  var self, t, post, ids, offset;
   
   self = QuotePreview;
   
@@ -526,6 +527,15 @@ QuotePreview.resolve = function(link) {
   
   // Quoted post in scope
   if (post = document.getElementById('p' + t[3])) {
+    // Visible?
+    offset = post.getBoundingClientRect();
+    if (offset.top > 0
+        && offset.bottom < document.documentElement.clientHeight) {
+      this.highlight = post;
+      $.addClass(post, 'highlight');
+      return;
+    }
+    // Nope
     self.show(link, post);
   }
   // Quoted post out of scope
@@ -638,12 +648,17 @@ QuotePreview.show = function(link, post, remote) {
 QuotePreview.remove = function(el) {
   var cnt;
   
+  if (QuotePreview.highlight) {
+    $.removeClass(QuotePreview.highlight, 'highlight');
+  }
+  
   clearTimeout(QuotePreview.timeout);
   el.style.cursor = null;
   if (QuotePreview.xhr) {
     QuotePreview.xhr.abort();
     QuotePreview.xhr = null;
   }
+  
   if (cnt = document.getElementById('quote-preview')) {
     document.body.removeChild(cnt);
   }
@@ -2046,6 +2061,10 @@ div.op > span .postHideButtonCollapsed {\
   position: absolute;\
   box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
   padding: 3px 6px 6px 3px;\
+}\
+#quote-preview img {\
+  max-width: 152px;\
+  max-height: 152px;\
 }\
 .deadlink {\
   text-decoration: line-through;\

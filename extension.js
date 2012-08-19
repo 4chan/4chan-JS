@@ -654,22 +654,33 @@ QuotePreview.remove = function(el) {
  */
 ImageExpansion = {};
 
-ImageExpansion.expand = function(img)
+ImageExpansion.expand = function(thumb)
 {
-  img.onload = img.onerror = null;
-  if (img.hasAttribute('style')) {
-    img.removeAttribute('style');
-  }
-  if (!$.hasClass(img, 'fitToPage')) {
-    img.style.opacity = 0.5;
-    img.setAttribute('data-thumburl', img.getAttribute('src'));
-    img.onload = ImageExpansion.onExpanded;
-    img.onerror = ImageExpansion.onExpanded;
-    img.setAttribute('src', img.parentNode.getAttribute('href'));
+  var img;
+  
+  img = document.createElement('img');
+  img.alt = 'Image';
+  img.className = 'fitToPage';
+  img.setAttribute('src', thumb.parentNode.getAttribute('href'));
+  thumb.parentNode.parentNode.style.display = 'table';
+  thumb.style.display = 'none';
+  thumb.parentNode.appendChild(img);
+};
+
+ImageExpansion.contract = function(img) {
+  var p = img.parentNode;
+  
+  p.parentNode.style.display = '';
+  p.firstChild.style.display = '';
+  p.removeChild(img);
+};
+
+ImageExpansion.toggle = function(t) {
+  if (t.hasAttribute('data-md5')) {
+    ImageExpansion.expand(t);
   }
   else {
-    img.setAttribute('src', img.getAttribute('data-thumburl'));
-    $.removeClass(img, 'fitToPage');
+    ImageExpansion.contract(t);
   }
 };
 
@@ -1854,9 +1865,9 @@ Main.onThreadClick = function(e) {
     }
   }
   else if (Config.imageExpansion && e.which == 1
-    && t.hasAttribute('data-md5')) {
+      && $.hasClass(t.parentNode, 'fileThumb')) {
     e.preventDefault();
-    ImageExpansion.expand(t);
+    ImageExpansion.toggle(t);
   }
 }
 
@@ -1894,11 +1905,6 @@ Main.addCSS = function()
 }\
 div.op > span .postHideButtonCollapsed {\
   margin-right: 1px;\
-}\
-.postInfo,\
-.file {\
-  white-space: nowrap;\
-  text-overflow: ellipsis;\
 }\
 .extControls {\
   display: inline;\

@@ -445,7 +445,7 @@ Parser.parseBacklinks = function(pid, tid)
     // Backlink node
     bl = document.createElement('span');
     bl.innerHTML =
-      '<a href="#p' + pid + '" class="quotelink">&gt;&gt;' + pid + '</a>';
+      '<a href="#p' + pid + '" class="quotelink">&gt;&gt;' + pid + '</a> ';
     
     // Backlinks container
     if (!(el = document.getElementById('bl_' + ids[1]))) {
@@ -2020,6 +2020,10 @@ div.op > span .postHideButtonCollapsed {\
 div.backlink {\
   margin-left: 15px;\
   font-size: 0.8em !important;\
+}\
+.backlink span {\
+  padding: 0;\
+  margin-left: 2px;\
 }\
 ';
 

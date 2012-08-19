@@ -1115,6 +1115,7 @@ ThreadHiding.save = function() {
  */
 var ThreadWatcher = {
   listNode: null,
+  charLimit: 40,
   watched: {},
 };
 
@@ -1134,6 +1135,14 @@ ThreadWatcher.init = function() {
   else {
     cnt.style.left = '10px';
     cnt.style.top = '100px';
+  }
+  
+  if (Config.fixedThreadWatcher) {
+    console.log('fixed');
+    cnt.style.position = 'fixed';
+  }
+  else {
+    cnt.style.position = null;
   }
   
   cnt.innerHTML = '<div class="drag" id="twHeader">Thread Watcher</div>';
@@ -1213,10 +1222,11 @@ ThreadWatcher.toggle = function(tid, board, synced) {
   }
   else {
     if (label = $.class('subject', $.id('pi' + tid))[0].textContent) {
-      label = label.slice(0, 35);
+      label = label.slice(0, ThreadWatcher.charLimit);
     }
     else if (label = $.id('m' + tid).innerHTML) {
-      label = label.replace(/<br>/, ' ').replace(/<[^>]*?>/, '').slice(0, 35);
+      label = label.replace(/<br>/, ' ')
+        .replace(/<[^>]*?>/, '').slice(0, ThreadWatcher.charLimit);
     }
     else {
       label = tid;
@@ -1493,6 +1503,8 @@ ThreadUpdater.icons = {
 var Draggable = {
   el: null,
   key: null,
+  scrollX: null,
+  scrollY: null,
   dx: null, dy: null, right: null, bottom: null,
   
   set: function(handle) {
@@ -1504,17 +1516,31 @@ var Draggable = {
   },
   
   startDrag: function(e) {
-    var offs;
+    var self, doc, offs;
+    
     e.preventDefault();
-    Draggable.el = this.parentNode;
-    Draggable.key = Draggable.el.getAttribute('data-trackpos');
-    offs = Draggable.el.getBoundingClientRect();
-    Draggable.dx = e.clientX - offs.left;
-    Draggable.dy = e.clientY - offs.top;
-    Draggable.right = document.documentElement.clientWidth - offs.width;
-    Draggable.bottom = document.documentElement.clientHeight - offs.height;
-    document.addEventListener('mouseup', Draggable.endDrag, false);
-    document.addEventListener('mousemove', Draggable.onDrag, false);
+    
+    self = Draggable;
+    doc = document.documentElement;
+    
+    self.el = this.parentNode;
+    self.key = self.el.getAttribute('data-trackpos');
+    offs = self.el.getBoundingClientRect();
+    self.dx = e.clientX - offs.left;
+    self.dy = e.clientY - offs.top;
+    self.right = doc.clientWidth - offs.width;
+    self.bottom = doc.clientHeight - offs.height;
+    
+    if (getComputedStyle(self.el, null).position != 'fixed') {
+      self.scrollX = window.scrollX;
+      self.scrollY = window.scrollY;
+    }
+    else {
+      self.scrollX = self.scrollY = 0;
+    }
+    
+    document.addEventListener('mouseup', self.endDrag, false);
+    document.addEventListener('mousemove', self.onDrag, false);
   },
   
   endDrag: function(e) {
@@ -1529,8 +1555,8 @@ var Draggable = {
   
   onDrag: function(e) {
     var left, top, style;
-    left = e.clientX - Draggable.dx;
-    top = e.clientY - Draggable.dy;
+    left = e.clientX - Draggable.dx + Draggable.scrollX;
+    top = e.clientY - Draggable.dy + Draggable.scrollY;
     style = Draggable.el.style;
     if (left < 1) {
       style.left = '0px';
@@ -1565,6 +1591,7 @@ var Draggable = {
 var Config = {
   threadHiding: true,
   threadWatcher: true,
+  fixedThreadWatcher: false,
   threadUpdater: true,
   imageExpansion: true,
   pageTitle: true,
@@ -1595,6 +1622,7 @@ var SettingsMenu = {};
 SettingsMenu.options = {
   threadHiding: 'Thread hiding',
   threadWatcher: 'Thread watcher',
+  fixedThreadWatcher: 'Fixed thread watcher',
   threadUpdater: 'Thread updater',
   imageExpansion: 'Image expansion',
   pageTitle: 'Excerpts in page title',
@@ -1970,7 +1998,7 @@ div.op > span .postHideButtonCollapsed {\
   display: block;\
 }\
 #threadWatcher {\
-  max-width: 250px;\
+  max-width: 265px;\
   display: block;\
   position: absolute;\
   padding: 3px;\

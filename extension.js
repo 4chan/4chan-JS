@@ -63,7 +63,6 @@ $.get = function(url, callbacks, headers) {
   
   xhr = new XMLHttpRequest();
   xhr.open('GET', url);
-  xhr.timeout = 25000;
   if (callbacks) {
     for (key in callbacks) {
       xhr[key] = callbacks[key];

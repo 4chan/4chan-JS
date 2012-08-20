@@ -1256,8 +1256,8 @@ ThreadWatcher.toggle = function(tid, board, synced) {
       label = label.slice(0, ThreadWatcher.charLimit);
     }
     else if (label = $.id('m' + tid).innerHTML) {
-      label = label.replace(/<br>/, ' ')
-        .replace(/<[^>]*?>/, '').slice(0, ThreadWatcher.charLimit);
+      label = label.replace(/<br>/g, ' ')
+        .replace(/<[^>]*?>/g, '').slice(0, ThreadWatcher.charLimit);
     }
     else {
       label = tid;

@@ -2096,4 +2096,9 @@ Main.linkToThread = function(tid, board) {
   return '//' + location.host + '/' + (board || Main.board) + '/res/' + tid;
 };
 
-document.addEventListener('DOMContentLoaded', Main.init, false);
+if (['interactive', 'complete'].indexOf(document.readyState) != -1) {
+  Main.init();
+}
+else {
+  document.addEventListener('DOMContentLoaded', Main.init, false); 
+}

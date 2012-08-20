@@ -342,7 +342,7 @@ Parser.parseThread = function(tid, offset) {
 };
 
 Parser.parsePost = function(pid, tid) {
-  var cnt, quickReply, el, pi, href, fileText;
+  var cnt, quickReply, el, pi, href, a, img;
   
   pi = document.getElementById('pi' + pid);
   
@@ -385,8 +385,23 @@ Parser.parsePost = function(pid, tid) {
     pi.appendChild(cnt);
   }
   
-  if (Config.imageSearch && (fileText = document.getElementById('fT' + pid))) {
-    href = fileText.firstElementChild.href;
+  if (Config.revealSpoilers && (file = document.getElementById('f' + pid))) {
+    file = file.children[1];
+    img = file.firstChild;
+    file.removeChild(img);
+    img.removeAttribute('style');
+    if ($.hasClass(file, 'imgspoiler')) {
+      img.style.maxWidth = img.style.maxHeight
+        = $.hasClass(pi.parentNode, 'op') ? '250px' : '125px';
+      
+      img.src = '//thumbs.4chan.org'
+        + (file.pathname.replace(/src(\/[0-9]+).+$/, 'thumb$1s.jpg'))
+    }
+    file.appendChild(img);
+  }
+  
+  if (Config.imageSearch && (file = document.getElementById('fT' + pid))) {
+    href = file.firstElementChild.href;
     el = document.createElement('div');
     el.className = 'extControls';
     el.innerHTML =
@@ -395,7 +410,7 @@ Parser.parsePost = function(pid, tid) {
       + Parser.icons.gis + '" alt="G"></a><a href="http://iqdb.org/?url='
       + href + '" target="_blank" title="iqdb"><img class="extButton" src="'
       + Parser.icons.iqdb + '" alt="I"></a>';
-    fileText.parentNode.appendChild(el);
+    file.parentNode.appendChild(el);
   }
   
   if (Config.backlinks) {
@@ -1615,7 +1630,8 @@ var Config = {
   quickReply: true,
   reportButton: true,
   toTopButton: true,
-  imageSearch: true
+  imageSearch: true,
+  revealSpoilers: true
 };
 
 Config.load = function() {
@@ -1646,7 +1662,8 @@ SettingsMenu.options = {
   quickReply: 'Quick reply',
   reportButton: 'Report button',
   toTopButton: 'To top button',
-  imageSearch: 'Image search'
+  imageSearch: 'Image search',
+  revealSpoilers: 'Reveal spoilers'
 };
 
 SettingsMenu.save = function() {

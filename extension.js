@@ -688,17 +688,16 @@ QuotePreview.remove = function(el) {
  */
 ImageExpansion = {};
 
-ImageExpansion.expand = function(thumb)
-{
+ImageExpansion.expand = function(thumb) {
   var img;
   
   img = document.createElement('img');
   img.alt = 'Image';
   img.className = 'fitToPage';
   img.setAttribute('src', thumb.parentNode.getAttribute('href'));
-  thumb.parentNode.parentNode.style.display = 'table';
-  thumb.style.display = 'none';
+  img.style.display = 'none';
   thumb.parentNode.appendChild(img);
+  setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);
 };
 
 ImageExpansion.contract = function(img) {
@@ -715,6 +714,17 @@ ImageExpansion.toggle = function(t) {
   }
   else {
     ImageExpansion.contract(t);
+  }
+};
+
+ImageExpansion.checkLoadStart = function(img, thumb) {
+  if (img.naturalWidth) {
+    thumb.parentNode.parentNode.style.display = 'table';
+    img.style.display = null;
+    thumb.style.display = 'none';
+  }
+  else {
+    setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);
   }
 };
 

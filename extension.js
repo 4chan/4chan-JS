@@ -314,6 +314,7 @@ Parser.parseThread = function(tid, offset) {
         + Parser.icons.minus + '" title="Hide thread">';
       posts[0].insertBefore(el, posts[0].firstChild);
       if (ThreadHiding.hidden[tid]) {
+        ThreadHiding.hidden[tid] = ThreadHiding.now;
         ThreadHiding.hide(tid);
       }
     }
@@ -1050,15 +1051,22 @@ QR.startCooldown = function(ms) {
  */
 var ThreadHiding = {};
 
+ThreadHiding.init = function() {
+  this.threshold = 7 * 86400000;
+  this.now = Date.now();
+  this.hidden = {};
+  this.load();
+};
+
 ThreadHiding.hidden = {};
 
 ThreadHiding.toggle = function(tid) {
   if ($.id('sa' + tid).hasAttribute('data-hidden')) {
-    ThreadHiding.show(tid);
+    this.show(tid);
   } else {
-    ThreadHiding.hide(tid);
+    this.hide(tid);
   }
-  ThreadHiding.save();
+  this.save();
 };
 
 ThreadHiding.show = function(tid) {
@@ -1083,7 +1091,7 @@ ThreadHiding.show = function(tid) {
   thread.parentNode.removeChild(summary);
   thread.style.display = 'block';
   
-  delete ThreadHiding.hidden[tid];
+  delete this.hidden[tid];
 };
 
 ThreadHiding.hide = function(tid) {
@@ -1104,37 +1112,36 @@ ThreadHiding.hide = function(tid) {
   
   thread.parentNode.insertBefore(summary, thread);
   
-  ThreadHiding.hidden[tid] = Date.now();
+  this.hidden[tid] = Date.now();
 };
 
 ThreadHiding.load = function() {
-  var now, tid, storage, purgeThreshold, purgeCount;
-  
-  now = Date.now();
-  purgeThreshold = 7 * 86400000;
-  purgeCount = 0;
+  var storage;
   
   if (storage = localStorage.getItem('4chan-hide-' + Main.board)) {
-    ThreadHiding.hidden = JSON.parse(storage);
-  }
-  
-  for (tid in ThreadHiding.hidden) {
-    if (now - ThreadHiding.hidden[tid] > purgeThreshold) {
-      ++purgeCount;
-      delete ThreadHiding.hidden[tid];
-    }
-  }
-  
-  if (purgeCount) {
-    console.log('Purged ' + purgeCount + ' hidden threads');
-    ThreadHiding.save();
+    this.hidden = JSON.parse(storage);
   }
 };
 
+ThreadHiding.purge = function() {
+  var tid, now;
+  
+  now = Date.now();
+  
+  for (tid in this.hidden) {
+    if (now - this.hidden[tid] > this.threshold) {
+      console.log('Purging hidden thread: ' + (now - this.hidden[tid]) + ' vs ' + this.threshold);
+      delete this.hidden[tid];
+    }
+  }
+  
+  this.save();
+};
+
 ThreadHiding.save = function() {
-  for (var i in ThreadHiding.hidden) {
+  for (var i in this.hidden) {
     localStorage.setItem('4chan-hide-' + Main.board,
-      JSON.stringify(ThreadHiding.hidden)
+      JSON.stringify(this.hidden)
     );
     return;
   }
@@ -1169,7 +1176,6 @@ ThreadWatcher.init = function() {
   }
   
   if (Config.fixedThreadWatcher) {
-    console.log('fixed');
     cnt.style.position = 'fixed';
   }
   else {
@@ -1777,7 +1783,7 @@ Main.init = function()
   }
   
   if (Config.threadHiding) {
-    ThreadHiding.load();
+    ThreadHiding.init();
   }
   
   if (Config.threadWatcher) {
@@ -1795,6 +1801,9 @@ Main.init = function()
   }
   else {
     Parser.parseBoard();
+    if (Config.threadHiding) {
+      ThreadHiding.purge();
+    }
   }
   
   if (Config.quotePreview) {

@@ -98,6 +98,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     fileBuildEnd = '',
     fileInfo = '',
     fileHtml = '',
+    fileThumb,
     shortSubject = '',
     fileSize = '',
     fileClass = '',
@@ -204,7 +205,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
       fileSize = 'Spoiler Image, ' + fileSize;
       fileClass = ' imgspoiler';
       
-      var fileThumb = '//static.4chan.org/image/spoiler-' + board + '.png';
+      fileThumb = '//static.4chan.org/image/spoiler.png';
       data.tn_w = 100;
       data.tn_h = 100;
     }

@@ -387,8 +387,10 @@ Parser.parsePost = function(pid, tid) {
     pi.appendChild(cnt);
   }
   
-  if (Config.revealSpoilers && (file = document.getElementById('f' + pid))) {
-    file = file.children[1];
+  if (Config.revealSpoilers
+      && (file = document.getElementById('f' + pid))
+      && (file = file.children[1])
+    ) {
     img = file.firstChild;
     file.removeChild(img);
     img.removeAttribute('style');
@@ -2090,8 +2092,12 @@ div.op > span .postHideButtonCollapsed {\
   padding: 3px 6px 6px 3px;\
 }\
 #quote-preview img {\
-  max-width: 152px;\
-  max-height: 152px;\
+  max-width: 125px;\
+  max-height: 125px;\
+}\
+#quote-preview .fileInfo,\
+#quote-preview .postInfo {\
+  white-space: nowrap;\
 }\
 .deadlink {\
   text-decoration: line-through;\

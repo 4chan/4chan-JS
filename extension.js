@@ -448,7 +448,7 @@ Parser.parseBacklinks = function(pid, tid)
     
     if (!(target = document.getElementById('m' + ids[1]))) {
       if (Main.tid && ids[0].charAt(0) != '/') {
-        j.className += ' crosslink';
+        j.textContent += ' →';
       }
       continue;
     }
@@ -518,7 +518,6 @@ var QuotePreview = {};
 QuotePreview.init = function() {
   var thread;
   
-  this.maxWidth = 500;
   this.debounce = 250;
   this.timeout = null;
   this.xhr = null;
@@ -633,12 +632,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
 };
 
 QuotePreview.show = function(link, post, remote) {
-    var t, out, clr, rect, left, d, width;
-    
-    width = post.offsetWidth;
-    if (width > QuotePreview.maxWidth) {
-      width = QuotePreview.maxWidth;
-    }
+    var rect, docWidth, offsetLimit, style, pos;
     
     if (remote) {
       post.style.display = null;
@@ -653,15 +647,23 @@ QuotePreview.show = function(link, post, remote) {
     }
     
     rect = link.getBoundingClientRect();
-    left = rect.left;
-    if ((d = document.documentElement.offsetWidth - rect.left - width) < 0) {
-      left += d;
-    }
-    
-    post.style.left = left + 'px';
-    post.style.top = (rect.top + link.offsetHeight + window.scrollY) + 'px';
+    docWidth = document.documentElement.offsetWidth;
+    style = post.style;
     
     document.body.appendChild(post);
+    
+    if ((docWidth - rect.right) < (0 | (docWidth * 0.3))) {
+      pos = docWidth - rect.left;
+      style.right = pos + 10 + 'px'
+    }
+    else {
+      pos = rect.left + rect.width;
+      style.left = pos + 10 + 'px';
+    }
+    
+    style.top =
+      rect.top + link.offsetHeight + window.scrollY -
+      post.offsetHeight / 2 - rect.height / 2 + 'px';
 };
 
 QuotePreview.remove = function(el) {
@@ -966,7 +968,7 @@ QR.submit = function(e) {
   xhr.onerror = function() {
     btn.value = 'Submit';
     console.log('Error');
-    QR.showPostError('Connection error. Are you <a href="https//www.4chan.org/banned">banned</a>?');
+    QR.showPostError('Connection error. Are you <a href="https://www.4chan.org/banned">banned</a>?');
   };
   xhr.onload = function() {
     var resp, qrFile;
@@ -988,7 +990,7 @@ QR.submit = function(e) {
           QR.showPostError('<h3>You were issued a warning:<h3>' + resp);
         }
         else {
-          QR.showPostError('You are <a href="https//www.4chan.org/banned">banned</a>! ;_;');
+          QR.showPostError('You are <a href="https://www.4chan.org/banned">banned</a>! ;_;');
         }
         QR.reloadCaptcha();
         return;
@@ -1834,9 +1836,13 @@ Main.init = function()
 Main.setTitle = function() {
   var title;
   
-  title = $.class('subject', $.id('pi' + Main.tid))[0].textContent ||
-    $.id('m' + Main.tid).textContent.replace(/<br>/g, ' ').slice(0, 30) ||
-    Main.tid;
+  title =
+    $.class('subject', $.id('pi' + Main.tid))[0].textContent
+      || $.id('m' + Main.tid).innerHTML
+        .replace(/<br>/g, ' ')
+        .replace(/<[^>]*?>/g, '')
+        .slice(0, 30)
+      || Main.tid;
   
   document.title = '/' + Main.board + '/ - ' + title;
 };
@@ -2093,10 +2099,8 @@ div.op > span .postHideButtonCollapsed {\
   width: 100%;\
   max-width: 100%;\
 }\
-.crosslink:after {\
-  content: " →";\
-}\
 #quote-preview {\
+  display: block;\
   position: absolute;\
   box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
   padding: 3px 6px 6px 3px;\
@@ -2105,9 +2109,9 @@ div.op > span .postHideButtonCollapsed {\
   max-width: 125px;\
   max-height: 125px;\
 }\
-#quote-preview .fileInfo,\
-#quote-preview .postInfo {\
-  white-space: nowrap;\
+#quote-preview .extControls,\
+#quote-preview .postNum {\
+  display: none;\
 }\
 .deadlink {\
   text-decoration: line-through;\

@@ -499,8 +499,8 @@ Parser.initIcons = function() {
     futaba_new: 'futaba/',
     yotsuba_b_new: 'burichan/',
     burichan_new: 'burichan/',
-    tomorrow: 'burichan/',
-    photon: 'futaba/'
+    tomorrow: 'tomorrow/',
+    photon: 'photon/'
   };
   
   url = '//static.4chan.org/image/buttons/' + paths[Main.stylesheet];

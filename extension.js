@@ -417,7 +417,7 @@ Parser.parsePost = function(pid, tid) {
     file.parentNode.appendChild(el);
   }
   
-  if (Config.backlinks) {
+  if (Config.backlinks && pid != tid) {
     Parser.parseBacklinks(pid, tid);
   }
 };

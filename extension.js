@@ -305,7 +305,7 @@ Parser.parseThread = function(tid, offset) {
   posts = thread.getElementsByClassName('post');
   
   if (!offset) {
-    if (Config.threadHiding) {
+    if (!Main.tid && Config.threadHiding) {
       el = document.createElement('span');
       el.id = 'sa' + tid;
       el.alt = 'H';
@@ -1072,8 +1072,6 @@ ThreadHiding.init = function() {
   this.load();
 };
 
-ThreadHiding.hidden = {};
-
 ThreadHiding.toggle = function(tid) {
   if ($.id('sa' + tid).hasAttribute('data-hidden')) {
     this.show(tid);
@@ -1084,11 +1082,11 @@ ThreadHiding.toggle = function(tid) {
 };
 
 ThreadHiding.show = function(tid) {
-  var post, message, summary, thread, sa;
+  var post, message, stub, thread, sa;
   
   post = $.id('p' + tid);
   message = $.id('m' + tid);
-  summary = $.id('summary-' + tid);
+  stub = $.id('stub-' + tid);
   thread = $.id('t' + tid);
   sa = $.id('sa' + tid);
   
@@ -1096,20 +1094,20 @@ ThreadHiding.show = function(tid) {
   sa.firstChild.src = Parser.icons.minus;
   post.insertBefore(sa, post.firstChild);
   if ($.hasClass(message.previousSibling, 'backlink')) {
-    post.insertBefore(summary.firstChild, message.previousSibling);
+    post.insertBefore(stub.firstChild, message.previousSibling);
   }
   else {
-    post.insertBefore(summary.firstChild, message);
+    post.insertBefore(stub.firstChild, message);
   }
   
-  thread.parentNode.removeChild(summary);
+  thread.parentNode.removeChild(stub);
   thread.style.display = 'block';
   
   delete this.hidden[tid];
 };
 
 ThreadHiding.hide = function(tid) {
-  var summary, sa, thread;
+  var stub, sa, thread;
   
   thread = $.id('t' + tid);
   thread.style.display = 'none';
@@ -1118,13 +1116,13 @@ ThreadHiding.hide = function(tid) {
   sa.setAttribute('data-hidden', tid);
   sa.firstChild.src = Parser.icons.plus;
   
-  summary = document.createElement('div');
-  summary.id = 'summary-' + tid;
-  summary.className = 'summary post';
-  summary.appendChild(sa);
-  summary.appendChild(document.getElementById('pi' + tid));
+  stub = document.createElement('div');
+  stub.id = 'stub-' + tid;
+  stub.className = 'stub post';
+  stub.appendChild(sa);
+  stub.appendChild(document.getElementById('pi' + tid));
   
-  thread.parentNode.insertBefore(summary, thread);
+  thread.parentNode.insertBefore(stub, thread);
   
   this.hidden[tid] = Date.now();
 };
@@ -1796,10 +1794,6 @@ Main.init = function()
     }
   }
   
-  if (Config.threadHiding) {
-    ThreadHiding.init();
-  }
-  
   if (Config.threadWatcher) {
     ThreadWatcher.init();
   }
@@ -1814,9 +1808,13 @@ Main.init = function()
     }
   }
   else {
-    Parser.parseBoard();
     if (Config.threadHiding) {
+      ThreadHiding.init();
+      Parser.parseBoard();
       ThreadHiding.purge();
+    }
+    else {
+      Parser.parseBoard();
     }
   }
   
@@ -2000,14 +1998,16 @@ div.op > span .postHideButtonCollapsed {\
 }\
 .extButton {\
   cursor: pointer;\
-  position: relative;\
-  top: 3px;\
+  margin-bottom: -4px;\
 }\
 #threadUpdateStatus {\
   margin-left: 0.5ex;\
 }\
-.summary .postInfo {\
-  display: inline;\
+.stub .extControls,\
+.stub .postNum,\
+.stub .wbtn,\
+.stub input {\
+  display: none;\
 }\
 #settingsMenu {\
   position: fixed;\

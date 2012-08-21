@@ -298,24 +298,53 @@ Parser.parseBoard = function()
   }
 };
 
-Parser.parseThread = function(tid, offset) {
-  var i, thread, posts, pi, el, key;
+Parser.parseThread = function(tid, offset, limit) {
+  var i, thread, posts, pi, el, frag, summary, omitted, key;
   
   thread = $.id('t' + tid);
   posts = thread.getElementsByClassName('post');
   
   if (!offset) {
-    if (!Main.tid && Config.threadHiding) {
-      el = document.createElement('span');
-      el.id = 'sa' + tid;
-      el.alt = 'H';
-      el.innerHTML = '<img class="extButton threadHideButton"'
-        + 'data-cmd="hide" data-tid="' + tid + '" src="'
-        + Parser.icons.minus + '" title="Hide thread">';
-      posts[0].insertBefore(el, posts[0].firstChild);
-      if (ThreadHiding.hidden[tid]) {
-        ThreadHiding.hidden[tid] = ThreadHiding.now;
-        ThreadHiding.hide(tid);
+    if (!Main.tid) {
+      if (Config.threadHiding) {
+        el = document.createElement('span');
+        el.id = 'sa' + tid;
+        el.alt = 'H';
+        el.innerHTML = '<img class="extButton threadHideButton"'
+          + 'data-cmd="hide" data-tid="' + tid + '" src="'
+          + Parser.icons.minus + '" title="Hide thread">';
+        posts[0].insertBefore(el, posts[0].firstChild);
+        if (ThreadHiding.hidden[tid]) {
+          ThreadHiding.hidden[tid] = ThreadHiding.now;
+          ThreadHiding.hide(tid);
+        }
+      }
+      
+      if (Config.threadExpansion
+          && (summary = thread.children[1])
+          && $.hasClass(summary, 'summary')) {
+        frag = document.createDocumentFragment();
+        
+        omitted = summary.cloneNode(true);
+        omitted.className = '';
+        summary.textContent = '';
+        
+        el = document.createElement('img');
+        el.className = 'extButton expbtn';
+        el.alt = '+';
+        el.setAttribute('data-cmd', 'expand');
+        el.setAttribute('data-tid', tid);
+        el.src = Parser.icons.plus;
+        frag.appendChild(el);
+        
+        frag.appendChild(omitted);
+        
+        el = document.createElement('span');
+        el.style.display = 'none';
+        el.textContent = 'Showing all replies.'
+        frag.appendChild(el);
+        
+        summary.appendChild(frag);
       }
     }
     if (Config.threadWatcher) {
@@ -338,7 +367,10 @@ Parser.parseThread = function(tid, offset) {
     }
   }
   
-  for (i = offset ? posts.length - offset : 0 ; posts[i]; ++i) {
+  i = offset ? offset < 0 ? posts.length + offset : offset : 0;
+  limit = limit ? i + limit : posts.length;
+  
+  for (; i < limit; ++i) {
     Parser.parsePost(posts[i].id.slice(1), tid);
   }
 };
@@ -485,6 +517,7 @@ Parser.icons = {
   iqdb: 'iqdb.png',
   minus: 'post_expand_minus.png',
   plus: 'post_expand_plus.png',
+  rotate: 'post_expand_rotate.gif',
   quote: 'quote.png',
   report: 'report.png',
   notwatched: 'watch_thread_off.png',
@@ -1295,6 +1328,82 @@ ThreadWatcher.save = function() {
 };
 
 /**
+ * Thread expansion
+ */
+var ThreadExpansion = {};
+
+ThreadExpansion.toggle = function(tid) {
+  var thread, summary;
+  
+  thread = $.id('t' + tid);
+  summary = thread.children[1];
+  
+  if ($.hasClass(thread, 'tExpanded')) {
+    thread.className = thread.className.replace(' tExpanded', ' tCollapsed');
+    summary.children[0].src = Parser.icons.plus;
+    summary.children[1].style.display = 'inline';
+    summary.children[2].style.display = 'none';
+  }
+  else if ($.hasClass(thread, 'tCollapsed')) {
+    thread.className = thread.className.replace(' tCollapsed', ' tExpanded');
+    summary.children[0].src = Parser.icons.minus;
+    summary.children[1].style.display = 'none';
+    summary.children[2].style.display = 'inline';
+  }
+  else {
+    summary.children[0].src = Parser.icons.rotate;
+    ThreadExpansion.fetch(tid);
+    thread.className += ' tExpanded';
+  }
+};
+
+ThreadExpansion.fetch = function(tid) {
+  $.get('//api.4chan.org/' + Main.board + '/res/' + tid + '.json',
+    {
+      onload: function() {
+        var i, p, n, frag, thread, tail, posts, count, summary;
+        
+        if (this.status == 200) {
+          thread = $.id('t' + tid);
+          tail = +$.class('reply', thread)[0].id.slice(1);
+          posts = JSON.parse(this.responseText).posts;
+          frag = document.createDocumentFragment();
+          
+          for (i = 1; p = posts[i]; ++i) {
+            if (p.no < tail) {
+              n = Parser.buildHTMLFromJSON(p, Main.board);
+              n.className += ' rExpanded';
+              frag.appendChild(n);
+            }
+            else {
+              break;
+            }
+          }
+          
+          $.id('m' + tid).innerHTML = posts[0].com;
+          
+          summary = thread.children[1];
+          
+          thread.insertBefore(frag, summary.nextSibling);
+          Parser.parseThread(tid, 1, i - 1);
+          
+          summary.children[0].src = Parser.icons.minus;
+          summary.children[1].style.display = 'none';
+          summary.children[2].style.display = 'inline';
+        }
+        else if (this.status == 404) {
+          
+        }
+        else {
+          
+        }
+      },
+      onerror: null
+    }
+  );
+};
+
+/**
  * Thread updater
  */
 var ThreadUpdater = {
@@ -1485,7 +1594,7 @@ ThreadUpdater.onload = function() {
     try {
       newposts = JSON.parse(this.responseText).posts;
     }
-    catch(e) {
+    catch (e) {
       console.log(e);
       newposts = [];
     }
@@ -1507,7 +1616,7 @@ ThreadUpdater.onload = function() {
         frag.appendChild(Parser.buildHTMLFromJSON(nodes[i], Main.board));
       }
       thread.appendChild(frag);
-      Parser.parseThread(thread.id.slice(1), nodes.length);
+      Parser.parseThread(thread.id.slice(1), -nodes.length);
       window.scrollBy(0, lastrep.offsetTop - lastoffset);
     }
   }
@@ -1640,6 +1749,7 @@ var Draggable = {
 var Config = {
   threadHiding: true,
   threadWatcher: true,
+  threadExpansion: true,
   fixedThreadWatcher: false,
   threadUpdater: true,
   imageExpansion: true,
@@ -1672,6 +1782,7 @@ var SettingsMenu = {};
 SettingsMenu.options = {
   threadHiding: 'Thread hiding',
   threadWatcher: 'Thread watcher',
+  threadExpansion: 'Thread expansion',
   fixedThreadWatcher: 'Fixed thread watcher',
   threadUpdater: 'Thread updater',
   imageExpansion: 'Image expansion',
@@ -1927,26 +2038,30 @@ Main.syncStorage = function(e) {
 }
 
 Main.onThreadClick = function(e) {
-  var t, ids, cmd;
+  var t, ids, cmd, tid, attr;
   
   t = e.target;
   
   if (cmd = t.getAttribute('data-cmd')) {
     e.preventDefault();
+    tid = t.getAttribute('data-tid');
     switch (cmd) {
       case 'qr':
-        ids = t.getAttribute('data-tid').split('-'); // tid, pid
+        ids = tid.split('-'); // tid, pid
         QR.show(ids[0], ids[1]);
         Main.quotePost(ids[1], true);
         break;
       case 'hide':
-        ThreadHiding.toggle(t.getAttribute('data-tid'));
+        ThreadHiding.toggle(tid);
         break;
       case 'watch':
-        ThreadWatcher.toggle(t.getAttribute('data-tid'));
+        ThreadWatcher.toggle(tid);
+        break;
+      case 'expand':
+        ThreadExpansion.toggle(tid);
         break;
       case 'report':
-        Main.reportPost(t.getAttribute('data-tid'));
+        Main.reportPost(tid);
         break;
       case 'totop':
         location.href = '#top';
@@ -2126,6 +2241,13 @@ div.backlink {\
 .backlink span {\
   padding: 0;\
   margin-left: 2px;\
+}\
+.expbtn {\
+  margin-right: 3px;\
+  margin-left: 0;\
+}\
+.tCollapsed .rExpanded {\
+  display: none;\
 }\
 ';
 

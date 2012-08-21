@@ -1918,17 +1918,20 @@ Main.init = function()
       style_group == 'nws_style' ? 'yotsuba_new' : 'yotsuba_b_new';
   }
   
-  Main.addCSS();
-  
-  Parser.init();
-  
   Main.type = style_group.split('_')[0];
+  
+  $.addClass(document.body, Main.stylesheet);
+  $.addClass(document.body, Main.type);
   
   params = location.pathname.split(/\//);
   Main.board = params[1];
   Main.tid = params[3];
   
+  Main.addCSS();
+  
   Config.load();
+  
+  Parser.init();
   
   if (Config.quickReply) {
     if (!window.FormData) {
@@ -1973,8 +1976,8 @@ Main.init = function()
   
   $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
   $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
-	
-	//console.info('4chanJS took: ' + (Date.now() - start) + 'ms');
+  
+  //console.info('4chanJS took: ' + (Date.now() - start) + 'ms');
 };
 
 Main.setTitle = function() {

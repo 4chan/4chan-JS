@@ -1832,15 +1832,18 @@ Main.init = function()
 };
 
 Main.setTitle = function() {
-  var title;
+  var title, entities;
   
-  title =
-    $.class('subject', $.id('pi' + Main.tid))[0].textContent
-      || $.id('m' + Main.tid).innerHTML
-        .replace(/<br>/g, ' ')
-        .replace(/<[^>]*?>/g, '')
-        .slice(0, 30)
-      || Main.tid;
+  if (!(title = $.class('subject', $.id('pi' + Main.tid))[0].textContent)) {
+    if (title = $.id('m' + Main.tid).innerHTML) {
+      entities = document.createElement('span');
+      entities.innerHTML = title.replace(/<br>/g, ' ');
+      title = entities.textContent.slice(0, 50);
+    }
+    else {
+      title = Main.tid;
+    }
+  }
   
   document.title = '/' + Main.board + '/ - ' + title;
 };

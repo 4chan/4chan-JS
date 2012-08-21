@@ -312,7 +312,7 @@ Parser.parseThread = function(tid, offset, limit) {
         el.alt = 'H';
         el.innerHTML = '<img class="extButton threadHideButton"'
           + 'data-cmd="hide" data-tid="' + tid + '" src="'
-          + Parser.icons.minus + '" title="Hide thread">';
+          + Main.icons.minus + '" title="Hide thread">';
         posts[0].insertBefore(el, posts[0].firstChild);
         if (ThreadHiding.hidden[tid]) {
           ThreadHiding.hidden[tid] = ThreadHiding.now;
@@ -335,7 +335,7 @@ Parser.parseThread = function(tid, offset, limit) {
         el.alt = '+';
         el.setAttribute('data-cmd', 'expand');
         el.setAttribute('data-tid', tid);
-        el.src = Parser.icons.plus;
+        el.src = Main.icons.plus;
         frag.appendChild(el);
         
         frag.appendChild(omitted);
@@ -352,11 +352,11 @@ Parser.parseThread = function(tid, offset, limit) {
       el = document.createElement('img');
       el.className = 'extButton wbtn';
       if (ThreadWatcher.watched[key = tid + '-' + Main.board]) {
-        el.src = Parser.icons.watched;
+        el.src = Main.icons.watched;
         el.setAttribute('data-active', '1');
       }
       else {
-        el.src = Parser.icons.notwatched;
+        el.src = Main.icons.notwatched;
       }
       el.id = 'wbtn-' + key;
       el.setAttribute('data-cmd', 'watch');
@@ -387,7 +387,7 @@ Parser.parsePost = function(pid, tid) {
   if (QR.enabled) {
     el = document.createElement('img');
     el.className = 'extButton';
-    el.src = Parser.icons.quote;
+    el.src = Main.icons.quote;
     el.setAttribute('data-cmd', 'qr');
     el.setAttribute('data-tid', tid + '-' + pid);
     el.title = 'Quick reply';
@@ -398,21 +398,11 @@ Parser.parsePost = function(pid, tid) {
   if (Config.reportButton) {
     el = document.createElement('img');
     el.className = 'extButton';
-    el.src = Parser.icons.report;
+    el.src = Main.icons.report;
     el.setAttribute('data-cmd', 'report');
     el.setAttribute('data-tid', pid);
     el.title = 'Report post';
     el.alt = '!';
-    cnt.appendChild(el);
-  }
-  
-  if (Config.toTopButton) {
-    el = document.createElement('img');
-    el.className = 'extButton';
-    el.src = Parser.icons.up;
-    el.setAttribute('data-cmd', 'totop');
-    el.title = 'Back to top';
-    el.alt = '▴';
     cnt.appendChild(el);
   }
   
@@ -444,9 +434,9 @@ Parser.parsePost = function(pid, tid) {
     el.innerHTML =
       '<a href="//www.google.com/searchbyimage?image_url=' + href
       + '" target="_blank" title="Google Image Search"><img class="extButton" src="'
-      + Parser.icons.gis + '" alt="G"></a><a href="http://iqdb.org/?url='
+      + Main.icons.gis + '" alt="G"></a><a href="http://iqdb.org/?url='
       + href + '" target="_blank" title="iqdb"><img class="extButton" src="'
-      + Parser.icons.iqdb + '" alt="I"></a>';
+      + Main.icons.iqdb + '" alt="I"></a>';
     file.parentNode.appendChild(el);
   }
   
@@ -508,39 +498,6 @@ Parser.parseBacklinks = function(pid, tid)
     }
     
     el.appendChild(bl);
-  }
-};
-
-Parser.icons = {
-  up: 'arrow_up.png',
-  cross: 'cross.png',
-  gis: 'gis.png',
-  iqdb: 'iqdb.png',
-  minus: 'post_expand_minus.png',
-  plus: 'post_expand_plus.png',
-  rotate: 'post_expand_rotate.gif',
-  quote: 'quote.png',
-  report: 'report.png',
-  notwatched: 'watch_thread_off.png',
-  watched: 'watch_thread_on.png'
-};
-
-Parser.initIcons = function() {
-  var key, paths, url;
-  
-  paths = {
-    yotsuba_new: 'futaba/',
-    futaba_new: 'futaba/',
-    yotsuba_b_new: 'burichan/',
-    burichan_new: 'burichan/',
-    tomorrow: 'tomorrow/',
-    photon: 'photon/'
-  };
-  
-  url = '//static.4chan.org/image/buttons/' + paths[Main.stylesheet];
-  
-  for (key in Parser.icons) {
-    Parser.icons[key] = url + Parser.icons[key];
   }
 };
 
@@ -822,7 +779,7 @@ QR.show = function(tid, pid) {
   
   cnt.innerHTML =
     '<div id="qrHeader" class="drag postblock">Quick Reply - Thread No.<span id="qrTid">'
-    + tid + '</span><img alt="X" src="' + Parser.icons.cross + '" id="qrClose" '
+    + tid + '</span><img alt="X" src="' + Main.icons.cross + '" id="qrClose" '
     + 'class="extButton" title="Close Window"></div>';
   
   form = postForm.parentNode.cloneNode(false);
@@ -1125,7 +1082,7 @@ ThreadHiding.show = function(tid) {
   sa = $.id('sa' + tid);
   
   sa.removeAttribute('data-hidden');
-  sa.firstChild.src = Parser.icons.minus;
+  sa.firstChild.src = Main.icons.minus;
   post.insertBefore(sa, post.firstChild);
   if ($.hasClass(message.previousSibling, 'backlink')) {
     post.insertBefore(stub.firstChild, message.previousSibling);
@@ -1148,7 +1105,7 @@ ThreadHiding.hide = function(tid) {
   
   sa = $.id('sa' + tid);
   sa.setAttribute('data-hidden', tid);
-  sa.firstChild.src = Parser.icons.plus;
+  sa.firstChild.src = Main.icons.plus;
   
   stub = document.createElement('div');
   stub.id = 'stub-' + tid;
@@ -1264,13 +1221,13 @@ ThreadWatcher.reload = function(full) {
         key = btn.getAttribute('data-tid') + '-' + Main.board;
         if (ThreadWatcher.watched[key]) {
           if (!btn.hasAttribute('data-active')) {
-            btn.src = Parser.icons.watched;
+            btn.src = Main.icons.watched;
             btn.setAttribute('data-active', '1')
           }
         }
         else {
           if (btn.hasAttribute('data-active')) {
-            btn.src = Parser.icons.notwatched;
+            btn.src = Main.icons.notwatched;
             btn.removeAttribute('data-active')
           }
         }
@@ -1299,7 +1256,7 @@ ThreadWatcher.toggle = function(tid, board, synced) {
   if (ThreadWatcher.watched[key]) {
     delete ThreadWatcher.watched[key];
     if (btn = $.id('wbtn-' + key)) {
-      btn.src = Parser.icons.notwatched;
+      btn.src = Main.icons.notwatched;
       btn.removeAttribute('data-active');
     }
   }
@@ -1316,7 +1273,7 @@ ThreadWatcher.toggle = function(tid, board, synced) {
     }
     ThreadWatcher.watched[key] = label;
     if (btn = $.id('wbtn-' + key)) {
-      btn.src = Parser.icons.watched;
+      btn.src = Main.icons.watched;
       btn.setAttribute('data-active', '1');
     }
   }
@@ -1345,7 +1302,7 @@ ThreadExpansion.toggle = function(tid) {
   
   if ($.hasClass(thread, 'tExpanded')) {
     thread.className = thread.className.replace(' tExpanded', ' tCollapsed');
-    summary.children[0].src = Parser.icons.plus;
+    summary.children[0].src = Main.icons.plus;
     summary.children[1].style.display = 'inline';
     summary.children[2].style.display = 'none';
     if (msg) {
@@ -1356,7 +1313,7 @@ ThreadExpansion.toggle = function(tid) {
   }
   else if ($.hasClass(thread, 'tCollapsed')) {
     thread.className = thread.className.replace(' tCollapsed', ' tExpanded');
-    summary.children[0].src = Parser.icons.minus;
+    summary.children[0].src = Main.icons.minus;
     summary.children[1].style.display = 'none';
     summary.children[2].style.display = 'inline';
     if (msg) {
@@ -1366,7 +1323,7 @@ ThreadExpansion.toggle = function(tid) {
     }
   }
   else {
-    summary.children[0].src = Parser.icons.rotate;
+    summary.children[0].src = Main.icons.rotate;
     ThreadExpansion.fetch(tid);
   }
 };
@@ -1417,7 +1374,7 @@ ThreadExpansion.fetch = function(tid) {
           Parser.parseThread(tid, 1, i - 1);
           
           thread.className += ' tExpanded';
-          summary.children[0].src = Parser.icons.minus;
+          summary.children[0].src = Main.icons.minus;
           summary.children[1].style.display = 'none';
           summary.children[2].style.display = 'inline';
         }
@@ -1426,12 +1383,12 @@ ThreadExpansion.fetch = function(tid) {
           summary.children[1].textContent = "This thread doesn't exist anymore.";
         }
         else {
-          summary.children[0].src = Parser.icons.plus;
+          summary.children[0].src = Main.icons.plus;
           console.log('ThreadExpansion: ' + this.status + ' ' + this.statusText);
         }
       },
       onerror: function() {
-        $.id('t' + tid).children[1].children[0].src = Parser.icons.plus;
+        $.id('t' + tid).children[1].children[0].src = Main.icons.plus;
         console.log('ThreadExpansion: xhr failed');
       }
     }
@@ -1793,7 +1750,7 @@ var Config = {
   quotePreview: true,
   quickReply: true,
   reportButton: true,
-  toTopButton: true,
+  stickyNav: true,
   imageSearch: true,
   revealSpoilers: true
 };
@@ -1826,7 +1783,7 @@ SettingsMenu.options = {
   quotePreview: 'Quote preview',
   quickReply: 'Quick reply',
   reportButton: 'Report button',
-  toTopButton: 'To top button',
+  stickyNav: 'Sticky navigation arrows',
   imageSearch: 'Image search',
   revealSpoilers: 'Reveal spoilers'
 };
@@ -1906,9 +1863,11 @@ var Main = {};
 Main.init = function()
 {
   //var start = Date.now();
-  var params, storage;
+  var params, storage, cnt, el;
   
   document.removeEventListener('DOMContentLoaded', Main.init, false);
+  
+  Config.load();
   
   if (Main.stylesheet = Main.getCookie(style_group)) {
     Main.stylesheet = Main.stylesheet.toLowerCase().replace(/ /g, '_');
@@ -1928,10 +1887,11 @@ Main.init = function()
   Main.tid = params[3];
   
   Main.addCSS();
+  Main.initIcons();
   
-  Config.load();
-  
-  Parser.init();
+  if (Config.stickyNav) {
+    Main.setStickyNav();
+  }
   
   if (Config.quickReply) {
     if (!window.FormData) {
@@ -1971,13 +1931,61 @@ Main.init = function()
     QuotePreview.init();
   }
   
-  $.id('delform').addEventListener('click', Main.onThreadClick, false);
+  document.addEventListener('click', Main.onclick, false);
   window.addEventListener('storage', Main.syncStorage, false);
   
   $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
   $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
   
   //console.info('4chanJS took: ' + (Date.now() - start) + 'ms');
+};
+
+Main.icons = {
+  up: 'arrow_up.png',
+  down: 'arrow_down.png',
+  cross: 'cross.png',
+  gis: 'gis.png',
+  iqdb: 'iqdb.png',
+  minus: 'post_expand_minus.png',
+  plus: 'post_expand_plus.png',
+  rotate: 'post_expand_rotate.gif',
+  quote: 'quote.png',
+  report: 'report.png',
+  notwatched: 'watch_thread_off.png',
+  watched: 'watch_thread_on.png'
+};
+
+Main.initIcons = function() {
+  var key, paths, url;
+  
+  paths = {
+    yotsuba_new: 'futaba/',
+    futaba_new: 'futaba/',
+    yotsuba_b_new: 'burichan/',
+    burichan_new: 'burichan/',
+    tomorrow: 'tomorrow/',
+    photon: 'photon/'
+  };
+  
+  url = '//static.4chan.org/image/buttons/' + paths[Main.stylesheet];
+  
+  for (key in Main.icons) {
+    Main.icons[key] = url + Main.icons[key];
+  }
+};
+
+Main.setStickyNav = function() {
+  var cnt;
+  
+  cnt = document.createElement('div');
+  cnt.id = 'stickyNav';
+  cnt.innerHTML
+    = '<img class="extButton" src="' +  Main.icons.up
+      + '" data-cmd="totop" alt="▲" title="Top">'
+    + '<img class="extButton" src="' +  Main.icons.down
+      + '" data-cmd="tobottom" alt="▼" title="Bottom">';
+  
+  document.body.appendChild(cnt);
 };
 
 Main.setTitle = function() {
@@ -2075,7 +2083,7 @@ Main.syncStorage = function(e) {
   }
 }
 
-Main.onThreadClick = function(e) {
+Main.onclick = function(e) {
   var t, ids, cmd, tid, attr;
   
   t = e.target;
@@ -2103,6 +2111,9 @@ Main.onThreadClick = function(e) {
         break;
       case 'totop':
         location.href = '#top';
+        break;
+      case 'tobottom':
+        location.href = '#bottom';
         break;
     }
   }
@@ -2287,6 +2298,11 @@ div.backlink {\
 }\
 .tCollapsed .rExpanded {\
   display: none;\
+}\
+#stickyNav {\
+  position: fixed;\
+  top: 60px;\
+  right: 0;\
 }\
 ';
 

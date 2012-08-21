@@ -331,6 +331,7 @@ Parser.parseThread = function(tid, offset, limit) {
         
         el = document.createElement('img');
         el.className = 'extButton expbtn';
+        el.title = 'Expand thread';
         el.alt = '+';
         el.setAttribute('data-cmd', 'expand');
         el.setAttribute('data-tid', tid);
@@ -1333,27 +1334,40 @@ ThreadWatcher.save = function() {
 var ThreadExpansion = {};
 
 ThreadExpansion.toggle = function(tid) {
-  var thread, summary;
+  var thread, msg, expmsg, summary, tmp;
   
   thread = $.id('t' + tid);
   summary = thread.children[1];
+  if (thread.hasAttribute('data-truncated')) {
+    msg = $.id('m' + tid);
+    expmsg = msg.nextSibling;
+  }
   
   if ($.hasClass(thread, 'tExpanded')) {
     thread.className = thread.className.replace(' tExpanded', ' tCollapsed');
     summary.children[0].src = Parser.icons.plus;
     summary.children[1].style.display = 'inline';
     summary.children[2].style.display = 'none';
+    if (msg) {
+      tmp = msg.innerHTML;
+      msg.innerHTML = expmsg.textContent;
+      expmsg.textContent = tmp;
+    }
   }
   else if ($.hasClass(thread, 'tCollapsed')) {
     thread.className = thread.className.replace(' tCollapsed', ' tExpanded');
     summary.children[0].src = Parser.icons.minus;
     summary.children[1].style.display = 'none';
     summary.children[2].style.display = 'inline';
+    if (msg) {
+      tmp = msg.innerHTML;
+      msg.innerHTML = expmsg.textContent;
+      expmsg.textContent = tmp;
+    }
   }
   else {
     summary.children[0].src = Parser.icons.rotate;
     ThreadExpansion.fetch(tid);
-    thread.className += ' tExpanded';
   }
 };
 
@@ -1361,10 +1375,13 @@ ThreadExpansion.fetch = function(tid) {
   $.get('//api.4chan.org/' + Main.board + '/res/' + tid + '.json',
     {
       onload: function() {
-        var i, p, n, frag, thread, tail, posts, count, summary;
+        var i, p, n, frag, thread, tail, posts, count, msg, metacap,
+          expmsg, summary;
+        
+        thread = $.id('t' + tid);
+        summary = thread.children[1];
         
         if (this.status == 200) {
-          thread = $.id('t' + tid);
           tail = +$.class('reply', thread)[0].id.slice(1);
           posts = JSON.parse(this.responseText).posts;
           frag = document.createDocumentFragment();
@@ -1380,25 +1397,43 @@ ThreadExpansion.fetch = function(tid) {
             }
           }
           
-          $.id('m' + tid).innerHTML = posts[0].com;
-          
-          summary = thread.children[1];
+          msg = $.id('m' + tid);
+          if (/^Comment/.test(msg.lastChild.textContent)) {
+            thread.setAttribute('data-truncated', '1');
+            expmsg = document.createElement('div');
+            expmsg.style.display = 'none';
+            expmsg.textContent = msg.innerHTML;
+            msg.parentNode.insertBefore(expmsg, msg.nextSibling);
+            if (metacap = $.class('capcodeReplies', msg)[0]) {
+              msg.innerHTML = posts[0].com + '<br><br>';
+              msg.appendChild(metacap);
+            }
+            else {
+              msg.innerHTML = posts[0].com;
+            }
+          }
           
           thread.insertBefore(frag, summary.nextSibling);
           Parser.parseThread(tid, 1, i - 1);
           
+          thread.className += ' tExpanded';
           summary.children[0].src = Parser.icons.minus;
           summary.children[1].style.display = 'none';
           summary.children[2].style.display = 'inline';
         }
         else if (this.status == 404) {
-          
+          summary.children[0].display = 'none';
+          summary.children[1].textContent = "This thread doesn't exist anymore.";
         }
         else {
-          
+          summary.children[0].src = Parser.icons.plus;
+          console.log('ThreadExpansion: ' + this.status + ' ' + this.statusText);
         }
       },
-      onerror: null
+      onerror: function() {
+        $.id('t' + tid).children[1].children[0].src = Parser.icons.plus;
+        console.log('ThreadExpansion: xhr failed');
+      }
     }
   );
 };

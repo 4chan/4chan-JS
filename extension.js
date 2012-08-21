@@ -2262,6 +2262,7 @@ div.op > span .postHideButtonCollapsed {\
   max-width: 125px;\
   max-height: 125px;\
 }\
+#quote-preview .extButton,\
 #quote-preview .extControls,\
 #quote-preview .postNum {\
   display: none;\

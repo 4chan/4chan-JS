@@ -1452,7 +1452,7 @@ var ThreadUpdater = {
 	updating: false,
 	delay: 0,
 	step: 5,
-	range: [ 10, 60 ], // in seconds
+	range: [ 5, 300 ], // in seconds
 	lastUpdated: 0,
 	lastModified: '0',
 	statusNode: null

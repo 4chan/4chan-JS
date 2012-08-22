@@ -2177,6 +2177,14 @@ div.op > span .postHideButtonCollapsed {\
 .stub input {\
   display: none;\
 }\
+.stub .threadHideButton {\
+  float: none;\
+  margin-right: 2px;\
+}\
+div.post div.postInfo {\
+  width: auto;\
+  display: inline;\
+}\
 #settingsMenu {\
   position: fixed;\
   display: inline-block;\
@@ -2206,6 +2214,7 @@ div.op > span .postHideButtonCollapsed {\
 #qrHeader {\
   text-align: center;\
   padding: 0;\
+  margin-left: 1px;\
   height: 20px;\
 }\
 #qrClose {\

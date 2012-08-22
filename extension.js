@@ -2025,11 +2025,12 @@ Main.quotePost = function(pid, qr) {
   if (ta.value) {
     ta.value = ta.value.slice(0, pos)
       + q + ta.value.slice(ta.selectionEnd);
-    ta.selectionStart = ta.selectionEnd = pos + q.length;
   }
   else {
     ta.value = q;
   }
+  
+  ta.selectionStart = ta.selectionEnd = pos + q.length;
   
   if (qr) {
     ta.focus();

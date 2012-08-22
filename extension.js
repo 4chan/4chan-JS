@@ -2219,10 +2219,11 @@ div.post div.postInfo {\
   text-align: center;\
   padding: 0;\
   margin-left: 1px;\
-  height: 20px;\
+  height: 18px;\
+  font-size: 14px;\
+  line-height: 18px;\
 }\
 #qrClose {\
-  top: 1px;\
   float: right;\
 }\
 #qrCaptcha {\

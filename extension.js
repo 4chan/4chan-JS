@@ -1483,30 +1483,30 @@ ThreadUpdater.stop = function() {
 };
 
 ThreadUpdater.pulse = function() {
-	var self = ThreadUpdater;
-	self.setStatus(self.delay - (0 | (Date.now() - self.lastUpdated) / 1000));
-	self.pulseInterval = setTimeout(self.pulse, 1000);
+  var self = ThreadUpdater;
+  self.setStatus(self.delay - (0 | (Date.now() - self.lastUpdated) / 1000));
+  self.pulseInterval = setTimeout(self.pulse, 1000);
 };
 
 ThreadUpdater.adjustDelay = function(postCount, force)
 {
-	if (!force) {
-		if (postCount == 0) {
-			if ((this.delay += this.step) > this.range[1]) {
-				this.delay = this.range[1];
-			}
-		}
-		else {
-			if ((this.delay -= postCount * this.step) < this.range[0]) {
-				this.delay = this.range[0]
-			}
-		}
-	}
-	if (this.auto) {
-		this.updateInterval = setTimeout(this.update, this.delay * 1000);
-		this.pulse();
-	}
-	console.log(postCount + ' new post(s), delay is ' + this.delay + ' seconds');
+  if (!force) {
+    if (postCount == 0) {
+      if ((this.delay += this.step) > this.range[1]) {
+        this.delay = this.range[1];
+      }
+    }
+    else {
+      if ((this.delay -= postCount * this.step) < this.range[0]) {
+        this.delay = this.range[0]
+      }
+    }
+  }
+  if (this.auto) {
+    this.updateInterval = setTimeout(this.update, this.delay * 1000);
+    this.pulse();
+  }
+  console.log(postCount + ' new post(s), delay is ' + this.delay + ' seconds');
 };
 
 ThreadUpdater.onScroll = function(e) {
@@ -1518,8 +1518,8 @@ ThreadUpdater.onScroll = function(e) {
 };
 
 ThreadUpdater.forceUpdate = function() {
-	ThreadUpdater.force = true;
-	ThreadUpdater.update();
+  ThreadUpdater.force = true;
+  ThreadUpdater.update();
 };
 
 ThreadUpdater.toggleAuto = function() {
@@ -1527,37 +1527,37 @@ ThreadUpdater.toggleAuto = function() {
 };
 
 ThreadUpdater.update = function() {
-	var self, now = Date.now();
-	
-	self = ThreadUpdater;
-	
-	if (self.updating) {
-		console.log('Already updating');
-		return;
-	}
-	
-	if (self.auto) {
-		clearTimeout(self.pulseInterval);
-		clearTimeout(self.updateInterval);	
-	}
-	
-	self.updating = true;
-	
-	console.log('Updating thread at ' + new Date().toString());
-	
-	self.setStatus('Updating...');
-	
-	//$.get('http://localtest.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
-	$.get('//api.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
-		{
-			onload: self.onload,
-			onerror: self.onerror,
-			ontimeout: self.onerror
-		},
-		{
-			'If-Modified-Since': self.lastModified
-		}
-	);
+  var self, now = Date.now();
+  
+  self = ThreadUpdater;
+  
+  if (self.updating) {
+    console.log('Already updating');
+    return;
+  }
+  
+  if (self.auto) {
+    clearTimeout(self.pulseInterval);
+    clearTimeout(self.updateInterval);  
+  }
+  
+  self.updating = true;
+  
+  console.log('Updating thread at ' + new Date().toString());
+  
+  self.setStatus('Updating...');
+  
+  //$.get('http://localtest.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
+  $.get('//api.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
+    {
+      onload: self.onload,
+      onerror: self.onerror,
+      ontimeout: self.onerror
+    },
+    {
+      'If-Modified-Since': self.lastModified
+    }
+  );
 };
 
 ThreadUpdater.onload = function() {

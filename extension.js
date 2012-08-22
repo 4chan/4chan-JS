@@ -83,7 +83,7 @@ $.get = function(url, callbacks, headers) {
 var Parser = {};
 
 Parser.init = function() {
-  this.initIcons();
+  this.weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 };
 
 Parser.buildHTMLFromJSON = function(data, board) {
@@ -427,6 +427,12 @@ Parser.parsePost = function(pid, tid) {
     file.appendChild(img);
   }
   
+  if (Config.localTime) {
+    el = pi.getElementsByClassName('dateTime')[0];
+    el.textContent
+      = Parser.getLocaleDate(new Date(el.getAttribute('data-utc') * 1000));
+  }
+  
   if (Config.imageSearch && (file = document.getElementById('fT' + pid))) {
     href = file.firstElementChild.href;
     el = document.createElement('div');
@@ -443,6 +449,16 @@ Parser.parsePost = function(pid, tid) {
   if (Config.backlinks && pid != tid) {
     Parser.parseBacklinks(pid, tid);
   }
+};
+
+Parser.getLocaleDate = function(date) {
+  return ('0' + date.getMonth()).slice(-2) + '/'
+    + ('0' + date.getDate()).slice(-2) + '/'
+    + ('0' + date.getFullYear()).slice(-2) + '/('
+    + this.weekdays[date.getDay()] + ')'
+    + ('0' + date.getHours()).slice(-2) + ':'
+    + ('0' + date.getMinutes()).slice(-2) + ':'
+    + ('0' + date.getSeconds()).slice(-2);
 };
 
 Parser.parseBacklinks = function(pid, tid)
@@ -1748,7 +1764,8 @@ var Config = {
   reportButton: true,
   stickyNav: true,
   imageSearch: true,
-  revealSpoilers: true
+  revealSpoilers: true,
+  localTime: true
 };
 
 Config.load = function() {
@@ -1781,7 +1798,8 @@ SettingsMenu.options = {
   reportButton: 'Report button',
   stickyNav: 'Sticky navigation arrows',
   imageSearch: 'Image search',
-  revealSpoilers: 'Reveal spoilers'
+  revealSpoilers: "Don't spoiler images",
+  localTime: 'Local time'
 };
 
 SettingsMenu.save = function() {
@@ -1858,8 +1876,8 @@ var Main = {};
 
 Main.init = function()
 {
-  //var start = Date.now();
   var params, storage, cnt, el;
+  //console.profile('4chan JS');
   
   document.removeEventListener('DOMContentLoaded', Main.init, false);
   
@@ -1905,6 +1923,8 @@ Main.init = function()
     ThreadWatcher.init();
   }
   
+  Parser.init();
+  
   if (Main.tid) {
     if (Config.pageTitle) {
       Main.setTitle();
@@ -1935,7 +1955,7 @@ Main.init = function()
   $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
   $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
   
-  //console.info('4chanJS took: ' + (Date.now() - start) + 'ms');
+  //console.profileEnd();
 };
 
 Main.icons = {

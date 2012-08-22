@@ -631,10 +631,11 @@ QuotePreview.show = function(link, post, remote) {
     else {
       post = post.cloneNode(true);
       post.id = 'quote-preview';
+      post.className += ' panel';
     }
     
     if ($.hasClass(post, 'op')) {
-      $.addClass(post, 'reply');
+      post.className += ' reply';
     }
     
     rect = link.getBoundingClientRect();
@@ -766,7 +767,7 @@ QR.show = function(tid, pid) {
   
   cnt = document.createElement('div');
   cnt.id = 'quickReply';
-  cnt.className = 'reply';
+  cnt.className = 'reply panel';
   cnt.setAttribute('data-trackpos', 'QR-position');
   
   if (Config['QR-position']) {
@@ -1168,7 +1169,7 @@ ThreadWatcher.init = function() {
   
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
-  cnt.className = 'reply';
+  cnt.className = 'reply panel';
   cnt.setAttribute('data-trackpos', 'TW-position');
   
   if (Config['TW-position']) {
@@ -1815,7 +1816,7 @@ SettingsMenu.open = function(bottom) {
   
   cnt = document.createElement('div');
   cnt.id = 'settingsMenu';
-  cnt.className = 'reply';
+  cnt.className = 'reply panel';
   cnt.style[bottom ? 'bottom' : 'top'] = '20px';
   
   html = '';
@@ -2151,6 +2152,13 @@ Main.addCSS = function()
 .postHidden .buttons {\
   display: none !important;\
 }\
+.ws .panel,\
+.nws .panel {\
+  border: 1px solid rgba(0, 0, 0, 0.20);\
+}\
+.tomorrow .panel {\
+  border: 1px solid rgba(255, 255, 255, 0.15);\
+}\
 .postHidden {\
   padding-right: 5px!important;\
 }\
@@ -2193,7 +2201,6 @@ div.post div.postInfo {\
   position: fixed;\
   display: inline-block;\
   right: 20px;\
-  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
   padding: 3px;\
 }\
 #settingsMenu label {\
@@ -2213,7 +2220,6 @@ div.post div.postInfo {\
 }\
 #quickReply {\
   position: fixed;\
-  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
 }\
 #qrHeader {\
   text-align: center;\
@@ -2239,12 +2245,14 @@ div.post div.postInfo {\
   font-size: 11pt;\
   display: block;\
 }\
+#twHeader {\
+  font-weight: bold;\
+}\
 #threadWatcher {\
   max-width: 265px;\
   display: block;\
   position: absolute;\
   padding: 3px;\
-  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
 }\
 #watchList {\
   margin: 0;\
@@ -2252,6 +2260,14 @@ div.post div.postInfo {\
   user-select: none;\
   -moz-user-select: none;\
   -webkit-user-select: none;\
+}\
+.tomorrow #watchList li:first-child {\
+  border-top: 1px solid rgba(255, 255, 255, 0.20);\
+}\
+#watchList li:first-child {\
+  margin-top: 3px;\
+  padding-top: 2px;\
+  border-top: 1px solid rgba(0, 0, 0, 0.20);\
 }\
 #watchList a {\
   text-decoration: none;\
@@ -2284,7 +2300,6 @@ div.post div.postInfo {\
 #quote-preview {\
   display: block;\
   position: absolute;\
-  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.35);\
   padding: 3px 6px 6px 3px;\
 }\
 #quote-preview img {\

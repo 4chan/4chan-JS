@@ -1408,7 +1408,7 @@ ThreadUpdater.init = function() {
   this.auto = false;
   this.delay = 0;
   this.step = 5;
-  this.range = [ 5, 300 ];
+  this.range = [ 10, 300 ];
   this.lastModified = '0';
   
   this.iconNode = (document.head || $.tag('head')[0])
@@ -1498,9 +1498,7 @@ ThreadUpdater.adjustDelay = function(postCount, force)
       }
     }
     else {
-      if ((this.delay -= postCount * this.step) < this.range[0]) {
-        this.delay = this.range[0]
-      }
+      this.delay = this.range[0];
     }
   }
   if (this.auto) {

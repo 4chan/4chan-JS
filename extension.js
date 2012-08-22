@@ -1400,91 +1400,91 @@ ThreadExpansion.fetch = function(tid) {
 /**
  * Thread updater
  */
-var ThreadUpdater = {
-  unread: false,
-  iconNode: null,
-  defaultIcon: '',
-	updateInterval: null,
-	pulseInterval: null,
-	force: false,
-	auto: false,
-	updating: false,
-	delay: 0,
-	step: 5,
-	range: [ 5, 300 ], // in seconds
-	lastUpdated: 0,
-	lastModified: '0',
-	statusNode: null
-};
+var ThreadUpdater = {};
 
 ThreadUpdater.init = function() {
-	var frag, navlinks, el, label, postCount, head;
-	
-	postCount = document.getElementsByClassName('reply').length;
-	navlinks = document.getElementsByClassName('navLinksBot')[0];
-	
-	frag = document.createDocumentFragment();
-	
-	head = document.head || $.tag('head')[0];
-	this.iconNode = head.querySelector('link[rel="shortcut icon"]');
-	this.defaultIcon = this.iconNode.getAttribute('href');
-	//this.iconNode.type = 'image/x-icon';
-	
-	// Update button
-	frag.appendChild(document.createTextNode(' ['));
-	el = document.createElement('a');
-	el.id = 'threadUpdateBtn';
-	el.href = '';
-	el.textContent = 'Update';
-	el.addEventListener('click', this.onUpdateClick, false);
-	frag.appendChild(el);
-	frag.appendChild(document.createTextNode(']'));
-	
-	// Auto checkbox
-	frag.appendChild(document.createTextNode(' ['));
-	label = document.createElement('label');
-	el = document.createElement('input');
-	el.type = 'checkbox';
-	el.title = 'Fetch new replies automatically';
-	el.id = 'threadUpdateAuto';
-	el.addEventListener('click', this.onAutoClick, false);
-	label.appendChild(el);
-	label.appendChild(document.createTextNode('Auto'));
-	frag.appendChild(label);
-	frag.appendChild(document.createTextNode(']'));
-	
-	// Status span
-	this.statusNode = document.createElement('span');
-	
-	this.statusNode.id = 'threadUpdateStatus';
-	frag.appendChild(this.statusNode);
-	
-	navlinks.appendChild(frag);
+  this.unread = false;
+  this.auto = false;
+  this.delay = 0;
+  this.step = 5;
+  this.range = [ 5, 300 ];
+  this.lastModified = '0';
+  
+  this.iconNode = (document.head || $.tag('head')[0])
+    .querySelector('link[rel="shortcut icon"]');
+  
+  this.defaultIcon = this.iconNode.getAttribute('href');
+  
+  this.initControls();
+};
+
+ThreadUpdater.initControls = function() {
+  var i, j, frag, el, label, navlinks;
+  
+  for (i = 0; i < 2; ++i) {
+    j = i ? '' : 'Bot';
+    
+    frag = document.createDocumentFragment();
+    
+    // Update button
+    frag.appendChild(document.createTextNode(' ['));
+    el = document.createElement('a');
+    el.href = '';
+    el.textContent = 'Update';
+    el.setAttribute('data-cmd', 'update');
+    frag.appendChild(el);
+    frag.appendChild(document.createTextNode(']'));
+    
+    // Auto checkbox
+    frag.appendChild(document.createTextNode(' ['));
+    label = document.createElement('label');
+    el = document.createElement('input');
+    el.type = 'checkbox';
+    el.title = 'Fetch new replies automatically';
+    el.setAttribute('data-cmd', 'auto');
+    this['autoNode' + j] = el;
+    label.appendChild(el);
+    label.appendChild(document.createTextNode('Auto'));
+    frag.appendChild(label);
+    frag.appendChild(document.createTextNode('] '));
+    
+    // Status span
+    frag.appendChild(
+      this['statusNode' + j] = document.createElement('span')
+    );
+    
+    if (navlinks = $.class('navLinks' + j)[0]) {
+      navlinks.appendChild(frag);
+    }
+  }
 };
 
 ThreadUpdater.start = function() {
-	this.auto = true;
-	this.force = this.updating = false;
-	this.lastUpdated = Date.now();
-	this.delay = this.range[0];
-	document.addEventListener('scroll', this.onScroll, false);
-	this.updateInterval = setTimeout(this.update, this.delay * 1000);
-	this.pulse();
+  this.auto = true;
+  this.autoNode.setAttribute('checked', 'checked');
+  this.autoNodeBot.setAttribute('checked', 'checked');
+  this.force = this.updating = false;
+  this.lastUpdated = Date.now();
+  this.delay = this.range[0];
+  document.addEventListener('scroll', this.onScroll, false);
+  this.updateInterval = setTimeout(this.update, this.delay * 1000);
+  this.pulse();
 };
 
 ThreadUpdater.stop = function() {
-	this.auto = this.updating = this.force = false;
-	this.statusNode.textContent = '';
-	this.setIcon(this.defaultIcon);
-	document.removeEventListener('scroll', this.onScroll, false);
-	clearTimeout(this.updateInterval);
-	clearTimeout(this.pulseInterval);
+  this.auto = this.updating = this.force = false;
+  this.autoNode.removeAttribute('checked');
+  this.autoNodeBot.removeAttribute('checked');
+  this.setStatus('');
+  this.setIcon(this.defaultIcon);
+  document.removeEventListener('scroll', this.onScroll, false);
+  clearTimeout(this.updateInterval);
+  clearTimeout(this.pulseInterval);
 };
 
 ThreadUpdater.pulse = function() {
 	var self = ThreadUpdater;
-	self.statusNode.textContent =
-		self.delay - (0 | (Date.now() - self.lastUpdated) / 1000);
+	self.setStatus(self.delay - (0 | (Date.now() - self.lastUpdated) / 1000));
 	self.pulseInterval = setTimeout(self.pulse, 1000);
 };
 
@@ -1517,21 +1517,13 @@ ThreadUpdater.onScroll = function(e) {
   }
 };
 
-ThreadUpdater.onUpdateClick = function(e) {
-	e.preventDefault();
+ThreadUpdater.forceUpdate = function() {
 	ThreadUpdater.force = true;
 	ThreadUpdater.update();
 };
 
-ThreadUpdater.onAutoClick = function(e) {
-	if (this.hasAttribute('checked')) {
-		this.removeAttribute('checked');
-		ThreadUpdater.stop();
-	}
-	else {
-		this.setAttribute('checked', 'checked');
-		ThreadUpdater.start();
-	}
+ThreadUpdater.toggleAuto = function() {
+  this.auto ? this.stop() : this.start();
 };
 
 ThreadUpdater.update = function() {
@@ -1553,7 +1545,7 @@ ThreadUpdater.update = function() {
 	
 	console.log('Updating thread at ' + new Date().toString());
 	
-	self.statusNode.textContent = 'Updating...';
+	self.setStatus('Updating...');
 	
 	//$.get('http://localtest.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
 	$.get('//api.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
@@ -1574,7 +1566,7 @@ ThreadUpdater.onload = function() {
   self = ThreadUpdater;
   nodes = [];
   
-  self.statusNode.textContent = '';
+  self.setStatus('');
   
   if (this.status == 200) {
     self.lastModified = this.getResponseHeader('Last-Modified');
@@ -1615,11 +1607,11 @@ ThreadUpdater.onload = function() {
     }
   }
   else if (this.status == 304 || this.status == 0) {
-    self.statusNode.textContent = 'Not Modified';
+    self.setStatus('Not Modified');
   }
   else if (this.status == 404) {
     self.setIcon(self.icons.dead);
-    self.statusNode.textContent = 'Not Found';
+    self.setStatus('Not Found');
     if (self.auto) {
       self.stop();
     }
@@ -1632,10 +1624,14 @@ ThreadUpdater.onload = function() {
 
 ThreadUpdater.onerror = function() {
   var self = ThreadUpdater;
-  self.statusNode.textContent = 'Connection Error';
+  self.setStatus('Connection Error');
   self.lastUpdated = Date.now();
   self.adjustDelay(0, self.force);
   self.updating = self.force = false;
+};
+
+ThreadUpdater.setStatus = function(msg) {
+  this.statusNode.textContent = this.statusNodeBot.textContent = msg;
 };
 
 ThreadUpdater.setIcon = function(data) {
@@ -2091,13 +2087,20 @@ Main.onclick = function(e) {
   t = e.target;
   
   if (cmd = t.getAttribute('data-cmd')) {
-    e.preventDefault();
     tid = t.getAttribute('data-tid');
     switch (cmd) {
       case 'qr':
+        e.preventDefault();
         ids = tid.split('-'); // tid, pid
         QR.show(ids[0], ids[1]);
         Main.quotePost(ids[1], true);
+        break;
+      case 'update':
+        e.preventDefault();
+        ThreadUpdater.forceUpdate();
+        break;
+      case 'auto':
+        ThreadUpdater.toggleAuto();
         break;
       case 'hide':
         ThreadHiding.toggle(tid);
@@ -2169,7 +2172,7 @@ div.op > span .postHideButtonCollapsed {\
   cursor: pointer;\
   margin-bottom: -4px;\
 }\
-#threadUpdateStatus {\
+.threadUpdateStatus {\
   margin-left: 0.5ex;\
 }\
 .stub .extControls,\

@@ -1978,6 +1978,7 @@ Main.setStickyNav = function() {
   
   cnt = document.createElement('div');
   cnt.id = 'stickyNav';
+  cnt.className = 'reply panel';
   cnt.innerHTML
     = '<img class="extButton" src="' +  Main.icons.up
       + '" data-cmd="totop" alt="▲" title="Top">'

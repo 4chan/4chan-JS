@@ -1411,8 +1411,7 @@ ThreadUpdater.init = function() {
   this.range = [ 10, 300 ];
   this.lastModified = '0';
   
-  this.iconNode = (document.head || $.tag('head')[0])
-    .querySelector('link[rel="shortcut icon"]');
+  this.iconNode = document.head.querySelector('link[rel="shortcut icon"]');
   
   this.defaultIcon = this.iconNode.getAttribute('href');
   
@@ -1863,6 +1862,8 @@ Main.init = function()
   var params, storage, cnt, el;
   
   document.removeEventListener('DOMContentLoaded', Main.init, false);
+  
+  document.head = document.head || $.tag('head')[0];
   
   Config.load();
   
@@ -2339,7 +2340,7 @@ div.backlink {\
   style = document.createElement('style');
   style.setAttribute('type', 'text/css');
   style.textContent = css;
-  (document.head || $.tag('head')[0]).appendChild(style);
+  document.head.appendChild(style);
 };
 
 Main.reportPost = function(pid) {

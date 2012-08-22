@@ -1334,7 +1334,7 @@ ThreadExpansion.fetch = function(tid) {
     {
       onload: function() {
         var i, p, n, frag, thread, tail, posts, count, msg, metacap,
-          expmsg, summary;
+          expmsg, summary, abbr;
         
         thread = $.id('t' + tid);
         summary = thread.children[1];
@@ -1356,7 +1356,8 @@ ThreadExpansion.fetch = function(tid) {
           }
           
           msg = $.id('m' + tid);
-          if (/^Comment/.test(msg.lastChild.textContent)) {
+          if ((abbr = $.class('abbr', msg)[0])
+            && /^Comment/.test(abbr.textContent)) {
             thread.setAttribute('data-truncated', '1');
             expmsg = document.createElement('div');
             expmsg.style.display = 'none';

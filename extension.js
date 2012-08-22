@@ -953,6 +953,7 @@ QR.submit = function(e) {
   
   xhr = new XMLHttpRequest();
   xhr.open('POST', document.forms.qrPost.action, true);
+  xhr.withCredentials = true;
   xhr.upload.onprogress = function(e) {
     btn.value = (0 | (e.loaded / e.total * 100)) + '%';
   };

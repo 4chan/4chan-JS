@@ -1765,7 +1765,8 @@ var Config = {
   stickyNav: true,
   imageSearch: true,
   revealSpoilers: true,
-  localTime: true
+  localTime: true,
+  topPageNav: true
 };
 
 Config.load = function() {
@@ -1799,7 +1800,8 @@ SettingsMenu.options = {
   stickyNav: 'Sticky navigation arrows',
   imageSearch: 'Image search',
   revealSpoilers: "Don't spoiler images",
-  localTime: 'Local time'
+  localTime: 'Local time',
+  topPageNav: 'Page navigation at the top'
 };
 
 SettingsMenu.save = function() {
@@ -1935,6 +1937,9 @@ Main.init = function()
     }
   }
   else {
+    if (Config.topPageNav) {
+      Main.setPageNav();
+    }
     if (Config.threadHiding) {
       ThreadHiding.init();
       Parser.parseBoard();
@@ -1991,6 +1996,17 @@ Main.initIcons = function() {
     Main.icons[key] = url + Main.icons[key];
   }
 };
+
+Main.setPageNav = function() {
+  var el, t;
+  
+  el = $.class('pagelist')[0].cloneNode(true);
+  el.className += ' topPageNav';
+  t = document.forms.delform;
+  t.parentNode.insertBefore(el, t);
+  t.parentNode.insertBefore(document.createElement('hr'), t);
+};
+
 
 Main.setStickyNav = function() {
   var cnt;
@@ -2354,6 +2370,11 @@ div.backlink {\
   position: fixed;\
   top: 60px;\
   right: 0;\
+}\
+div.topPageNav {\
+  margin-bottom: -3px;\
+  display: inline-block;\
+  float: none;\
 }\
 ';
 

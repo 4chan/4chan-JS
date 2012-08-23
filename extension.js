@@ -111,6 +111,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     highlight = '',
     emailStart = '',
     emailEnd = '',
+    noFilename,
       
     staticPath = '//static.4chan.org',
     imgDir = '//images.4chan.org/' + board + '/src';
@@ -203,13 +204,18 @@ Parser.buildHTMLFromJSON = function(data, board) {
     
     if (data.spoiler) {
       fileSize = 'Spoiler Image, ' + fileSize;
-      fileClass = ' imgspoiler';
-      
-      fileThumb = '//static.4chan.org/image/spoiler.png';
-      data.tn_w = 100;
-      data.tn_h = 100;
+      if (!Config.revealSpoilers) {
+        fileClass = ' imgspoiler';
+        
+        fileThumb = '//static.4chan.org/image/spoiler.png';
+        data.tn_w = 100;
+        data.tn_h = 100;
+        
+        noFilename = true;
+      }
     }
-    else {
+    
+    if (!fileThumb) {
       fileThumb = '//thumbs.4chan.org/' + board + '/thumb/' + data.tim + 's.jpg';
     }
     
@@ -229,8 +235,9 @@ Parser.buildHTMLFromJSON = function(data, board) {
       fileInfo = '<span class="fileText" id="fT' + data.no
         + '">File: <a href="' + imgDir + '/' + data.tim + data.ext
         + '" target="_blank">' + data.tim + data.ext + '</a>-(' + fileSize
-        + 'B, ' + fileDims + ', <span title="' + longFile + '">'
-        + shortFile + '</span>)</span>';
+        + 'B, ' + fileDims
+        + (noFilename ? '' : (', <span title="' + longFile + '">'
+        + shortFile + '</span>')) + ')</span>';
     }
     
     fileBuildStart = fileInfo ? '<div class="fileInfo">' : '';
@@ -377,7 +384,7 @@ Parser.parseThread = function(tid, offset, limit) {
 };
 
 Parser.parsePost = function(pid, tid) {
-  var cnt, quickReply, el, pi, href, a, img;
+  var cnt, quickReply, el, pi, href, a, img, filename;
   
   pi = document.getElementById('pi' + pid);
   
@@ -423,6 +430,10 @@ Parser.parsePost = function(pid, tid) {
       
       img.src = '//thumbs.4chan.org'
         + (file.pathname.replace(/src(\/[0-9]+).+$/, 'thumb$1s.jpg'))
+      
+      filename = file.previousSibling.firstChild;
+      filename.lastChild.textContent
+        = filename.lastChild.textContent.slice(0, -1) + ', ' + filename.title + ')';
     }
     file.appendChild(img);
   }
@@ -509,7 +520,7 @@ Parser.parseBacklinks = function(pid, tid)
       el = document.createElement('div');
       el.id = 'bl_' + ids[1];
       el.className = 'backlink';
-      el.innerHTML = 'Quoted by: ';
+      el.innerHTML = 'Replies: ';
       target.parentNode.insertBefore(el, target);
     }
     
@@ -647,11 +658,7 @@ QuotePreview.show = function(link, post, remote) {
     else {
       post = post.cloneNode(true);
       post.id = 'quote-preview';
-      post.className += ' panel';
-    }
-    
-    if ($.hasClass(post, 'op')) {
-      post.className += ' reply';
+      post.className += ' preview';
     }
     
     rect = link.getBoundingClientRect();
@@ -662,11 +669,11 @@ QuotePreview.show = function(link, post, remote) {
     
     if ((docWidth - rect.right) < (0 | (docWidth * 0.3))) {
       pos = docWidth - rect.left;
-      style.right = pos + 10 + 'px'
+      style.right = pos + 5 + 'px'
     }
     else {
       pos = rect.left + rect.width;
-      style.left = pos + 10 + 'px';
+      style.left = pos + 5 + 'px';
     }
     
     style.top =
@@ -766,8 +773,8 @@ QR.init = function() {
 };
 
 QR.show = function(tid, pid) {
-  var i, j, cnt, postForm, form, table, fields, tr, tbody, pos, spoiler, file,
-    cd, qrError;
+  var i, j, cnt, postForm, form, table, fields, tr, tbody, passwd, spoiler, file,
+    el, cd, qrError;
   
   if (QR.currentTid) {
     if (!Main.tid && QR.currentTid != tid) {
@@ -783,7 +790,7 @@ QR.show = function(tid, pid) {
   
   cnt = document.createElement('div');
   cnt.id = 'quickReply';
-  cnt.className = 'reply panel';
+  cnt.className = 'preview';
   cnt.setAttribute('data-trackpos', 'QR-position');
   
   if (Config['QR-position']) {
@@ -826,6 +833,13 @@ QR.show = function(tid, pid) {
     }
     else {
       tr = fields[i].cloneNode(true);
+      el = tr.firstChild;
+      if (el.textContent == 'File') {
+        (file = el.nextSibling.firstChild).id = 'qrFile';
+      }
+      else if (el.textContent == 'Password') {
+        (passwd = el.nextSibling.firstChild).id = 'qrPassword';
+      }
     }
     tbody.appendChild(tr);
   }
@@ -833,8 +847,8 @@ QR.show = function(tid, pid) {
   if (spoiler = tbody.querySelector('input[name="spoiler"]')) {
     spoiler = spoiler.parentNode.parentNode;
     spoiler.parentNode.removeChild(spoiler);
-    file = tbody.querySelector('input[id="postFile"]');
-    file.id = 'qrFile';
+    spoiler.innerHTML
+      = '<label><input type="checkbox" value="on" name="spoiler">Spoiler?';
     file.parentNode.insertBefore(spoiler, file.nextSibling);
   }
   
@@ -942,10 +956,10 @@ QR.submit = function(e) {
   
   if (QR.cooldown) {
     if (QR.auto = !QR.auto) {
-      btn.value = 'CD: ' + QR.cooldown + 's (auto)';
+      btn.value = QR.cooldown + 's (auto)';
     }
     else {
-      btn.value = 'CD: ' + QR.cooldown + 's';
+      btn.value = QR.cooldown + 's';
     }
     return;
   }
@@ -1052,7 +1066,7 @@ QR.startCooldown = function(ms) {
     localStorage.removeItem('4chan-cd-' + Main.board);
     return;
   }
-  btn.value = 'CD: ' + QR.cooldown + 's';
+  btn.value = QR.cooldown + 's';
   interval = setInterval(function() {
     if ((QR.cooldown = 0 | ((ms - Date.now()) / 1000)) <= 0) {
       clearInterval(interval);
@@ -1064,7 +1078,7 @@ QR.startCooldown = function(ms) {
       }
     }
     else {
-      btn.value = 'CD: ' + QR.cooldown + (QR.auto ? 's (auto)' : 's');
+      btn.value = QR.cooldown + (QR.auto ? 's (auto)' : 's');
     }
   }, 1000);
 };
@@ -1185,7 +1199,7 @@ ThreadWatcher.init = function() {
   
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
-  cnt.className = 'reply panel';
+  cnt.className = 'preview';
   cnt.setAttribute('data-trackpos', 'TW-position');
   
   if (Config['TW-position']) {
@@ -1833,7 +1847,7 @@ SettingsMenu.open = function(bottom) {
   
   cnt = document.createElement('div');
   cnt.id = 'settingsMenu';
-  cnt.className = 'reply panel';
+  cnt.className = 'preview';
   cnt.style[bottom ? 'bottom' : 'top'] = '20px';
   
   html = '';
@@ -2002,9 +2016,8 @@ Main.setPageNav = function() {
   
   el = $.class('pagelist')[0].cloneNode(true);
   el.className += ' topPageNav';
-  t = document.forms.delform;
-  t.parentNode.insertBefore(el, t);
-  t.parentNode.insertBefore(document.createElement('hr'), t);
+  t = $.id('boardNavDesktop');
+  t.parentNode.insertBefore(el, t.nextSibling);
 };
 
 
@@ -2013,7 +2026,7 @@ Main.setStickyNav = function() {
   
   cnt = document.createElement('div');
   cnt.id = 'stickyNav';
-  cnt.className = 'reply panel';
+  cnt.className = 'preview';
   cnt.innerHTML
     = '<img class="extButton" src="' +  Main.icons.up
       + '" data-cmd="totop" alt="▲" title="Top">'
@@ -2189,18 +2202,23 @@ Main.addCSS = function()
 .postHidden .buttons {\
   display: none !important;\
 }\
-.ws .panel,\
-.nws .panel {\
-  border: 1px solid rgba(0, 0, 0, 0.20);\
+.burichan_new .preview,\
+.futaba_new .preview {\
+  border: 1px solid rgba(0, 0, 0, 0.15);\
+  border-bottom-width: 2px;\
+  border-right-width: 2px;\
+}\
+.burichan_new .preview {\
+  background-color: #D6DAF0;\
+}\
+.futaba_new .preview {\
+  background-color: #F0E0D6;\
 }\
 .tomorrow .panel {\
   border: 1px solid rgba(255, 255, 255, 0.15);\
 }\
 .postHidden {\
   padding-right: 5px!important;\
-}\
-.preview div.post div.file div.fileInfo {\
-  margin-left: 0px !important;\
 }\
 .threadHideButton {\
   float: left;\
@@ -2258,12 +2276,46 @@ div.post div.postInfo {\
 #quickReply {\
   position: fixed;\
 }\
+#quickReply input[type="text"],\
+#quickReply textarea {\
+  width: 296px;\
+  padding: 2px;\
+}\
+#quickReply input[type="text"],\
+#quickReply textarea {\
+  width: 296px;\
+  margin: 0;\
+}\
+#quickReply textarea {\
+  min-width: 296px;\
+}\
+#quickReply input[name="sub"] {\
+  width: 210px;\
+}\
+#quickReply input[type="submit"] {\
+  width: 85px;\
+  margin-left: 3px;\
+}\
+#quickReply #qrCapField {\
+  border: 1px solid #aaa;\
+  width: 296px;\
+  padding: 0;\
+  margin-bottom: 2px;\
+  font-size: 11pt;\
+  display: block;\
+  padding: 0 2px;\
+}\
+#qrFile {\
+  max-width: 220px;\
+}\
+#qrPassword {\
+  padding: 2px;\
+}\
 #qrHeader {\
   text-align: center;\
   padding: 0;\
   margin-left: 1px;\
   height: 18px;\
-  font-size: 14px;\
   line-height: 18px;\
 }\
 #qrClose {\
@@ -2274,16 +2326,9 @@ div.post div.postInfo {\
   cursor: pointer;\
   border: 1px solid #DFDFDF;\
 }\
-#qrCapField {\
-  border: 1px solid #aaa;\
-  width: 300px;\
-  padding: 0;\
-  margin-bottom: 2px;\
-  font-size: 11pt;\
-  display: block;\
-}\
 #twHeader {\
   font-weight: bold;\
+  text-align: center;\
 }\
 #threadWatcher {\
   max-width: 265px;\
@@ -2372,9 +2417,7 @@ div.backlink {\
   right: 0;\
 }\
 div.topPageNav {\
-  margin-bottom: -3px;\
-  display: inline-block;\
-  float: none;\
+  margin-top: 10px;\
 }\
 ';
 

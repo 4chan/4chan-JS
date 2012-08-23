@@ -773,7 +773,7 @@ QR.init = function() {
 };
 
 QR.show = function(tid, pid) {
-  var i, j, cnt, postForm, form, table, fields, tr, tbody, passwd, spoiler, file,
+  var i, j, cnt, postForm, form, table, fields, tr, tbody, spoiler, file,
     el, cd, qrError;
   
   if (QR.currentTid) {
@@ -852,9 +852,6 @@ QR.show = function(tid, pid) {
         file.parentNode.insertBefore(el, file);
         
         file.addEventListener('change', QR.onFileChanged, false);
-      }
-      else if (el.textContent == 'Password') {
-        (passwd = el.nextSibling.firstChild).id = 'qrPassword';
       }
     }
     tbody.appendChild(tr);
@@ -2386,7 +2383,7 @@ div.post div.postInfo {\
 #qrBrowse {\
   margin-left: 3px;\
 }\
-#qrPassword {\
+#quickReply input[type="password"] {\
   padding: 2px;\
 }\
 #qrHeader {\

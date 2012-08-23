@@ -77,6 +77,14 @@ $.get = function(url, callbacks, headers) {
   return xhr;
 };
 
+$.hash = function(str) {
+  var i, j, msg = 0;
+  for (i = 0, j = str.length; i < j; ++i) {
+    msg = ((msg << 5) - msg) + str.charCodeAt(i);
+  }
+  return msg;
+};
+
 /**
  * Parser
  */
@@ -1838,7 +1846,8 @@ var Config = {
   imageSearch: true,
   revealSpoilers: true,
   localTime: true,
-  topPageNav: true
+  topPageNav: true,
+  hideGlobalMsg: true
 };
 
 Config.load = function() {
@@ -1873,7 +1882,8 @@ SettingsMenu.options = {
   imageSearch: 'Image search',
   revealSpoilers: "Don't spoiler images",
   localTime: 'Local time',
-  topPageNav: 'Page navigation at the top'
+  topPageNav: 'Page navigation at the top',
+  hideGlobalMsg: 'Enable announcement hiding',
 };
 
 SettingsMenu.save = function() {
@@ -1950,7 +1960,7 @@ var Main = {};
 
 Main.init = function()
 {
-  var params, storage, cnt, el;
+  var params, storage, cnt;
   //console.profile('4chan JS');
   
   document.removeEventListener('DOMContentLoaded', Main.init, false);
@@ -1978,6 +1988,10 @@ Main.init = function()
   
   Main.addCSS();
   Main.initIcons();
+  
+  if (Config.hideGlobalMsg) {
+    Main.initGlobalMessage();
+  }
   
   if (Config.stickyNav) {
     Main.setStickyNav();
@@ -2078,6 +2092,47 @@ Main.setPageNav = function() {
   t.parentNode.insertBefore(el, t.nextSibling);
 };
 
+Main.initGlobalMessage = function() {
+  var msg, btn, oldHash;
+  
+  if ((msg = $.id('globalMessage')) && msg.textContent) {
+    btn = document.createElement('img');
+    btn.id = 'toggleMsgBtn';
+    btn.className = 'extButton';
+    btn.setAttribute('data-cmd', 'toggleMsg');
+    btn.alt = 'Toggle';
+    btn.title = 'Toggle announcement';
+    if ((oldHash = localStorage.getItem('4chan-msg'))
+      && (Main.msgHash = $.hash(msg.textContent)) == oldHash) {
+      msg.style.display = 'none';
+      btn.src = Main.icons.plus;
+    }
+    else {
+      btn.src = Main.icons.minus;
+      btn.style.position = 'absolute';
+    }
+    msg.parentNode.insertBefore(btn, msg);
+  }
+};
+
+Main.toggleGlobalMessage = function() {
+  var msg, btn;
+  
+  msg = $.id('globalMessage');
+  btn = $.id('toggleMsgBtn');
+  if (msg.style.display == 'none') {
+    msg.style.display = null;
+    btn.src = Main.icons.minus;
+    btn.style.position = 'absolute';
+    localStorage.removeItem('4chan-msg');
+  }
+  else {
+    msg.style.display = 'none';
+    btn.src = Main.icons.plus;
+    btn.style.position = null;
+    localStorage.setItem('4chan-msg', Main.msgHash || $.hash(msg.textContent));
+  }
+};
 
 Main.setStickyNav = function() {
   var cnt, hdr;
@@ -2241,6 +2296,9 @@ Main.onclick = function(e) {
         if (!e.shiftKey) {
           location.href = '#' + cmd.slice(2);
         }
+        break;
+      case 'toggleMsg':
+        Main.toggleGlobalMessage();
         break;
     }
   }

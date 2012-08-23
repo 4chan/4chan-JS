@@ -1745,12 +1745,17 @@ var Draggable = {
   startDrag: function(e) {
     var self, doc, offs;
     
+    if (this.parentNode.hasAttribute('shiftKey') && !e.shiftKey) {
+      return;
+    }
+    
     e.preventDefault();
     
     self = Draggable;
     doc = document.documentElement;
     
     self.el = this.parentNode;
+    
     self.key = self.el.getAttribute('data-trackpos');
     offs = self.el.getBoundingClientRect();
     self.dx = e.clientX - offs.left;
@@ -1782,6 +1787,7 @@ var Draggable = {
   
   onDrag: function(e) {
     var left, top, style;
+    
     left = e.clientX - Draggable.dx + Draggable.scrollX;
     top = e.clientY - Draggable.dy + Draggable.scrollY;
     style = Draggable.el.style;
@@ -2073,17 +2079,30 @@ Main.setPageNav = function() {
 
 
 Main.setStickyNav = function() {
-  var cnt;
+  var cnt, hdr;
   
   cnt = document.createElement('div');
   cnt.id = 'stickyNav';
   cnt.className = 'preview';
-  cnt.innerHTML
-    = '<img class="extButton" src="' +  Main.icons.up
-      + '" data-cmd="totop" alt="▲" title="Top">'
-    + '<img class="extButton" src="' +  Main.icons.down
-      + '" data-cmd="tobottom" alt="▼" title="Bottom">';
+  cnt.setAttribute('shiftKey', '1');
+  cnt.setAttribute('data-trackpos', 'SN-position');
   
+  if (Config['SN-position']) {
+    cnt.style.cssText = Config['SN-position'];
+  }
+  else {
+    cnt.style.right = '0px';
+    cnt.style.top = '50px';
+  }
+  
+  hdr = document.createElement('div');
+  hdr.innerHTML = '<img class="extButton" src="'
+    +  Main.icons.up + '" data-cmd="totop" alt="▲" title="Top">'
+    + '<img class="extButton" src="' +  Main.icons.down
+    + '" data-cmd="tobottom" alt="▼" title="Bottom">';
+  Draggable.set(hdr);
+  
+  cnt.appendChild(hdr);
   document.body.appendChild(cnt);
 };
 
@@ -2217,10 +2236,10 @@ Main.onclick = function(e) {
         Main.reportPost(tid);
         break;
       case 'totop':
-        location.href = '#top';
-        break;
       case 'tobottom':
-        location.href = '#bottom';
+        if (!e.shiftKey) {
+          location.href = '#' + cmd.slice(2);
+        }
         break;
     }
   }
@@ -2319,10 +2338,10 @@ div.post div.postInfo {\
   cursor: pointer;\
 }\
 .drag {\
-  cursor: move;\
-  user-select: none;\
-  -moz-user-select: none;\
-  -webkit-user-select: none;\
+  cursor: move !important;\
+  user-select: none !important;\
+  -moz-user-select: none !important;\
+  -webkit-user-select: none !important;\
 }\
 #quickReply {\
   position: fixed;\
@@ -2472,8 +2491,6 @@ div.backlink {\
 }\
 #stickyNav {\
   position: fixed;\
-  top: 60px;\
-  right: 0;\
 }\
 div.topPageNav {\
   margin-top: 10px;\

@@ -843,6 +843,7 @@ QR.show = function(tid, pid) {
         el.type = 'text';
         el.title = 'Shift + Click to remove the file';
         el.readOnly = true;
+        el.setAttribute('autocomplete', 'off');
         file.parentNode.insertBefore(el, file);
         
         el = document.createElement('button');
@@ -852,6 +853,9 @@ QR.show = function(tid, pid) {
         file.parentNode.insertBefore(el, file);
         
         file.addEventListener('change', QR.onFileChanged, false);
+      }
+      else if (el.textContent == 'Password') {
+        el.nextSibling.firstChild.id = 'qrPassword';
       }
     }
     tbody.appendChild(tr);
@@ -2383,7 +2387,7 @@ div.post div.postInfo {\
 #qrBrowse {\
   margin-left: 3px;\
 }\
-#quickReply input[type="password"] {\
+#qrPassword {\
   padding: 2px;\
 }\
 #qrHeader {\

@@ -835,7 +835,23 @@ QR.show = function(tid, pid) {
       tr = fields[i].cloneNode(true);
       el = tr.firstChild;
       if (el.textContent == 'File') {
-        (file = el.nextSibling.firstChild).id = 'qrFile';
+        file = el.nextSibling.firstChild
+        file.id = 'qrFile';
+        
+        el = document.createElement('input');
+        el.id = 'qrDummyFile';
+        el.type = 'text';
+        el.title = 'Shift + Click to remove the file';
+        el.readOnly = true;
+        file.parentNode.insertBefore(el, file);
+        
+        el = document.createElement('button');
+        el.id = 'qrBrowse';
+        el.setAttribute('type', 'button');
+        el.textContent = 'Browse';
+        file.parentNode.insertBefore(el, file);
+        
+        file.addEventListener('change', QR.onFileChanged, false);
       }
       else if (el.textContent == 'Password') {
         (passwd = el.nextSibling.firstChild).id = 'qrPassword';
@@ -878,7 +894,12 @@ QR.close = function() {
   QR.currentTid = null;
   cnt.removeEventListener('click', QR.onClick, false);
   Draggable.unset($.id('qrHeader'));
+  $.id('qrFile').removeEventListener('change', QR.onFileChanged, false);
   document.body.removeChild(cnt);
+};
+
+QR.onFileChanged = function(e) {
+  $.id('qrDummyFile').value = e.target.files[0].name;
 };
 
 QR.cloneCaptcha = function() {
@@ -917,15 +938,28 @@ QR.reloadCaptcha = function(focus) {
 QR.onClick = function(e) {
   var t = e.target;
   
-  if (t.id == 'qrCaptcha') {
-    QR.reloadCaptcha(true);
-  }
-  else if (t.type == 'submit') {
+  if (t.type == 'submit') {
     e.preventDefault();
     QR.submit();
   }
-  else if (t.id == 'qrClose') {
-    QR.close();
+  else {
+    switch (t.id) {
+      case 'qrBrowse':
+      case 'qrDummyFile':
+        if (e.shiftKey) {
+          QR.resetFile();
+        }
+        else {
+          $.id('qrFile').click();
+        }
+        break;
+      case 'qrCaptcha':
+        QR.reloadCaptcha(true);
+        break;
+      case 'qrClose':
+        QR.close();
+        break;
+    }    
   }
 };
 
@@ -945,6 +979,23 @@ QR.showPostError = function(msg) {
 
 QR.hidePostError = function() {
   $.id('qrError').style.display = 'none';
+};
+
+QR.resetFile = function() {
+  var file, el;
+  
+  el = document.createElement('input');
+  el.id = 'qrFile';
+  el.type = 'file';
+  el.name = 'upfile';
+  el.addEventListener('change', QR.onFileChanged, false);
+  
+  file = $.id('qrFile');
+  file.removeEventListener('change', QR.onFileChanged, false);
+  
+  file.parentNode.replaceChild(el, file);
+  
+  $.id('qrDummyFile').value = '';
 };
 
 QR.submit = function(e) {
@@ -2297,7 +2348,6 @@ div.post div.postInfo {\
   margin-left: 3px;\
 }\
 #quickReply #qrCapField {\
-  border: 1px solid #aaa;\
   width: 296px;\
   padding: 0;\
   margin-bottom: 2px;\
@@ -2305,8 +2355,17 @@ div.post div.postInfo {\
   display: block;\
   padding: 0 2px;\
 }\
+#quickReply #qrDummyFile {\
+  cursor: pointer;\
+  width: 150px;\
+  padding: 1px 2px;\
+}\
 #qrFile {\
-  max-width: 220px;\
+  visibility: hidden;\
+  position: absolute;\
+}\
+#qrBrowse {\
+  margin-left: 3px;\
 }\
 #qrPassword {\
   padding: 2px;\
@@ -2325,6 +2384,22 @@ div.post div.postInfo {\
   width: 300px;\
   cursor: pointer;\
   border: 1px solid #DFDFDF;\
+}\
+#qrCapField:invalid {\
+  box-shadow: none;\
+}\
+#qrError {\
+  display: none;\
+  padding: 5px;\
+  font-family: monospace;\
+  background-color: #E62020;\
+  color: white;\
+  padding: 3px 5px;\
+  text-shadow: 0 1px rgba(0, 0, 0, 0.20);\
+  font-size: 0.8em;\
+}\
+#qrError a {\
+  color: white;\
 }\
 #twHeader {\
   font-weight: bold;\
@@ -2358,22 +2433,6 @@ div.post div.postInfo {\
   overflow: hidden;\
   white-space: nowrap;\
   text-overflow: ellipsis;\
-}\
-#qrCapField:invalid {\
-  box-shadow: none;\
-}\
-#qrError {\
-  display: none;\
-  padding: 5px;\
-  font-family: monospace;\
-  background-color: #E62020;\
-  color: white;\
-  padding: 3px 5px;\
-  text-shadow: 0 1px rgba(0, 0, 0, 0.20);\
-  font-size: 0.8em;\
-}\
-#qrError a {\
-  color: white;\
 }\
 .fitToPage {\
   width: 100%;\

@@ -873,7 +873,7 @@ QR.show = function(tid, pid) {
     spoiler = spoiler.parentNode.parentNode;
     spoiler.parentNode.removeChild(spoiler);
     spoiler.innerHTML
-      = '<label><input type="checkbox" value="on" name="spoiler">Spoiler?';
+      = '<label>[<input type="checkbox" value="on" name="spoiler">Spoiler?]</label>';
     file.parentNode.insertBefore(spoiler, file.nextSibling);
   }
   
@@ -2419,7 +2419,7 @@ div.post div.postInfo {\
   min-width: 296px;\
 }\
 #quickReply input[name="sub"] {\
-  width: 210px;\
+  width: 208px;\
 }\
 #quickReply input[type="submit"] {\
   width: 85px;\
@@ -2435,7 +2435,7 @@ div.post div.postInfo {\
 }\
 #quickReply #qrDummyFile {\
   cursor: pointer;\
-  width: 150px;\
+  width: 140px;\
   padding: 1px 2px;\
 }\
 #qrFile {\

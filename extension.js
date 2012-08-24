@@ -1286,16 +1286,14 @@ ThreadHiding.save = function() {
 /**
  * Thread watcher
  */
-var ThreadWatcher = {
-  listNode: null,
-  charLimit: 40,
-  watched: {},
-};
-
-ThreadWatcher.watched = {};
+var ThreadWatcher = {};
 
 ThreadWatcher.init = function() {
   var cnt, html;
+  
+  this.listNode = null;
+  this.charLimit = 40;
+  this.watched = {};
   
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
@@ -2552,7 +2550,10 @@ div.post div.postInfo {\
   -webkit-user-select: none;\
 }\
 .tomorrow #watchList li:first-child {\
-  border-top: 1px solid rgba(255, 255, 255, 0.20);\
+  border-top: 1px solid rgba(255, 255, 255, 0.07);\
+}\
+.photon #watchList li:first-child {\
+  border-top: 1px solid #CCCCCC;\
 }\
 #watchList li:first-child {\
   margin-top: 3px;\
@@ -2607,7 +2608,11 @@ div.backlink {\
   position: fixed;\
 }\
 div.topPageNav {\
-  margin-top: 10px;\
+  margin-top: 20px;\
+}\
+.yotsuba_b_new div.topPageNav {\
+  border-top: 1px solid rgba(255, 255, 255, 0.50);\
+  border-left: 1px solid rgba(255, 255, 255, 0.50);\
 }\
 .newPostsMarker {\
   box-shadow: 0 5px red;\

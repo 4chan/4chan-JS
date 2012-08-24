@@ -341,7 +341,7 @@ Parser.parseThread = function(tid, offset, limit) {
         el.id = 'sa' + tid;
         el.alt = 'H';
         el.innerHTML = '<img class="extButton threadHideButton"'
-          + 'data-cmd="hide" data-tid="' + tid + '" src="'
+          + 'data-cmd="hide" data-id="' + tid + '" src="'
           + Main.icons.minus + '" title="Hide thread">';
         posts[0].insertBefore(el, posts[0].firstChild);
         if (ThreadHiding.hidden[tid]) {
@@ -364,7 +364,7 @@ Parser.parseThread = function(tid, offset, limit) {
         el.title = 'Expand thread';
         el.alt = '+';
         el.setAttribute('data-cmd', 'expand');
-        el.setAttribute('data-tid', tid);
+        el.setAttribute('data-id', tid);
         el.src = Main.icons.plus;
         frag.appendChild(el);
         
@@ -390,7 +390,7 @@ Parser.parseThread = function(tid, offset, limit) {
       }
       el.id = 'wbtn-' + key;
       el.setAttribute('data-cmd', 'watch');
-      el.setAttribute('data-tid', tid);
+      el.setAttribute('data-id', tid);
       el.alt = 'W';
       el.title = 'Add to watch list';
       pi = document.getElementById('pi' + tid);
@@ -407,37 +407,98 @@ Parser.parseThread = function(tid, offset, limit) {
 };
 
 Parser.parsePost = function(pid, tid) {
-  var cnt, quickReply, el, pi, href, a, img, filename;
+  var i, f, filters, hit, cnt, quickReply, el, pi, post, href, a, img, filename;
   
-  pi = document.getElementById('pi' + pid);
-  
-  cnt = document.createElement('div');
-  cnt.className = 'extControls';
-  
-  if (QR.enabled) {
-    el = document.createElement('img');
-    el.className = 'extButton';
-    el.src = Main.icons.quote;
-    el.setAttribute('data-cmd', 'qr');
-    el.setAttribute('data-tid', tid + '-' + pid);
-    el.title = 'Quick reply';
-    el.alt = 'Q';
-    cnt.appendChild(el);
+  if (tid) {
+    pi = document.getElementById('pi' + pid);
+    
+    if (pid != tid) {
+      if (Config.filter) {
+        filters = Filter.activeFilters;
+        hit = false;
+        for (i = 0; f = filters[i]; ++i) {
+          if (f.type == 0
+            && f.pattern.test(pi.children[2].getElementsByClassName('name')[0]
+              .textContent)) {
+            hit = true;
+            break;
+          }
+          else if (f.type == 1
+            && f.pattern.test(pi.children[2].getElementsByClassName('postertrip')[0]
+              .textContent)) {
+            hit = true;
+            break;
+          }
+          else if (f.pattern.test(document.getElementById('m' + pid)
+            .innerHTML.replace(/<br>/g, ' '))) {
+            hit = true;
+            break;
+          }
+        }
+        if (hit) {
+          console.log('hit: ' + JSON.stringify(f) + ' | ' + pid);
+          post = pi.parentNode;
+          if (f.hide) {
+            post.className += ' filter-hide';
+            post.setAttribute('data-cmd', 'filter-unhide');
+            post.setAttribute('data-id', pid);
+          }
+          else {
+            post.className += ' filter-hl';
+            post.style.boxShadow = '10px 0 ' + f.color;
+          }
+        }
+      }
+      if (Config.backlinks) {
+        Parser.parseBacklinks(pid, tid);
+      }
+    }
+    
+    cnt = document.createElement('div');
+    cnt.className = 'extControls';
+    
+    if (QR.enabled) {
+      el = document.createElement('img');
+      el.className = 'extButton';
+      el.src = Main.icons.quote;
+      el.setAttribute('data-cmd', 'qr');
+      el.setAttribute('data-id', tid + '-' + pid);
+      el.title = 'Quick reply';
+      el.alt = 'Q';
+      cnt.appendChild(el);
+    }
+    
+    if (Config.reportButton) {
+      el = document.createElement('img');
+      el.className = 'extButton';
+      el.src = Main.icons.report;
+      el.setAttribute('data-cmd', 'report');
+      el.setAttribute('data-id', pid);
+      el.title = 'Report post';
+      el.alt = '!';
+      cnt.appendChild(el);
+    }
+    
+    if (cnt.firstChild) {
+      pi.appendChild(cnt);
+    }
+    
+    if (Config.imageSearch && (file = document.getElementById('fT' + pid))) {
+      href = file.firstElementChild.href;
+      el = document.createElement('div');
+      el.className = 'extControls';
+      el.innerHTML =
+        '<a href="//www.google.com/searchbyimage?image_url=' + href
+        + '" target="_blank" title="Google Image Search"><img class="extButton" src="'
+        + Main.icons.gis + '" alt="G"></a><a href="http://iqdb.org/?url='
+        + href + '" target="_blank" title="iqdb"><img class="extButton" src="'
+        + Main.icons.iqdb + '" alt="I"></a>';
+      file.parentNode.appendChild(el);
+    }
   }
-  
-  if (Config.reportButton) {
-    el = document.createElement('img');
-    el.className = 'extButton';
-    el.src = Main.icons.report;
-    el.setAttribute('data-cmd', 'report');
-    el.setAttribute('data-tid', pid);
-    el.title = 'Report post';
-    el.alt = '!';
-    cnt.appendChild(el);
-  }
-  
-  if (cnt.firstChild) {
-    pi.appendChild(cnt);
+  else {
+    pid = pid.id.slice(1);
+    pi = document.getElementById('pi' + pid);
   }
   
   if (Config.revealSpoilers
@@ -468,22 +529,6 @@ Parser.parsePost = function(pid, tid) {
       + this.utcOffset;
   }
   
-  if (Config.imageSearch && (file = document.getElementById('fT' + pid))) {
-    href = file.firstElementChild.href;
-    el = document.createElement('div');
-    el.className = 'extControls';
-    el.innerHTML =
-      '<a href="//www.google.com/searchbyimage?image_url=' + href
-      + '" target="_blank" title="Google Image Search"><img class="extButton" src="'
-      + Main.icons.gis + '" alt="G"></a><a href="http://iqdb.org/?url='
-      + href + '" target="_blank" title="iqdb"><img class="extButton" src="'
-      + Main.icons.iqdb + '" alt="I"></a>';
-    file.parentNode.appendChild(el);
-  }
-  
-  if (Config.backlinks && pid != tid) {
-    Parser.parseBacklinks(pid, tid);
-  }
 };
 
 Parser.getLocaleDate = function(date) {
@@ -678,6 +723,7 @@ QuotePreview.show = function(link, post, remote) {
     var rect, docWidth, offsetLimit, style, pos;
     
     if (remote) {
+      Parser.parsePost(post);
       post.style.display = null;
     }
     else {
@@ -1265,7 +1311,6 @@ ThreadHiding.purge = function() {
   
   for (tid in this.hidden) {
     if (now - this.hidden[tid] > this.threshold) {
-      console.log('Purging hidden thread: ' + (now - this.hidden[tid]) + ' vs ' + this.threshold);
       delete this.hidden[tid];
     }
   }
@@ -1338,7 +1383,7 @@ ThreadWatcher.reload = function(full) {
     for (key in ThreadWatcher.watched) {
       tuid = key.split('-');
       html += '<li id="watch-' + key
-        + '"><span class="pointer" data-cmd="unwatch" data-tid="'
+        + '"><span class="pointer" data-cmd="unwatch" data-id="'
         + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
         + Main.linkToThread(tuid[0], tuid[1]) + '">/'
         + tuid[1] + '/ - '
@@ -1348,7 +1393,7 @@ ThreadWatcher.reload = function(full) {
     if (full) {
       buttons = $.class('wbtn', $.id('delform'));
       for (i = 0; btn = buttons[i]; ++i) {
-        key = btn.getAttribute('data-tid') + '-' + Main.board;
+        key = btn.getAttribute('data-id') + '-' + Main.board;
         if (ThreadWatcher.watched[key]) {
           if (!btn.hasAttribute('data-active')) {
             btn.src = Main.icons.watched;
@@ -1370,9 +1415,9 @@ ThreadWatcher.reload = function(full) {
 
 ThreadWatcher.onClick = function(e) {
   var t = e.target;
-  if (t.hasAttribute('data-tid')) {
+  if (t.hasAttribute('data-id')) {
     ThreadWatcher.toggle(
-      t.getAttribute('data-tid'),
+      t.getAttribute('data-id'),
       t.getAttribute('data-board')
     );
   }
@@ -1785,6 +1830,237 @@ ThreadUpdater.icons = {
 };
 
 /**
+ * Filter
+ */
+Filter = {};
+
+Filter.init = function() {
+  Filter.load();
+};
+
+Filter.onClick = function(e) {
+  var cmd;
+  
+  if (cmd = e.target.getAttribute('data-cmd')) {
+    switch (cmd) {
+      case 'filters-add':
+        Filter.add();
+        break;
+      case 'filters-save':
+        Filter.save();
+        break;
+      case 'filters-close':
+        Filter.close();
+        break;
+      case 'filters-del':
+        Filter.remove(e.target.parentNode.parentNode);
+        break;
+    }
+  }
+};
+
+Filter.load = function() {
+  var i, w, f, rawFilters, rawPattern, fid, regexEscape, regexType,
+    wordSepS, wordSepE, words, inner, regexWildcard, replaceWildcard;
+  
+  this.activeFilters = [];
+  
+  if (!(rawFilters = localStorage.getItem('4chan-filters'))) {
+    return;
+  }
+  
+  rawFilters = JSON.parse(rawFilters);
+  
+  regexEscape = new RegExp('(\\'
+    + ['/', '.', '*', '+', '?', '(', ')', '[', ']', '{', '}', '\\' ].join('|\\')
+    + ')', 'g');
+  regexType = /^\/(.*)\/(i?)$/;
+  wordSepS = '(?=.*\\b';
+  wordSepE = '\\b)';
+  regexWildcard = /\\\*/g;
+  replaceWildcard = '[^\\s]*';
+  
+  try {
+    for (fid = 0; f = rawFilters[fid]; ++fid) {
+      if (f.active && f.pattern != '') {
+        rawPattern = f.pattern;
+        // /RegExp/
+        if (match = rawPattern.match(regexType)) {
+          pattern = new RegExp(match[1], match[2]);
+        }
+        // "Exact match"
+        else if (rawPattern[0] == '"' && rawPattern[rawPattern.length - 1] == '"') {
+          pattern = new RegExp(rawPattern.slice(1, -1).replace(regexEscape, '\\$1'));
+        }
+        else {
+          words = rawPattern.split(' ');
+          pattern = '';
+          for (i = 0, j = words.length; i < j; ++i) {
+            inner = words[i]
+              .replace(regexEscape, '\\$1')
+              .replace(regexWildcard, replaceWildcard);
+            pattern += wordSepS + inner + wordSepE;
+          }
+          pattern = new RegExp('^' + pattern, 'i');
+        }
+        console.log('Resulting regex: ' + pattern);
+        this.activeFilters.push({
+          type: rawFilters[fid].type,
+          pattern: pattern,
+          color: rawFilters[fid].color,
+          hide: rawFilters[fid].hide
+        });
+      }
+    }
+  }
+  catch (e) {
+    alert('There was an error processing one of the filters: '
+      + e + ' in: ' + rawPattern);
+  }
+};
+
+Filter.unhide = function(pid) {
+  var post;
+  if (post = $.id('p' + pid)) {
+    $.removeClass(post, 'filter-hide');
+  }
+};
+
+Filter.open = function() {
+  var i, f, cnt, html, rawFilters, filterId, filterList;
+  
+  if ($.id('filters')) {
+    return;
+  }
+  
+  cnt = document.createElement('div');
+  cnt.id = 'filters';
+  cnt.className = 'preview';
+  cnt.style.display = 'none';
+  cnt.innerHTML = '\
+  <div id="fHeader">Filters and Highlighters</div>\
+  <table>\
+    <thead>\
+      <tr>\
+        <th>On</th>\
+        <th>Pattern</th>\
+        <th>Type</th>\
+        <th>Color</th>\
+        <th>Hide</th>\
+        <th>Del</th>\
+      </tr>\
+    </thead>\
+    <tbody id="filter-list"></tbody>\
+    <tfoot>\
+      <tr>\
+        <td colspan="6">\
+          <button data-cmd="filters-add" class="button left">Add</button>\
+          <span style="float:right">\
+            <button data-cmd="filters-save">Save</button>\
+            <button data-cmd="filters-close">Close</button>\
+          </span>\
+        </td>\
+      </tr>\
+    </tfoot>\
+  </table>';
+  
+  document.body.appendChild(cnt);
+  cnt.addEventListener('click', this.onClick, false);
+  
+  filterList = $.id('filter-list');
+  
+  if (rawFilters = localStorage.getItem('4chan-filters')) {
+    rawFilters = JSON.parse(rawFilters);
+    for (i = 0; f = rawFilters[i]; ++i) {
+      filterList.appendChild(this.buildEntry(f, i));
+    }
+  }
+  cnt.style.display = null;
+};
+
+Filter.close = function() {
+  var cnt;
+  
+  if (cnt = $.id('filters')) {
+    cnt.removeEventListener('click', this.onClick, false);
+    document.body.removeChild(cnt);
+  }
+};
+
+Filter.add = function() {
+  var filter;
+  filter = { active: true, type: 0, pattern: '',  color: '', hide: false };
+  $.id('filter-list').appendChild(this.buildEntry(filter));
+};
+
+Filter.remove = function(tr) {
+  $.id('filter-list').removeChild(tr);
+};
+
+Filter.save = function() {
+  var i, rawFilters, entries, tr;
+  
+  rawFilters = [];
+  entries = $.id('filter-list').children;
+  
+  for (i = 0; tr = entries[i]; ++i) {
+    rawFilters.push({
+      active: tr.children[0].firstChild.checked,
+      pattern: tr.children[1].firstChild.value,
+      type: tr.children[2].firstChild.selectedIndex,
+      color: tr.children[3].firstChild.value,
+      hide: tr.children[4].firstChild.checked
+    });
+  }
+  
+  if (rawFilters[0]) {
+    localStorage.setItem('4chan-filters', JSON.stringify(rawFilters));
+  }
+  else {
+    localStorage.removeItem('4chan-filters');
+  }
+};
+
+Filter.buildEntry = function(filter) {
+  var tr, html, sel;
+  
+  tr = document.createElement('tr');
+  
+  html = '';
+  
+  // On
+  html += '<td><input type="checkbox"'
+    + (filter.active ? ' checked="checked"></td>' : '></td>');
+  
+  // Pattern
+  html += '<td><input class="fPattern" type="text" value="'
+    + filter.pattern + '"></td>';
+  
+  // Type
+  sel = [ '', '', '' ];
+  sel[filter.type] = 'selected="selected"';
+  html += '<td><select size="1"><option value="0"'
+    + sel[0] + '>Tripcode</option><option value="1"'
+    + sel[1] + '>Name</option><option value="2"'
+    + sel[2] + '>Comment</option></select></td>';
+  
+  // Color
+  html += '<td><input type="text" class="fColor" value="'
+    + filter.color + '"></td>';
+  
+  // Hide
+  html += '<td><input type="checkbox"'
+    + (filter.hide ? ' checked="checked"></td>' : '></td>');
+  
+  // Del
+  html += '<td><span data-cmd="filters-del" class="pointer fDel">&#x2716;</span></td>';
+  
+  tr.innerHTML = html;
+  
+  return tr;
+}
+
+/**
  * Draggable helper
  */
 var Draggable = {
@@ -1898,7 +2174,8 @@ var Config = {
   revealSpoilers: true,
   localTime: true,
   topPageNav: true,
-  hideGlobalMsg: true
+  hideGlobalMsg: true,
+  filter: true
 };
 
 Config.load = function() {
@@ -1935,6 +2212,7 @@ SettingsMenu.options = {
   localTime: 'Local time',
   topPageNav: 'Page navigation at the top',
   hideGlobalMsg: 'Enable announcement hiding',
+  filter: 'Filter (<a href="javascript:;" data-cmd="filters-open">edit</a>)',
 };
 
 SettingsMenu.save = function() {
@@ -2060,6 +2338,10 @@ Main.init = function()
   
   if (Config.threadWatcher) {
     ThreadWatcher.init();
+  }
+  
+  if (Config.filter) {
+    Filter.init();
   }
   
   Parser.init();
@@ -2313,13 +2595,13 @@ Main.onclick = function(e) {
   var t, ids, cmd, tid, attr;
   
   t = e.target;
-  
+  console.log(e);
   if (cmd = t.getAttribute('data-cmd')) {
-    tid = t.getAttribute('data-tid');
+    id = t.getAttribute('data-id');
     switch (cmd) {
       case 'qr':
         e.preventDefault();
-        ids = tid.split('-'); // tid, pid
+        ids = id.split('-'); // tid, pid
         QR.show(ids[0], ids[1]);
         Main.quotePost(ids[1], true);
         break;
@@ -2330,26 +2612,32 @@ Main.onclick = function(e) {
       case 'auto':
         ThreadUpdater.toggleAuto();
         break;
-      case 'hide':
-        ThreadHiding.toggle(tid);
-        break;
-      case 'watch':
-        ThreadWatcher.toggle(tid);
-        break;
-      case 'expand':
-        ThreadExpansion.toggle(tid);
-        break;
-      case 'report':
-        Main.reportPost(tid);
-        break;
       case 'totop':
       case 'tobottom':
         if (!e.shiftKey) {
           location.href = '#' + cmd.slice(2);
         }
         break;
+      case 'hide':
+        ThreadHiding.toggle(id);
+        break;
+      case 'watch':
+        ThreadWatcher.toggle(id);
+        break;
+      case 'expand':
+        ThreadExpansion.toggle(id);
+        break;
+      case 'report':
+        Main.reportPost(id);
+        break;
+      case 'filter-unhide':
+        Filter.unhide(id);
+        break;
       case 'toggleMsg':
         Main.toggleGlobalMessage();
+        break;
+      case 'filters-open':
+        Filter.open();
         break;
     }
   }
@@ -2616,6 +2904,62 @@ div.topPageNav {\
 }\
 .newPostsMarker {\
   box-shadow: 0 5px red;\
+}\
+#filters {\
+  padding: 10px;\
+  position: fixed;\
+  width: 460px;\
+  top: 60px;\
+  left: 50%;\
+  margin-left: -240px;\
+}\
+#fHeader {\
+  font-weight: bold;\
+  text-align: center;\
+  margin-bottom: 10px;\
+}\
+#filters table {\
+  width: 100%;\
+}\
+#filters th {\
+  font-size: 0.8em;\
+}\
+#filters tbody {\
+  text-align: center;\
+}\
+#filters select,\
+.fPattern,\
+.fColor {\
+  padding: 1px;\
+  font-size: 11px;\
+}\
+#filters select {\
+  width: 70px;\
+}\
+.fPattern {\
+  width: 200px;\
+}\
+.fColor {\
+  width: 60px;\
+}\
+.fDel {\
+  font-size: 12px;\
+  line-height: 1.5;\
+}\
+#filters tfoot td {\
+  padding-top: 10px;\
+}\
+.filter-hide {\
+  opacity: 0.5;\
+}\
+.filter-hide:after {\
+  content: "+";\
+  cursor: pointer;\
+}\
+.filter-hide .file,\
+.filter-hide .backlink,\
+div.filter-hide blockquote.postMessage {\
+  display: none;\
 }\
 ';
 

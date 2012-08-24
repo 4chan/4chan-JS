@@ -418,14 +418,14 @@ Parser.parsePost = function(pid, tid) {
         hit = false;
         for (i = 0; f = filters[i]; ++i) {
           if (f.type == 0
-            && f.pattern.test(pi.children[2].getElementsByClassName('name')[0]
-              .textContent)) {
+            && (el = pi.children[2].getElementsByClassName('postertrip')[0])
+            && f.pattern.test(el.textContent)) {
             hit = true;
             break;
           }
           else if (f.type == 1
-            && f.pattern.test(pi.children[2].getElementsByClassName('postertrip')[0]
-              .textContent)) {
+            && (el = pi.children[2].getElementsByClassName('name')[0])
+            && f.pattern.test(el.textContent)) {
             hit = true;
             break;
           }
@@ -436,7 +436,7 @@ Parser.parsePost = function(pid, tid) {
           }
         }
         if (hit) {
-          console.log('hit: ' + JSON.stringify(f) + ' | ' + pid);
+          //console.log('hit: ' + JSON.stringify(f) + ' | ' + pid);
           post = pi.parentNode;
           if (f.hide) {
             post.className += ' filter-hide';
@@ -632,10 +632,11 @@ QuotePreview.resolve = function(link) {
   
   // Quoted post in scope
   if (post = document.getElementById('p' + t[3])) {
-    // Visible?
+    // Visible and not filtered out?
     offset = post.getBoundingClientRect();
     if (offset.top > 0
-        && offset.bottom < document.documentElement.clientHeight) {
+        && offset.bottom < document.documentElement.clientHeight
+        && !$.hasClass(post, 'filter-hide')) {
       this.highlight = post;
       $.addClass(post, 'highlight');
       return;
@@ -2595,7 +2596,7 @@ Main.onclick = function(e) {
   var t, ids, cmd, tid, attr;
   
   t = e.target;
-  console.log(e);
+  
   if (cmd = t.getAttribute('data-cmd')) {
     id = t.getAttribute('data-id');
     switch (cmd) {
@@ -2949,16 +2950,17 @@ div.topPageNav {\
 #filters tfoot td {\
   padding-top: 10px;\
 }\
-.filter-hide {\
+.filter-hide:not(#quote-preview) {\
   opacity: 0.5;\
 }\
-.filter-hide:after {\
+.filter-hide:not(#quote-preview):after {\
   content: "+";\
   cursor: pointer;\
 }\
-.filter-hide .file,\
-.filter-hide .backlink,\
-div.filter-hide blockquote.postMessage {\
+.filter-hide:not(#quote-preview) .file,\
+.filter-hide:not(#quote-preview) .backlink,\
+div.filter-hide:not(#quote-preview) div.file,\
+div.filter-hide:not(#quote-preview) blockquote.postMessage {\
   display: none;\
 }\
 ';

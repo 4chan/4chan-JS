@@ -1543,6 +1543,7 @@ ThreadUpdater.init = function() {
   this.lastReply = null;
   
   this.iconNode = document.head.querySelector('link[rel="shortcut icon"]');
+  this.iconNode.type = 'image/x-icon';
   
   this.defaultIcon = this.iconNode.getAttribute('href');
   
@@ -1641,8 +1642,8 @@ ThreadUpdater.adjustDelay = function(postCount, force)
 ThreadUpdater.onScroll = function(e) {
   var self;
   
-  if (document.documentElement.scrollTopMax ==
-    document.documentElement.scrollTop) {
+  if (document.documentElement.scrollHeight ==
+    (document.documentElement.clientHeight + window.scrollY)) {
     self = ThreadUpdater;
     self.setIcon(self.defaultIcon);
     self.unread = false;

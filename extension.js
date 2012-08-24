@@ -91,7 +91,22 @@ $.hash = function(str) {
 var Parser = {};
 
 Parser.init = function() {
-  this.weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  var m, a, h;
+  
+  if (Config.localTime) {
+    if (m = (new Date).getTimezoneOffset()) {
+      a = Math.abs(m);
+      h = (0 | (a / 60));
+      
+      this.utcOffset = ' UTC' + (m < 0 ? '+' : '-')
+        + ('0' + h).slice(-2) + ((a - h * 60) || '00');
+    }
+    else {
+      this.utcOffset = ' UTC';
+    }
+    
+    this.weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  }
 };
 
 Parser.buildHTMLFromJSON = function(data, board) {
@@ -449,7 +464,8 @@ Parser.parsePost = function(pid, tid) {
   if (Config.localTime) {
     el = pi.getElementsByClassName('dateTime')[0];
     el.textContent
-      = Parser.getLocaleDate(new Date(el.getAttribute('data-utc') * 1000));
+      = Parser.getLocaleDate(new Date(el.getAttribute('data-utc') * 1000))
+      + this.utcOffset;
   }
   
   if (Config.imageSearch && (file = document.getElementById('fT' + pid))) {

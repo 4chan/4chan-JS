@@ -1118,7 +1118,7 @@ QR.submit = function(e) {
         qrFile = document.getElementById('qrFile').parentNode;
         qrFile.innerHTML = qrFile.innerHTML;
         if (Config.threadUpdater) {
-          setTimeout(ThreadUpdater.update, 500);
+          setTimeout(ThreadUpdater.forceUpdate, 500);
         }
         return;
       }
@@ -2463,6 +2463,7 @@ div.post div.postInfo {\
   margin-left: 3px;\
 }\
 #qrPassword {\
+  width: 85px;\
   padding: 2px;\
 }\
 #qrHeader {\
@@ -2485,6 +2486,7 @@ div.post div.postInfo {\
 }\
 #qrError {\
   display: none;\
+  max-width: 380px;\
   padding: 5px;\
   font-family: monospace;\
   background-color: #E62020;\

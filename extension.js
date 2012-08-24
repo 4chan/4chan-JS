@@ -641,6 +641,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
           continue;
         }
         el = $.class('post', Parser.buildHTMLFromJSON(j, board))[0];
+        el.className = 'post preview';
         el.style.display = 'none';
         el.id = 'quote-preview';
         

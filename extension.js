@@ -795,6 +795,8 @@ QR.init = function() {
   this.sageDelay = 60500;
   this.captchaDelay = 240500;
   this.captchaInterval = null;
+  this.pulse = null;
+  this.xhr = null;
 };
 
 QR.show = function(tid, pid) {
@@ -916,11 +918,22 @@ QR.show = function(tid, pid) {
 
 QR.close = function() {
   var cnt = $.id('quickReply');
-  clearInterval(QR.captchaInterval);
+  
   QR.currentTid = null;
+  
+  clearInterval(QR.captchaInterval);
+  clearInterval(QR.pulse);
+  
+  if (QR.xhr) {
+    console.log('Aborting XHR');
+    QR.xhr.abort();
+    QR.xhr = null;
+  }
+  
   cnt.removeEventListener('click', QR.onClick, false);
   Draggable.unset($.id('qrHeader'));
   $.id('qrFile').removeEventListener('change', QR.onFileChanged, false);
+  
   document.body.removeChild(cnt);
 };
 
@@ -966,7 +979,7 @@ QR.onClick = function(e) {
   
   if (t.type == 'submit') {
     e.preventDefault();
-    QR.submit();
+    QR.submit(e.shiftKey);
   }
   else {
     switch (t.id) {
@@ -1024,14 +1037,21 @@ QR.resetFile = function() {
   $.id('qrDummyFile').value = '';
 };
 
-QR.submit = function(e) {
-  var i, btn, cd, xhr, email, field;
+QR.submit = function(force) {
+  var i, btn, cd, email, field;
   
   QR.hidePostError();
-  
   btn = $.id('quickReply').querySelector('input[type="submit"]');
   
-  if (QR.cooldown) {
+  if (QR.xhr) {
+    QR.xhr.abort();
+    QR.xhr = null;
+    QR.showPostError('Aborted');
+    btn.value = 'Submit';
+    return;
+  }
+  
+  if (!force && QR.cooldown) {
     if (QR.auto = !QR.auto) {
       btn.value = QR.cooldown + 's (auto)';
     }
@@ -1043,7 +1063,7 @@ QR.submit = function(e) {
   
   QR.auto = false;
   
-  if ((field = $.id('qrCapField')).value == '') {
+  if (!force && (field = $.id('qrCapField')).value == '') {
     QR.showPostError('You forgot to type in the CAPTCHA.');
     field.focus();
     return;
@@ -1059,32 +1079,34 @@ QR.submit = function(e) {
     Main.setCookie('4chan_email', email.value);
   }
   
-  xhr = new XMLHttpRequest();
-  xhr.open('POST', document.forms.qrPost.action, true);
-  xhr.withCredentials = true;
-  xhr.upload.onprogress = function(e) {
+  QR.xhr = new XMLHttpRequest();
+  QR.xhr.open('POST', document.forms.qrPost.action, true);
+  QR.xhr.withCredentials = true;
+  QR.xhr.upload.onprogress = function(e) {
     btn.value = (0 | (e.loaded / e.total * 100)) + '%';
   };
-  xhr.onerror = function() {
+  QR.xhr.onerror = function() {
     btn.value = 'Submit';
-    console.log('Error');
+    QR.xhr = null;
     QR.showPostError('Connection error. Are you <a href="https://www.4chan.org/banned">banned</a>?');
   };
-  xhr.onload = function() {
-    var resp, qrFile;
+  QR.xhr.onload = function() {
+    var resp;
+    
+    QR.xhr = null;
     
     btn.value = 'Submit';
     
     if (this.status == 200) {
-      if (resp = xhr.responseText.match(/"errmsg"[^>]*>(.*?)<\/span/)) {
+      if (resp = this.responseText.match(/"errmsg"[^>]*>(.*?)<\/span/)) {
         QR.reloadCaptcha();
         QR.showPostError(resp[1]);
         return;
       }
       
-      if (/You are banned! ;_;/.test(xhr.responseText)) {
-        if (/heeding this warning/.test(xhr.responseText)) {
-          resp = xhr.responseText
+      if (/You are banned! ;_;/.test(this.responseText)) {
+        if (/heeding this warning/.test(this.responseText)) {
+          resp = this.responseText
             .split(/<br\/><br\/>\n<b>/)[1]
             .split(/<\/b><br\/><br\/>/)[0];
           QR.showPostError('<h3>You were issued a warning:<h3>' + resp);
@@ -1097,12 +1119,7 @@ QR.submit = function(e) {
       }
       
       if (/sage/i.test(email.value)) {
-        if (Main.tid) {
-          cd = QR.sageDelay;
-        }
-        else {
-          cd = QR.baseDelay;
-        }
+        cd = Main.tid ? QR.sageDelay : QR.baseDelay;
       }
       else {
         cd = QR.baseDelay;
@@ -1115,8 +1132,9 @@ QR.submit = function(e) {
       if (Main.tid) {
         $.byName('com')[1].value = '';
         QR.reloadCaptcha();
-        qrFile = document.getElementById('qrFile').parentNode;
-        qrFile.innerHTML = qrFile.innerHTML;
+        if ($.id('qrFile').value) {
+          QR.resetFile();
+        }
         if (Config.threadUpdater) {
           setTimeout(ThreadUpdater.forceUpdate, 500);
         }
@@ -1124,19 +1142,24 @@ QR.submit = function(e) {
       }
     }
     else {
-      QR.showPostError('Error: ' + xhr.status + ' ' + xhr.statusText);
+      QR.showPostError('Error: ' + this.status + ' ' + this.statusText);
     };
   }
+  clearInterval(QR.pulse);
   btn.value = 'Sending';
-  xhr.send(new FormData(document.forms.qrPost));
+  QR.xhr.send(new FormData(document.forms.qrPost));
 };
 
 QR.startCooldown = function(ms) {
   var btn, interval;
   
-  ms = parseInt(ms, 10);
+  if (!(btn = $.id('quickReply')) || QR.xhr) {
+    return;
+  }
   
-  btn = $.id('quickReply').querySelector('input[type="submit"]');
+  btn = btn.querySelector('input[type="submit"]');
+  
+  ms = parseInt(ms, 10);
   
   if ((QR.cooldown = 0 | ((ms - Date.now()) / 1000)) <= 0) {
     QR.cooldown = false;
@@ -1144,9 +1167,9 @@ QR.startCooldown = function(ms) {
     return;
   }
   btn.value = QR.cooldown + 's';
-  interval = setInterval(function() {
+  QR.pulse = setInterval(function() {
     if ((QR.cooldown = 0 | ((ms - Date.now()) / 1000)) <= 0) {
-      clearInterval(interval);
+      clearInterval(QR.pulse);
       btn.value = 'Submit';
       QR.cooldown = false;
       localStorage.removeItem('4chan-cd-' + Main.board);
@@ -1517,6 +1540,7 @@ ThreadUpdater.init = function() {
   this.step = 5;
   this.range = [ 10, 300 ];
   this.lastModified = '0';
+  this.lastReply = null;
   
   this.iconNode = document.head.querySelector('link[rel="shortcut icon"]');
   
@@ -1615,10 +1639,17 @@ ThreadUpdater.adjustDelay = function(postCount, force)
 };
 
 ThreadUpdater.onScroll = function(e) {
+  var self;
+  
   if (document.documentElement.scrollTopMax ==
     document.documentElement.scrollTop) {
-    ThreadUpdater.setIcon(ThreadUpdater.defaultIcon);
-    ThreadUpdater.unread = false;
+    self = ThreadUpdater;
+    self.setIcon(self.defaultIcon);
+    self.unread = false;
+    if (self.lastReply) {
+      $.removeClass(self.lastReply, 'newPostsMarker');
+      self.lastReply = null;
+    }
   }
 };
 
@@ -1676,7 +1707,7 @@ ThreadUpdater.onload = function() {
   if (this.status == 200) {
     self.lastModified = this.getResponseHeader('Last-Modified');
     
-    thread = document.getElementById('t' + Main.tid);
+    thread = $.id('t' + Main.tid);
     
     lastrep = thread.childNodes[thread.childElementCount - 1];
     lastid = +lastrep.id.slice(2);
@@ -1698,10 +1729,14 @@ ThreadUpdater.onload = function() {
     }
     
     if (nodes[0]) {
-      if (!self.unread && !self.force) {
-        self.setIcon(self.icons[Main.type]);
+      if (!self.force) {
+        if (!self.lastReply && lastid != Main.tid) {
+          (self.lastReply = lastrep.lastChild).className += ' newPostsMarker';
+        }
+        if (!self.unread) {
+          self.setIcon(self.icons[Main.type]);
+        }
       }
-      
       frag = document.createDocumentFragment();
       for (i = nodes.length - 1; i >= 0; i--) {
         frag.appendChild(Parser.buildHTMLFromJSON(nodes[i], Main.board));
@@ -2572,6 +2607,9 @@ div.backlink {\
 }\
 div.topPageNav {\
   margin-top: 10px;\
+}\
+.newPostsMarker {\
+  box-shadow: 0 5px red;\
 }\
 ';
 

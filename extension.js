@@ -533,8 +533,8 @@ Parser.parsePost = function(pid, tid) {
     }
   }
   else {
-    pid = pid.id.slice(1);
-    pi = document.getElementById('pi' + pid);
+    pi = pid.getElementsByClassName('postInfo')[0];
+    pid = pi.id.slice(2);
   }
   
   if (Config.revealSpoilers

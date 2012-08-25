@@ -91,22 +91,22 @@ $.hash = function(str) {
 var Parser = {};
 
 Parser.init = function() {
-  var m, a, h;
+  var o, a, h, m;
   
   if (Config.filter || Config.embedSoundCloud || Config.embedYoutube) {
     this.needMsg = true;
   }
   
   if (Config.localTime) {
-    if (m = (new Date).getTimezoneOffset()) {
-      a = Math.abs(m);
+    if (o = (new Date).getTimezoneOffset()) {
+      a = Math.abs(o);
       h = (0 | (a / 60));
       
-      this.utcOffset = ' UTC' + (m < 0 ? '+' : '-')
-        + ('0' + h).slice(-2) + ((a - h * 60) || '00');
+      this.utcOffset = ' GMT' + (o < 0 ? '+' : '-')
+        + h + ((m = a - h * 60) ? (':' + m) : '');
     }
     else {
-      this.utcOffset = ' UTC';
+      this.utcOffset = ' GMT';
     }
     
     this.weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -938,7 +938,7 @@ QR.show = function(tid, pid) {
   
   cnt = document.createElement('div');
   cnt.id = 'quickReply';
-  cnt.className = 'preview';
+  cnt.className = 'extPanel reply';
   cnt.setAttribute('data-trackpos', 'QR-position');
   
   if (Config['QR-position']) {
@@ -1500,7 +1500,7 @@ ThreadWatcher.init = function() {
   
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
-  cnt.className = 'preview';
+  cnt.className = 'extPanel reply';
   cnt.setAttribute('data-trackpos', 'TW-position');
   
   if (Config['TW-position']) {
@@ -2099,7 +2099,7 @@ Filter.open = function() {
   
   cnt = document.createElement('div');
   cnt.id = 'filters';
-  cnt.className = 'preview';
+  cnt.className = 'extPanel reply';
   cnt.style.display = 'none';
   cnt.innerHTML = '\
   <div id="fHeader">Filters and Highlighters</div>\
@@ -2468,7 +2468,7 @@ SettingsMenu.open = function(bottom) {
   
   cnt = document.createElement('div');
   cnt.id = 'settingsMenu';
-  cnt.className = 'preview';
+  cnt.className = 'extPanel reply';
   cnt.style[bottom ? 'bottom' : 'top'] = '20px';
   
   html = '';
@@ -2711,7 +2711,7 @@ Main.setStickyNav = function() {
   
   cnt = document.createElement('div');
   cnt.id = 'stickyNav';
-  cnt.className = 'preview';
+  cnt.className = 'extPanel reply';
   cnt.setAttribute('data-shiftkey', '1');
   cnt.setAttribute('data-trackpos', 'SN-position');
   
@@ -2893,15 +2893,14 @@ Main.addCSS = function()
 .burichan_new .preview,\
 .futaba_new .preview {\
   border: 1px solid rgba(0, 0, 0, 0.20);\
+  border-bottom: 2px solid rgba(0, 0, 0, 0.20);\
+  border-right: 2px solid rgba(0, 0, 0, 0.20);\
 }\
 .burichan_new .preview {\
   background-color: #D6DAF0;\
 }\
 .futaba_new .preview {\
   background-color: #F0E0D6;\
-}\
-.tomorrow .panel {\
-  border: 1px solid rgba(255, 255, 255, 0.15);\
 }\
 .postHidden {\
   padding-right: 5px!important;\
@@ -2912,6 +2911,13 @@ Main.addCSS = function()
 }\
 div.op > span .postHideButtonCollapsed {\
   margin-right: 1px;\
+}\
+.extPanel {\
+  border: 1px solid rgba(0, 0, 0, 0.20);\
+}\
+.tomorrow .extPanel,\
+.tomorrow .postForm td:first-child {\
+  border: 1px solid rgba(255, 255, 255, 0.07);\
 }\
 .extControls {\
   display: inline;\
@@ -2924,8 +2930,14 @@ div.op > span .postHideButtonCollapsed {\
 .threadUpdateStatus {\
   margin-left: 0.5ex;\
 }\
+.stub .reply {\
+  overflow: auto\
+}\
+.futaba_new .stub,\
+.burichan_new .stub {\
+  line-height: 1;\
+}\
 .stub .extControls,\
-.stub .postNum,\
 .stub .wbtn,\
 .stub input {\
   display: none;\
@@ -2961,6 +2973,28 @@ div.post div.postInfo {\
 }\
 #quickReply {\
   position: fixed;\
+  padding: 0;\
+  font-size: 14px;\
+}\
+#quickReply tr > td:first-child {\
+  padding: 0 2px;\
+  border: none;\
+}\
+#quickReply .postblock {\
+  border: none;\
+}\
+#qrHeader {\
+  text-align: center;\
+  margin: 1px 1px 0 1px;\
+  padding: 0;\
+  height: 18px;\
+  line-height: 18px;\
+}\
+#qrClose {\
+  float: right;\
+}\
+#quickReply table {\
+  border-spacing: 1px;\
 }\
 #quickReply input[type="text"],\
 #quickReply textarea {\
@@ -2992,7 +3026,7 @@ div.post div.postInfo {\
 }\
 #quickReply #qrDummyFile {\
   cursor: pointer;\
-  width: 140px;\
+  width: 135px;\
   padding: 1px 2px;\
 }\
 #qrFile {\
@@ -3001,20 +3035,11 @@ div.post div.postInfo {\
 }\
 #qrBrowse {\
   margin-left: 3px;\
+  width: 65px;\
 }\
 #qrPassword {\
   width: 85px;\
   padding: 2px;\
-}\
-#qrHeader {\
-  text-align: center;\
-  padding: 0;\
-  margin-left: 1px;\
-  height: 18px;\
-  line-height: 18px;\
-}\
-#qrClose {\
-  float: right;\
 }\
 #qrCaptcha {\
   width: 300px;\
@@ -3026,14 +3051,12 @@ div.post div.postInfo {\
 }\
 #qrError {\
   display: none;\
-  max-width: 380px;\
   padding: 5px;\
   font-family: monospace;\
   background-color: #E62020;\
   color: white;\
   padding: 3px 5px;\
   text-shadow: 0 1px rgba(0, 0, 0, 0.20);\
-  font-size: 0.8em;\
 }\
 #qrError a {\
   color: white;\
@@ -3114,12 +3137,16 @@ div.backlink {\
   position: fixed;\
   font-size: 0;\
 }\
+#stickyNav img {\
+  vertical-align: middle;\
+}\
 div.topPageNav {\
   margin-top: 20px;\
+  position: absolute;\
 }\
 .yotsuba_b_new div.topPageNav {\
-  border-top: 1px solid rgba(255, 255, 255, 0.50);\
-  border-left: 1px solid rgba(255, 255, 255, 0.50);\
+  border-top: 1px solid rgba(255, 255, 255, 0.25);\
+  border-left: 1px solid rgba(255, 255, 255, 0.25);\
 }\
 .newPostsMarker {\
   box-shadow: 0 5px red;\
@@ -3172,6 +3199,7 @@ div.topPageNav {\
   cursor: default;\
   margin-left: 3px;\
 }\
+.stub .postInfo,\
 .hide-reply:not(#quote-preview) {\
   opacity: 0.5;\
 }\

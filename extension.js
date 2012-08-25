@@ -2724,9 +2724,9 @@ Main.setStickyNav = function() {
   }
   
   hdr = document.createElement('div');
-  hdr.innerHTML = '<img class="extButton" src="'
+  hdr.innerHTML = '<img class="pointer" src="'
     +  Main.icons.up + '" data-cmd="totop" alt="▲" title="Top">'
-    + '<img class="extButton" src="' +  Main.icons.down
+    + '<img class="pointer" src="' +  Main.icons.down
     + '" data-cmd="tobottom" alt="▼" title="Bottom">';
   Draggable.set(hdr);
   
@@ -2892,9 +2892,7 @@ Main.addCSS = function()
 }\
 .burichan_new .preview,\
 .futaba_new .preview {\
-  border: 1px solid rgba(0, 0, 0, 0.15);\
-  border-bottom-width: 2px;\
-  border-right-width: 2px;\
+  border: 1px solid rgba(0, 0, 0, 0.20);\
 }\
 .burichan_new .preview {\
   background-color: #D6DAF0;\
@@ -3114,6 +3112,7 @@ div.backlink {\
 }\
 #stickyNav {\
   position: fixed;\
+  font-size: 0;\
 }\
 div.topPageNav {\
   margin-top: 20px;\

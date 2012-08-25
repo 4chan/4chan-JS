@@ -349,7 +349,7 @@ Parser.parseThread = function(tid, offset, limit) {
           + Main.icons.minus + '" title="Hide thread">';
         posts[0].insertBefore(el, posts[0].firstChild);
         if (ThreadHiding.hidden[tid]) {
-          ThreadHiding.hidden[tid] = ThreadHiding.now;
+          ThreadHiding.hidden[tid] = Main.now;
           ThreadHiding.hide(tid);
         }
       }
@@ -412,7 +412,7 @@ Parser.parseThread = function(tid, offset, limit) {
 
 Parser.parsePost = function(pid, tid) {
   var i, f, filters, hit, cnt, quickReply, el, pi, nb, post, href,
-    embed, a, img, filename, msg;
+    embed, a, img, filename, msg, sa, filtered;
   
   if (tid) {
     pi = document.getElementById('pi' + pid);
@@ -449,9 +449,13 @@ Parser.parsePost = function(pid, tid) {
         if (hit) {
           post = pi.parentNode;
           if (f.hide) {
-            post.className += ' filter-hide';
-            post.setAttribute('data-cmd', 'filter-unhide');
-            post.setAttribute('data-id', pid);
+            post.className += ' hide-reply';
+            el = document.createElement('span');
+            el.setAttribute('data-filtered', '1');
+            el.textContent = '+';
+            el.className = 'filter-preview';
+            pi.appendChild(el);
+            filtered = true;
           }
           else {
             post.className += ' filter-hl';
@@ -460,17 +464,30 @@ Parser.parsePost = function(pid, tid) {
         }
       }
       
+      if (Config.replyHiding && !filtered) {
+        el = document.getElementById('sa' + pid);
+        el.innerHTML = '<img class="extButton"'
+          + 'data-cmd="hide-r" data-id="' + pid + '" src="'
+          + Main.icons.minus + '" title="Hide reply">';
+        if (ReplyHiding.hidden[pid]) {
+          ReplyHiding.hidden[pid] = Main.now;
+          ReplyHiding.hide(pid);
+        }
+      }
+      
       if (Config.backlinks) {
         Parser.parseBacklinks(pid, tid);
       }
     }
     
-    if (Config.embedSoundCloud) {
-      Media.embedSoundCloud(msg);
-    }
-    
-    if (Config.embedYouTube) {
-      Media.embedYouTube(msg);
+    if (Main.tid) {
+      if (Config.embedSoundCloud) {
+        Media.embedSoundCloud(msg);
+      }
+      
+      if (Config.embedYouTube) {
+        Media.embedYouTube(msg);
+      }
     }
     
     cnt = document.createElement('div');
@@ -630,10 +647,6 @@ QuotePreview.init = function() {
   this.cachedKey = null;
   this.cachedNode = null;
   this.highlight = null;
-  
-  thread = $.id('delform');
-  thread.addEventListener('mouseover', Main.onThreadMouseOver, false);
-  thread.addEventListener('mouseout', Main.onThreadMouseOut, false);
 };
 
 QuotePreview.resolve = function(link) {
@@ -655,7 +668,7 @@ QuotePreview.resolve = function(link) {
     offset = post.getBoundingClientRect();
     if (offset.top > 0
         && offset.bottom < document.documentElement.clientHeight
-        && !$.hasClass(post, 'filter-hide')) {
+        && !$.hasClass(post, 'hide-reply')) {
       this.highlight = post;
       $.addClass(post, 'highlight');
       return;
@@ -1303,7 +1316,6 @@ var ThreadHiding = {};
 
 ThreadHiding.init = function() {
   this.threshold = 7 * 86400000;
-  this.now = Date.now();
   this.hidden = {};
   this.load();
 };
@@ -1311,7 +1323,8 @@ ThreadHiding.init = function() {
 ThreadHiding.toggle = function(tid) {
   if ($.id('sa' + tid).hasAttribute('data-hidden')) {
     this.show(tid);
-  } else {
+  }
+  else {
     this.hide(tid);
   }
   this.save();
@@ -1366,7 +1379,7 @@ ThreadHiding.hide = function(tid) {
 ThreadHiding.load = function() {
   var storage;
   
-  if (storage = localStorage.getItem('4chan-hide-' + Main.board)) {
+  if (storage = localStorage.getItem('4chan-hide-t-' + Main.board)) {
     this.hidden = JSON.parse(storage);
   }
 };
@@ -1381,18 +1394,96 @@ ThreadHiding.purge = function() {
       delete this.hidden[tid];
     }
   }
-  
   this.save();
 };
 
 ThreadHiding.save = function() {
   for (var i in this.hidden) {
-    localStorage.setItem('4chan-hide-' + Main.board,
+    localStorage.setItem('4chan-hide-t-' + Main.board,
       JSON.stringify(this.hidden)
     );
     return;
   }
-  localStorage.removeItem('4chan-hide-' + Main.board);
+  localStorage.removeItem('4chan-hide-t-' + Main.board);
+};
+
+/**
+ * Reply hiding
+ */
+var ReplyHiding = {};
+
+ReplyHiding.init = function() {
+  this.threshold = 7 * 86400000;
+  this.hidden = {};
+  this.load();
+};
+
+ReplyHiding.toggle = function(pid) {
+  if ($.id('sa' + pid).hasAttribute('data-hidden')) {
+    this.show(pid);
+  }
+  else {
+    this.hide(pid);
+  }
+  this.save();
+};
+
+ReplyHiding.show = function(pid) {
+  var post, sa;
+  
+  post = $.id('p' + pid);
+  
+  $.removeClass(post, 'hide-reply');
+  
+  sa = $.id('sa' + pid);
+  sa.removeAttribute('data-hidden');
+  sa.firstChild.src = Main.icons.minus;
+  
+  delete this.hidden[pid];
+};
+
+ReplyHiding.hide = function(pid) {
+  var post, sa;
+  
+  post = $.id('p' + pid);
+  post.className += ' hide-reply';
+  
+  sa = $.id('sa' + pid);
+  sa.setAttribute('data-hidden', pid);
+  sa.firstChild.src = Main.icons.plus;
+  
+  this.hidden[pid] = Date.now();
+};
+
+ReplyHiding.load = function() {
+  var storage;
+  
+  if (storage = localStorage.getItem('4chan-hide-r-' + Main.board)) {
+    this.hidden = JSON.parse(storage);
+  }
+};
+
+ReplyHiding.purge = function() {
+  var tid, now;
+  
+  now = Date.now();
+  
+  for (tid in this.hidden) {
+    if (now - this.hidden[tid] > this.threshold) {
+      delete this.hidden[tid];
+    }
+  }
+  this.save();
+};
+
+ReplyHiding.save = function() {
+  for (var i in this.hidden) {
+    localStorage.setItem('4chan-hide-r-' + Main.board,
+      JSON.stringify(this.hidden)
+    );
+    return;
+  }
+  localStorage.removeItem('4chan-hide-r-' + Main.board);
 };
 
 /**
@@ -1994,7 +2085,8 @@ Filter.load = function() {
 Filter.unhide = function(pid) {
   var post;
   if (post = $.id('p' + pid)) {
-    $.removeClass(post, 'filter-hide');
+    $.removeClass(post, 'filter-unhide');
+    $.removeClass(post, 'reply-hide');
   }
 };
 
@@ -2285,6 +2377,7 @@ UA.init = function() {
  */
 var Config = {
   threadHiding: true,
+  replyHiding: true,
   threadWatcher: true,
   threadExpansion: true,
   fixedThreadWatcher: false,
@@ -2324,6 +2417,7 @@ var SettingsMenu = {};
 
 SettingsMenu.options = {
   threadHiding: 'Thread hiding',
+  replyHiding: 'Reply hiding',
   threadWatcher: 'Thread watcher',
   threadExpansion: 'Thread expansion',
   fixedThreadWatcher: 'Fixed thread watcher',
@@ -2424,6 +2518,8 @@ Main.init = function()
   
   document.removeEventListener('DOMContentLoaded', Main.init, false);
   
+  Main.now = Date.now();
+  
   UA.init();
   
   Config.load();
@@ -2447,6 +2543,12 @@ Main.init = function()
   
   Main.addCSS();
   Main.initIcons();
+  
+  if (Config.quotePreview || Config.filter) {
+    thread = $.id('delform');
+    thread.addEventListener('mouseover', Main.onThreadMouseOver, false);
+    thread.addEventListener('mouseout', Main.onThreadMouseOut, false);
+  }
   
   if (Config.hideGlobalMsg) {
     Main.initGlobalMessage();
@@ -2474,6 +2576,11 @@ Main.init = function()
   
   Parser.init();
   
+  if (Config.replyHiding) {
+    ReplyHiding.init();
+    ReplyHiding.purge();
+  }
+  
   if (Main.tid) {
     if (Config.pageTitle) {
       Main.setTitle();
@@ -2495,6 +2602,10 @@ Main.init = function()
     else {
       Parser.parseBoard();
     }
+  }
+  
+  if (Config.replyHiding) {
+    ReplyHiding.purge();
   }
   
   if (Config.quotePreview) {
@@ -2720,6 +2831,9 @@ Main.onclick = function(e) {
       case 'watch':
         ThreadWatcher.toggle(id);
         break;
+      case 'hide-r':
+        ReplyHiding.toggle(id);
+        break;
       case 'expand':
         ThreadExpansion.toggle(id);
         break;
@@ -2745,14 +2859,24 @@ Main.onclick = function(e) {
 }
 
 Main.onThreadMouseOver = function(e) {
-  if (Config.quotePreview && $.hasClass(e.target, 'quotelink')) {
+  var t = e.target;
+  
+  if (Config.quotePreview && $.hasClass(t, 'quotelink')) {
     QuotePreview.resolve(e.target);
+  }
+  else if (Config.filter && t.hasAttribute('data-filtered')) {
+    QuotePreview.show(t, t.parentNode.parentNode);
   }
 }
 
 Main.onThreadMouseOut = function(e) {
-  if (Config.quotePreview && $.hasClass(e.target, 'quotelink')) {
-    QuotePreview.remove(e.target);
+  var t = e.target;
+  
+  if (Config.quotePreview && $.hasClass(t, 'quotelink')) {
+    QuotePreview.remove(t);
+  }
+  else if (Config.filter && t.hasAttribute('data-filtered')) {
+    QuotePreview.remove(t);
   }
 }
 
@@ -2983,7 +3107,7 @@ div.backlink {\
 }\
 .expbtn {\
   margin-right: 3px;\
-  margin-left: 0;\
+  margin-left: 2px;\
 }\
 .tCollapsed .rExpanded {\
   display: none;\
@@ -3045,17 +3169,18 @@ div.topPageNav {\
 #filters tfoot td {\
   padding-top: 10px;\
 }\
-.filter-hide:not(#quote-preview) {\
+.filter-preview {\
+  cursor: default;\
+  margin-left: 3px;\
+}\
+.hide-reply:not(#quote-preview) {\
   opacity: 0.5;\
 }\
-.filter-hide:not(#quote-preview):after {\
-  content: "+";\
-  cursor: pointer;\
-}\
-.filter-hide:not(#quote-preview) .file,\
-.filter-hide:not(#quote-preview) .backlink,\
-div.filter-hide:not(#quote-preview) div.file,\
-div.filter-hide:not(#quote-preview) blockquote.postMessage {\
+.hide-reply:not(#quote-preview) .file,\
+.hide-reply .extControls,\
+.hide-reply:not(#quote-preview) .backlink,\
+div.hide-reply:not(#quote-preview) div.file,\
+div.hide-reply:not(#quote-preview) blockquote.postMessage {\
   display: none;\
 }\
 ';

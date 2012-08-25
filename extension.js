@@ -93,6 +93,10 @@ var Parser = {};
 Parser.init = function() {
   var m, a, h;
   
+  if (Config.filter || Config.embedSoundCloud || Config.embedYoutube) {
+    this.needMsg = true;
+  }
+  
   if (Config.localTime) {
     if (m = (new Date).getTimezoneOffset()) {
       a = Math.abs(m);
@@ -407,36 +411,42 @@ Parser.parseThread = function(tid, offset, limit) {
 };
 
 Parser.parsePost = function(pid, tid) {
-  var i, f, filters, hit, cnt, quickReply, el, pi, post, href, a, img, filename;
+  var i, f, filters, hit, cnt, quickReply, el, pi, nb, post, href,
+    embed, a, img, filename, msg;
   
   if (tid) {
     pi = document.getElementById('pi' + pid);
+    
+    if (Parser.needMsg) {
+      msg = document.getElementById('m' + pid);
+    }
     
     if (pid != tid) {
       if (Config.filter) {
         filters = Filter.activeFilters;
         hit = false;
         for (i = 0; f = filters[i]; ++i) {
-          if (f.type == 0
-            && (el = pi.children[2].getElementsByClassName('postertrip')[0])
-            && f.pattern.test(el.textContent)) {
-            hit = true;
-            break;
+          nb = pi.children[2];
+          if (f.type == 0) {
+            if ((el = nb.getElementsByClassName('postertrip')[0])
+              && f.pattern == el.textContent) {
+              hit = true;
+              break;
+            }
           }
-          else if (f.type == 1
-            && (el = pi.children[2].getElementsByClassName('name')[0])
-            && f.pattern.test(el.textContent)) {
-            hit = true;
-            break;
+          else if (f.type == 1) {
+            if ((el = nb.getElementsByClassName('name')[0])
+              && f.pattern == el.textContent) {
+              hit = true;
+              break;
+            }
           }
-          else if (f.pattern.test(document.getElementById('m' + pid)
-            .innerHTML.replace(/<br>/g, ' '))) {
+          else if (f.pattern.test(msg.innerHTML.replace(/<br>/g, ' '))) {
             hit = true;
             break;
           }
         }
         if (hit) {
-          //console.log('hit: ' + JSON.stringify(f) + ' | ' + pid);
           post = pi.parentNode;
           if (f.hide) {
             post.className += ' filter-hide';
@@ -449,9 +459,18 @@ Parser.parsePost = function(pid, tid) {
           }
         }
       }
+      
       if (Config.backlinks) {
         Parser.parseBacklinks(pid, tid);
       }
+    }
+    
+    if (Config.embedSoundCloud) {
+      Media.embedSoundCloud(msg);
+    }
+    
+    if (Config.embedYouTube) {
+      Media.embedYouTube(msg);
     }
     
     cnt = document.createElement('div');
@@ -775,7 +794,7 @@ QuotePreview.remove = function(el) {
 /**
  * Image expansion
  */
-ImageExpansion = {};
+var ImageExpansion = {};
 
 ImageExpansion.expand = function(thumb) {
   var img;
@@ -826,15 +845,14 @@ ImageExpansion.onExpanded = function(e) {
 /**
  * Quick reply
  */
-var QR = {
-  enabled: false
-};
+var QR = {};
 
 QR.init = function() {
-  this.enabled = !!document.forms.post
-  if (!this.enabled) {
+  if (!UA.hasCORS || !document.forms.post) {
+    this.enabled = false;
     return;
   }
+  this.enabled = true;
   this.currentTid = null;
   this.cooldown = null;
   this.auto = false;
@@ -844,6 +862,49 @@ QR.init = function() {
   this.captchaInterval = null;
   this.pulse = null;
   this.xhr = null;
+};
+
+QR.quotePost = function(pid, qr) {
+  var q, pos, sel, ta;
+  
+  if (qr) {
+    ta = $.tag('textarea', document.forms.qrPost)[0];
+  }
+  else {
+    ta = $.tag('textarea', document.forms.post)[0];
+  }
+  
+  pos = ta.selectionStart;
+  
+  if (UA.isOpera) {
+    sel = document.getSelection();
+  }
+  else {
+    sel = window.getSelection().toString()
+  }
+  
+  q = '>>' + pid + '\n';
+  if (sel) {
+    q += '>' + sel.replace(/\n/g, '\n>') + '\n';
+  }
+  
+  if (ta.value) {
+    ta.value = ta.value.slice(0, pos)
+      + q + ta.value.slice(ta.selectionEnd);
+  }
+  else {
+    ta.value = q;
+  }
+  
+  if (UA.isOpera) {
+    pos += q.split('\n').length;
+  }
+  
+  ta.selectionStart = ta.selectionEnd = pos + q.length;
+  
+  if (qr) {
+    ta.focus();
+  }
 };
 
 QR.show = function(tid, pid) {
@@ -1130,7 +1191,12 @@ QR.submit = function(force) {
   QR.xhr.open('POST', document.forms.qrPost.action, true);
   QR.xhr.withCredentials = true;
   QR.xhr.upload.onprogress = function(e) {
-    btn.value = (0 | (e.loaded / e.total * 100)) + '%';
+    if (e.loaded >= e.total) {
+      btn.value = '100%';
+    }
+    else {
+      btn.value = (0 | (e.loaded / e.total * 100)) + '%';
+    }
   };
   QR.xhr.onerror = function() {
     btn.value = 'Submit';
@@ -1833,7 +1899,7 @@ ThreadUpdater.icons = {
 /**
  * Filter
  */
-Filter = {};
+var Filter = {};
 
 Filter.init = function() {
   Filter.load();
@@ -1885,14 +1951,19 @@ Filter.load = function() {
     for (fid = 0; f = rawFilters[fid]; ++fid) {
       if (f.active && f.pattern != '') {
         rawPattern = f.pattern;
+        // Name or Tripcode, string comparison
+        if (!f.type || f.type == 1) {
+          pattern = rawPattern;
+        }
         // /RegExp/
-        if (match = rawPattern.match(regexType)) {
+        else if (match = rawPattern.match(regexType)) {
           pattern = new RegExp(match[1], match[2]);
         }
         // "Exact match"
         else if (rawPattern[0] == '"' && rawPattern[rawPattern.length - 1] == '"') {
           pattern = new RegExp(rawPattern.slice(1, -1).replace(regexEscape, '\\$1'));
         }
+        // Full words, AND operator
         else {
           words = rawPattern.split(' ');
           pattern = '';
@@ -1904,12 +1975,12 @@ Filter.load = function() {
           }
           pattern = new RegExp('^' + pattern, 'i');
         }
-        console.log('Resulting regex: ' + pattern);
+        console.log('Resulting pattern: ' + pattern);
         this.activeFilters.push({
-          type: rawFilters[fid].type,
+          type: f.type,
           pattern: pattern,
-          color: rawFilters[fid].color,
-          hide: rawFilters[fid].hide
+          color: f.color,
+          hide: f.hide
         });
       }
     }
@@ -2062,6 +2133,51 @@ Filter.buildEntry = function(filter) {
 }
 
 /**
+ * Media
+ */
+var Media = {};
+
+Media.init = function() {
+  this.matchSC = /(?:http:\/\/)?soundcloud\.com\/[^\s<]+/g;
+  
+  this.matchYT = /(?:https?:\/\/)?(?:www\.youtube\.com\/watch\?v=|youtu\.be\/)([^\s<&]+)[^\s<]*/g;
+  this.urlYT = "<iframe width=\"640\" height=\"360\" "
+    + "src=\"//www.youtube.com/embed/$1\" frameborder=\"0\" allowfullscreen></iframe>"
+};
+
+Media.embedSoundCloud = function(msg) {
+  var i, url, matches;
+  
+  if (matches = msg.innerHTML.match(this.matchSC)) {
+    for(i = 0; url = matches[i]; ++i) {
+      this.fetchSoundCloud(msg, url);
+    }
+  }
+};
+
+Media.fetchSoundCloud = function(msg, url) {
+  var xhr;
+  
+  xhr = new XMLHttpRequest();
+  xhr.open('GET', 'http://soundcloud.com/oembed?show_artwork=false&'
+    + '&maxwidth=500px&show_comments=false&format=json&url='
+    + (url.charAt(0) != 'h' ? ('http://' + url) : url));
+  xhr.onload = function() {
+    console.log(url);
+    console.log(msg.innerHTML.indexOf(url));
+    if (this.status == 200 || this.status == 304) {
+      msg.innerHTML
+        = msg.innerHTML.replace(url, JSON.parse(this.responseText).html);
+    }
+  };
+  xhr.send(null);
+};
+
+Media.embedYouTube = function(msg) {
+  msg.innerHTML = msg.innerHTML.replace(this.matchYT, this.urlYT);
+};
+
+/**
  * Draggable helper
  */
 var Draggable = {
@@ -2082,7 +2198,7 @@ var Draggable = {
   startDrag: function(e) {
     var self, doc, offs;
     
-    if (this.parentNode.hasAttribute('shiftKey') && !e.shiftKey) {
+    if (this.parentNode.hasAttribute('data-shiftkey') && !e.shiftKey) {
       return;
     }
     
@@ -2156,6 +2272,17 @@ var Draggable = {
 };
 
 /**
+ * User Agent
+ */
+var UA = {};
+
+UA.init = function() {
+  document.head = document.head || $.tag('head')[0];
+  this.isOpera = Object.prototype.toString.call(window.opera) == '[object Opera]';
+  this.hasCORS = 'withCredentials' in new XMLHttpRequest;
+};
+
+/**
  * Config
  */
 var Config = {
@@ -2176,7 +2303,9 @@ var Config = {
   localTime: true,
   topPageNav: true,
   hideGlobalMsg: true,
-  filter: true
+  filter: true,
+  embedSoundCloud: true,
+  embedYouTube: true
 };
 
 Config.load = function() {
@@ -2214,6 +2343,8 @@ SettingsMenu.options = {
   topPageNav: 'Page navigation at the top',
   hideGlobalMsg: 'Enable announcement hiding',
   filter: 'Filter (<a href="javascript:;" data-cmd="filters-open">edit</a>)',
+  embedSoundCloud: 'Embed SoundCloud',
+  embedYouTube: 'Embed YouTube'
 };
 
 SettingsMenu.save = function() {
@@ -2295,7 +2426,7 @@ Main.init = function()
   
   document.removeEventListener('DOMContentLoaded', Main.init, false);
   
-  document.head = document.head || $.tag('head')[0];
+  UA.init();
   
   Config.load();
   
@@ -2328,13 +2459,7 @@ Main.init = function()
   }
   
   if (Config.quickReply) {
-    if (!window.FormData) {
-      console.log("This browser doesn't support XHR2");
-      Config.quickReply = false;
-    }
-    else {
-      QR.init();
-    }
+    QR.init();
   }
   
   if (Config.threadWatcher) {
@@ -2343,6 +2468,10 @@ Main.init = function()
   
   if (Config.filter) {
     Filter.init();
+  }
+  
+  if (Config.embedSoundCloud || Config.embedYouTube) {
+    Media.init();
   }
   
   Parser.init();
@@ -2474,14 +2603,14 @@ Main.setStickyNav = function() {
   cnt = document.createElement('div');
   cnt.id = 'stickyNav';
   cnt.className = 'preview';
-  cnt.setAttribute('shiftKey', '1');
+  cnt.setAttribute('data-shiftkey', '1');
   cnt.setAttribute('data-trackpos', 'SN-position');
   
   if (Config['SN-position']) {
     cnt.style.cssText = Config['SN-position'];
   }
   else {
-    cnt.style.right = '0px';
+    cnt.style.right = '8px';
     cnt.style.top = '50px';
   }
   
@@ -2511,38 +2640,6 @@ Main.setTitle = function() {
   }
   
   document.title = '/' + Main.board + '/ - ' + title;
-};
-
-Main.quotePost = function(pid, qr) {
-  var q, pos, sel, ta;
-  
-  if (qr) {
-    ta = $.tag('textarea', document.forms.qrPost)[0];
-  }
-  else {
-    ta = $.tag('textarea', document.forms.post)[0];
-  }
-  
-  pos = ta.selectionStart;
-  
-  q = '>>' + pid + '\n';
-  if (sel = window.getSelection().toString()) {
-    q += '>' + sel.replace(/\n/g, '\n>') + '\n';
-  }
-  
-  if (ta.value) {
-    ta.value = ta.value.slice(0, pos)
-      + q + ta.value.slice(ta.selectionEnd);
-  }
-  else {
-    ta.value = q;
-  }
-  
-  ta.selectionStart = ta.selectionEnd = pos + q.length;
-  
-  if (qr) {
-    ta.focus();
-  }
 };
 
 Main.setCookie = function(key, value) {
@@ -2604,7 +2701,7 @@ Main.onclick = function(e) {
         e.preventDefault();
         ids = id.split('-'); // tid, pid
         QR.show(ids[0], ids[1]);
-        Main.quotePost(ids[1], true);
+        QR.quotePost(ids[1], true);
         break;
       case 'update':
         e.preventDefault();

@@ -2163,8 +2163,6 @@ Media.fetchSoundCloud = function(msg, url) {
     + '&maxwidth=500px&show_comments=false&format=json&url='
     + (url.charAt(0) != 'h' ? ('http://' + url) : url));
   xhr.onload = function() {
-    console.log(url);
-    console.log(msg.innerHTML.indexOf(url));
     if (this.status == 200 || this.status == 304) {
       msg.innerHTML
         = msg.innerHTML.replace(url, JSON.parse(this.responseText).html);

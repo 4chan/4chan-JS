@@ -13,7 +13,7 @@ $.id = function(id) {
   return document.getElementById(id);
 };
 
-$.class = function(klass, root) {
+$.cls = function(klass, root) {
   return (root || document).getElementsByClassName(klass);
 };
 
@@ -688,7 +688,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
         if (j.no != pid) {
           continue;
         }
-        el = $.class('post', Parser.buildHTMLFromJSON(j, board))[0];
+        el = $.cls('post', Parser.buildHTMLFromJSON(j, board))[0];
         el.className = 'post preview';
         el.style.display = 'none';
         el.id = 'quote-preview';
@@ -1494,7 +1494,7 @@ ThreadWatcher.reload = function(full) {
     }
     
     if (full) {
-      buttons = $.class('wbtn', $.id('delform'));
+      buttons = $.cls('wbtn', $.id('delform'));
       for (i = 0; btn = buttons[i]; ++i) {
         key = btn.getAttribute('data-id') + '-' + Main.board;
         if (ThreadWatcher.watched[key]) {
@@ -1539,7 +1539,7 @@ ThreadWatcher.toggle = function(tid, board, synced) {
     }
   }
   else {
-    if (label = $.class('subject', $.id('pi' + tid))[0].textContent) {
+    if (label = $.cls('subject', $.id('pi' + tid))[0].textContent) {
       label = label.slice(0, ThreadWatcher.charLimit);
     }
     else if (label = $.id('m' + tid).innerHTML) {
@@ -1617,7 +1617,7 @@ ThreadExpansion.fetch = function(tid) {
         summary = thread.children[1];
         
         if (this.status == 200) {
-          tail = +$.class('reply', thread)[0].id.slice(1);
+          tail = +$.cls('reply', thread)[0].id.slice(1);
           posts = JSON.parse(this.responseText).posts;
           frag = document.createDocumentFragment();
           
@@ -1633,14 +1633,14 @@ ThreadExpansion.fetch = function(tid) {
           }
           
           msg = $.id('m' + tid);
-          if ((abbr = $.class('abbr', msg)[0])
+          if ((abbr = $.cls('abbr', msg)[0])
             && /^Comment/.test(abbr.textContent)) {
             thread.setAttribute('data-truncated', '1');
             expmsg = document.createElement('div');
             expmsg.style.display = 'none';
             expmsg.textContent = msg.innerHTML;
             msg.parentNode.insertBefore(expmsg, msg.nextSibling);
-            if (metacap = $.class('capcodeReplies', msg)[0]) {
+            if (metacap = $.cls('capcodeReplies', msg)[0]) {
               msg.innerHTML = posts[0].com + '<br><br>';
               msg.appendChild(metacap);
             }
@@ -1731,7 +1731,7 @@ ThreadUpdater.initControls = function() {
       this['statusNode' + j] = document.createElement('span')
     );
     
-    if (navlinks = $.class('navLinks' + j)[0]) {
+    if (navlinks = $.cls('navLinks' + j)[0]) {
       navlinks.appendChild(frag);
     }
   }
@@ -2713,7 +2713,7 @@ Main.setPageNav = function() {
     cnt.style.top = '75px';
   }
 
-  el = $.class('pagelist')[0].cloneNode(true);
+  el = $.cls('pagelist')[0].cloneNode(true);
   cnt.appendChild(el);
   Draggable.set(el);
   document.body.appendChild(cnt);
@@ -2792,7 +2792,7 @@ Main.setStickyNav = function() {
 Main.setTitle = function() {
   var title, entities;
   
-  if (!(title = $.class('subject', $.id('pi' + Main.tid))[0].textContent)) {
+  if (!(title = $.cls('subject', $.id('pi' + Main.tid))[0].textContent)) {
     if (title = $.id('m' + Main.tid).innerHTML) {
       entities = document.createElement('span');
       entities.innerHTML = title.replace(/<br>/g, ' ');

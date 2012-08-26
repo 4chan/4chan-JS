@@ -1459,7 +1459,7 @@ ThreadWatcher.init = function() {
   }
   else {
     cnt.style.left = '10px';
-    cnt.style.top = '100px';
+    cnt.style.top = '110px';
   }
   
   if (Config.fixedThreadWatcher) {

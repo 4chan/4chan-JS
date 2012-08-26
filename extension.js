@@ -2074,6 +2074,7 @@ Filter.open = function() {
   
   cnt = document.createElement('div');
   cnt.id = 'filtersMenu';
+  cnt.className = 'UIPanel';
   cnt.style.display = 'none';
   cnt.innerHTML = '\
 <div class="extPanel reply"><div class="panelHeader">Filters and Highlighters</div>\
@@ -2231,6 +2232,82 @@ Media.embedYouTube = function(msg) {
 };
 
 /**
+ * Custom CSS
+ */
+var CustomCSS = {};
+
+CustomCSS.init = function() {
+  var style, css;
+  if (css = localStorage.getItem('4chan-css')) {
+    style = document.createElement('style');
+    style.id = 'customCSS';
+    style.setAttribute('type', 'text/css');
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+};
+
+CustomCSS.open = function() {
+  var cnt;
+  
+  if ($.id('customCSSMenu')) {
+    return;
+  }
+  
+  cnt = document.createElement('div');
+  cnt.id = 'customCSSMenu';
+  cnt.className = 'UIPanel';
+  cnt.innerHTML = '\
+<div class="extPanel reply"><div class="panelHeader">Custom CSS</div>\
+<textarea id="customCSSBox">'
++ (localStorage.getItem('4chan-css') || '') + '</textarea>\
+<span class="right">\
+<button data-cmd="css-save">Save</button>\
+<button data-cmd="css-close">Close</button>\
+</span></td></tr></tfoot></table></div>';
+  
+  document.body.appendChild(cnt);
+  cnt.addEventListener('click', this.onClick, false);
+};
+
+CustomCSS.save = function() {
+  var ta, style;
+  
+  if (ta = $.id('customCSSBox')) {
+    localStorage.setItem('4chan-css', ta.value);
+    if (Config.customCSS && (style = $.id('customCSS'))) {
+      document.head.removeChild(style);
+      CustomCSS.init();
+    }
+  }
+};
+
+CustomCSS.close = function() {
+  var cnt;
+  
+  if (cnt = $.id('customCSSMenu')) {
+    cnt.removeEventListener('click', this.onClick, false);
+    document.body.removeChild(cnt);
+  }
+};
+
+CustomCSS.onClick = function(e) {
+  var cmd;
+  
+  if (cmd = e.target.getAttribute('data-cmd')) {
+    switch (cmd) {
+      case 'css-close':
+        CustomCSS.close();
+        break;
+      case 'css-save':
+        CustomCSS.save();
+        CustomCSS.close();
+        break;
+    }
+  }
+};
+
+/**
  * Draggable helper
  */
 var Draggable = {
@@ -2360,7 +2437,8 @@ var Config = {
   filter: true,
   embedSoundCloud: true,
   embedYouTube: true,
-  dropDownNav: false
+  dropDownNav: false,
+  customCSS: false
 };
 
 Config.load = function() {
@@ -2401,7 +2479,8 @@ SettingsMenu.options = {
   filter: 'Filter (<a href="javascript:;" data-cmd="filters-open">edit</a>)',
   embedSoundCloud: 'Embed SoundCloud',
   embedYouTube: 'Embed YouTube',
-  dropDownNav: 'Use Drop-down Navigation'
+  dropDownNav: 'Use Drop-down Navigation',
+  customCSS: 'Custom CSS (<a href="javascript:;" data-cmd="css-open">edit</a>)'
 };
 
 SettingsMenu.save = function() {
@@ -2416,7 +2495,7 @@ SettingsMenu.save = function() {
   
   Config.save();
   SettingsMenu.close();
-  location.pathname = location.pathname;
+  location.href = location.href.replace(/#.+$/, '');
 };
 
 SettingsMenu.toggle = function() {
@@ -2433,6 +2512,7 @@ SettingsMenu.open = function() {
   
   cnt = document.createElement('div');
   cnt.id = 'settingsMenu';
+  cnt.className = 'UIPanel';
   
   html = '<div class="extPanel reply"><div class="panelHeader">Settings</div><ul>';
   
@@ -2460,10 +2540,9 @@ var Main = {};
 
 Main.init = function()
 {
-  var params, storage, cnt;
-  //console.profile('4chan JS');
+  var params;
   
-  document.removeEventListener('DOMContentLoaded', Main.init, false);
+  document.addEventListener('DOMContentLoaded', Main.run, false);
   
   Main.now = Date.now();
   
@@ -2479,7 +2558,25 @@ Main.init = function()
       style_group == 'nws_style' ? 'yotsuba_new' : 'yotsuba_b_new';
   }
   
+  Main.initIcons();
+  
+  Main.addCSS();
+  
+  if (Config.customCSS) {
+    CustomCSS.init();
+  }
+  
   Main.type = style_group.split('_')[0];
+  
+  params = location.pathname.split(/\//);
+  Main.board = params[1];
+  Main.tid = params[3];
+};
+
+Main.run = function() {
+  //console.profile('4chan JS');
+  
+  document.removeEventListener('DOMContentLoaded', Main.run, false);
   
   if (Config.dropDownNav) {
     $.id('boardNavDesktop').style.display = 'none';
@@ -2489,13 +2586,6 @@ Main.init = function()
   
   $.addClass(document.body, Main.stylesheet);
   $.addClass(document.body, Main.type);
-  
-  params = location.pathname.split(/\//);
-  Main.board = params[1];
-  Main.tid = params[3];
-  
-  Main.addCSS();
-  Main.initIcons();
   
   if (Config.quotePreview || Config.filter) {
     thread = $.id('delform');
@@ -2808,14 +2898,17 @@ Main.onclick = function(e) {
       case 'toggleMsg':
         Main.toggleGlobalMessage();
         break;
-      case 'filters-open':
-        Filter.open();
-        break;
       case 'settings-toggle':
         SettingsMenu.toggle();
         break;
       case 'settings-save':
         SettingsMenu.save();
+        break;
+      case 'filters-open':
+        Filter.open();
+        break;
+      case 'css-open':
+        CustomCSS.open();
         break;
     }
   }
@@ -3118,8 +3211,7 @@ div.backlink {\
   margin-bottom: 10px;\
   margin-top: 10px;\
 }\
-#filtersMenu,\
-#settingsMenu {\
+.UIPanel {\
   position: fixed;\
   line-height: 14px;\
   font-size: 14px;\
@@ -3129,19 +3221,17 @@ div.backlink {\
   height: 100%;\
   background-color: rgba(0, 0, 0, 0.25);\
 }\
-#filtersMenu:after,\
-#settingsMenu:after {\
+.UIPanel:after {\
   display: inline-block;\
   height: 100%;\
   vertical-align: middle;\
   content: "";\
 }\
-#filtersMenu > div,\
-#settingsMenu > div {\
+.UIPanel > div {\
   -moz-box-sizing: border-box;\
   box-sizing: border-box;\
   display: inline-block;\
-  height: 510px;\
+  height: 520px;\
   max-height: 100%;\
   width: 400px;\
   position: relative;\
@@ -3160,6 +3250,15 @@ div.backlink {\
 .tomorrow #settingsMenu ul {\
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);\
 }\
+#customCSSMenu textarea {\
+  display: block;\
+  max-width: 100%;\
+  min-width: 100%;\
+  -moz-box-sizing: border-box;\
+  box-sizing: border-box;\
+  height: 87%;\
+}\
+#customCSSMenu .right,\
 #settingsMenu .right {\
   margin-top: 5px;\
 }\
@@ -3232,9 +3331,4 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   document.head.appendChild(style);
 };
 
-if (['interactive', 'complete'].indexOf(document.readyState) != -1) {
-  Main.init();
-}
-else {
-  document.addEventListener('DOMContentLoaded', Main.init, false); 
-}
+Main.init(); 

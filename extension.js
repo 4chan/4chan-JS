@@ -655,7 +655,6 @@ QuotePreview.resolve = function(link) {
       t[1] = Main.board;
     }
     if (self.cachedKey == [t[1], t[2], t[3]].join('-')) {
-      console.log('From cache');
       self.show(link, self.cachedNode, true);
     }
     else {
@@ -670,8 +669,6 @@ QuotePreview.resolve = function(link) {
 
 QuotePreview.showRemote = function(link, board, tid, pid) {
   var onload, onerror;
-  
-  //console.log(board + ' ' + tid + ' ' + pid);
   
   link.style.cursor = 'wait';
   
@@ -716,7 +713,6 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
   };
   
   QuotePreview.xhr =
-    //$.get('//localtest.4chan.org/' + board + '/res/' + tid + '.json',
     $.get('//api.4chan.org/' + board + '/res/' + tid + '.json',
       {
         onload: onload,
@@ -1019,7 +1015,6 @@ QR.close = function() {
   clearInterval(QR.pulse);
   
   if (QR.xhr) {
-    console.log('Aborting XHR');
     QR.xhr.abort();
     QR.xhr = null;
   }
@@ -1039,7 +1034,6 @@ QR.cloneCaptcha = function() {
   $.id('qrCaptcha').src = $.id('recaptcha_image').firstChild.src;
   $.id('qrChallenge').value = $.id('recaptcha_challenge_field').value;
   $.id('qrCapField').value = '';
-  console.log('Cloning Captcha ' + (new Date).toString());
 };
 
 QR.reloadCaptcha = function(focus) {
@@ -1788,7 +1782,6 @@ ThreadUpdater.adjustDelay = function(postCount, force)
     this.updateInterval = setTimeout(this.update, this.delay * 1000);
     this.pulse();
   }
-  console.log(postCount + ' new post(s), delay is ' + this.delay + ' seconds');
 };
 
 ThreadUpdater.onScroll = function(e) {
@@ -1821,7 +1814,6 @@ ThreadUpdater.update = function() {
   self = ThreadUpdater;
   
   if (self.updating) {
-    console.log('Already updating');
     return;
   }
   
@@ -1832,11 +1824,8 @@ ThreadUpdater.update = function() {
   
   self.updating = true;
   
-  console.log('Updating thread at ' + new Date().toString());
-  
   self.setStatus('Updating...');
   
-  //$.get('http://localtest.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
   $.get('//api.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
     {
       onload: self.onload,
@@ -2060,7 +2049,7 @@ Filter.load = function() {
           }
           pattern = new RegExp('^' + pattern, 'i');
         }
-        console.log('Resulting pattern: ' + pattern);
+        //console.log('Resulting pattern: ' + pattern);
         this.activeFilters.push({
           type: f.type,
           pattern: pattern,
@@ -2427,7 +2416,7 @@ SettingsMenu.save = function() {
   
   Config.save();
   SettingsMenu.close();
-  location.href = location.href;
+  location.pathname = location.pathname;
 };
 
 SettingsMenu.toggle = function() {

@@ -1957,6 +1957,7 @@ Filter.onClick = function(e) {
         break;
       case 'filters-save':
         Filter.save();
+        Filter.close();
         break;
       case 'filters-close':
         Filter.close();
@@ -2075,49 +2076,31 @@ Filter.load = function() {
   }
 };
 
-Filter.hide = function(thread) {
-  var sa;
-  
-  $.id('t' + tid).className += ' post-hidden';
-};
-
 Filter.open = function() {
-  var i, f, cnt, html, rawFilters, filterId, filterList;
+  var i, f, cnt, menu, html, rawFilters, filterId, filterList;
   
-  if ($.id('filters')) {
+  if ($.id('filtersMenu')) {
     return;
   }
   
   cnt = document.createElement('div');
-  cnt.id = 'filters';
-  cnt.className = 'extPanel reply';
+  cnt.id = 'filtersMenu';
   cnt.style.display = 'none';
   cnt.innerHTML = '\
-  <div id="fHeader">Filters and Highlighters</div>\
-  <table>\
-    <thead>\
-      <tr>\
-        <th>On</th>\
-        <th>Pattern</th>\
-        <th>Type</th>\
-        <th>Color</th>\
-        <th>Hide</th>\
-        <th>Del</th>\
-      </tr>\
-    </thead>\
-    <tbody id="filter-list"></tbody>\
-    <tfoot>\
-      <tr>\
-        <td colspan="6">\
-          <button data-cmd="filters-add" class="button left">Add</button>\
-          <span style="float:right">\
-            <button data-cmd="filters-save">Save</button>\
-            <button data-cmd="filters-close">Close</button>\
-          </span>\
-        </td>\
-      </tr>\
-    </tfoot>\
-  </table>';
+<div class="extPanel reply"><div class="panelHeader">Filters and Highlighters</div>\
+<table><thead><tr>\
+<th>On</th>\
+<th>Pattern</th>\
+<th>Type</th>\
+<th>Color</th>\
+<th>Hide</th>\
+<th>Del</th>\
+</tr></thead><tbody id="filter-list"></tbody><tfoot><tr><td colspan="6">\
+<button data-cmd="filters-add">Add</button>\
+<span class="right">\
+<button data-cmd="filters-save">Save</button>\
+<button data-cmd="filters-close">Close</button>\
+</span></td></tr></tfoot></table></div>';
   
   document.body.appendChild(cnt);
   cnt.addEventListener('click', this.onClick, false);
@@ -2136,7 +2119,7 @@ Filter.open = function() {
 Filter.close = function() {
   var cnt;
   
-  if (cnt = $.id('filters')) {
+  if (cnt = $.id('filtersMenu')) {
     cnt.removeEventListener('click', this.onClick, false);
     document.body.removeChild(cnt);
   }
@@ -2387,7 +2370,8 @@ var Config = {
   hideGlobalMsg: true,
   filter: true,
   embedSoundCloud: true,
-  embedYouTube: true
+  embedYouTube: true,
+  dropDownNav: false
 };
 
 Config.load = function() {
@@ -2427,7 +2411,8 @@ SettingsMenu.options = {
   hideGlobalMsg: 'Enable announcement hiding',
   filter: 'Filter (<a href="javascript:;" data-cmd="filters-open">edit</a>)',
   embedSoundCloud: 'Embed SoundCloud',
-  embedYouTube: 'Embed YouTube'
+  embedYouTube: 'Embed YouTube',
+  dropDownNav: 'Use Drop-down Navigation'
 };
 
 SettingsMenu.save = function() {
@@ -2442,58 +2427,40 @@ SettingsMenu.save = function() {
   
   Config.save();
   SettingsMenu.close();
+  location.href = location.href;
 };
 
-SettingsMenu.toggle = function(e) {
-  e.preventDefault();
+SettingsMenu.toggle = function() {
   if ($.id('settingsMenu')) {
     SettingsMenu.close();
   }
   else {
-    SettingsMenu.open(this.id == 'settingsWindowLinkBot');
+    SettingsMenu.open();
   }
 };
 
-SettingsMenu.open = function(bottom) {
-  var key, html, btn;
+SettingsMenu.open = function() {
+  var key, html, cnt;
   
   cnt = document.createElement('div');
   cnt.id = 'settingsMenu';
-  cnt.className = 'extPanel reply';
-  cnt.style[bottom ? 'bottom' : 'top'] = '20px';
   
-  html = '';
+  html = '<div class="extPanel reply"><div class="panelHeader">Settings</div><ul>';
+  
   for (key in SettingsMenu.options) {
-    html += '<label><input type="checkbox" class="menuOption" data-option="'
+    html += '<li><label><input type="checkbox" class="menuOption" data-option="'
       + key + '"' + (Config[key] ? ' checked="checked">' : '>')
-      + SettingsMenu.options[key] + '</label>';
+      + SettingsMenu.options[key] + '</label></li>';
   }
   
-  cnt.innerHTML = html + '<hr>';
+  html += '</ul><span class="right"><button data-cmd="settings-save">Save</button>'
+    + '<button data-cmd="settings-toggle">Close</button></div>';
   
-  btn = document.createElement('button');
-  btn.id = 'settingsSave';
-  btn.textContent = 'Save';
-  btn.addEventListener('click', SettingsMenu.save, false);
-  cnt.appendChild(btn);
-  
-  btn = document.createElement('button');
-  btn.id = 'settingsClose';
-  btn.textContent = 'Close';
-  btn.addEventListener('click', SettingsMenu.close, false);
-  cnt.appendChild(btn);
-  
-  btn = document.createElement('button');
-  btn.textContent = 'Clear Local Storage';
-  btn.addEventListener('click', function() { localStorage.clear(); }, false);
-  cnt.appendChild(btn);
-  
+  cnt.innerHTML = html;
   document.body.appendChild(cnt);
 };
 
 SettingsMenu.close = function() {
-  $.id('settingsSave').removeEventListener('click', SettingsMenu.save, false);
-  $.id('settingsClose').removeEventListener('click', SettingsMenu.close, false);
   document.body.removeChild($.id('settingsMenu'));
 };
 
@@ -2524,6 +2491,12 @@ Main.init = function()
   }
   
   Main.type = style_group.split('_')[0];
+  
+  if (Config.dropDownNav) {
+    $.id('boardNavDesktop').style.display = 'none';
+    $.id('boardNavDesktopFoot').style.display = 'none';
+    $.removeClass($.id('boardNavMobile'), 'mobile');
+  }
   
   $.addClass(document.body, Main.stylesheet);
   $.addClass(document.body, Main.type);
@@ -2646,12 +2619,25 @@ Main.initIcons = function() {
 };
 
 Main.setPageNav = function() {
-  var el, t;
+  var el, cnt;
   
+  cnt = document.createElement('div');
+  cnt.setAttribute('data-shiftkey', '1');
+  cnt.setAttribute('data-trackpos', 'TN-position');
+  cnt.className = 'topPageNav';
+  
+  if (Config['TN-position']) {
+    cnt.style.cssText = Config['TN-position'];
+  }
+  else {
+    cnt.style.left = '10px';
+    cnt.style.top = '75px';
+  }
+
   el = $.class('pagelist')[0].cloneNode(true);
-  el.className += ' topPageNav';
-  t = $.id('boardNavDesktop');
-  t.parentNode.insertBefore(el, t.nextSibling);
+  cnt.appendChild(el);
+  Draggable.set(el);
+  document.body.appendChild(cnt);
 };
 
 Main.initGlobalMessage = function() {
@@ -2709,7 +2695,7 @@ Main.setStickyNav = function() {
     cnt.style.cssText = Config['SN-position'];
   }
   else {
-    cnt.style.right = '8px';
+    cnt.style.right = '10px';
     cnt.style.top = '50px';
   }
   
@@ -2830,14 +2816,17 @@ Main.onclick = function(e) {
       case 'report':
         Main.reportPost(id);
         break;
-      case 'filter-unhide':
-        Filter.unhide(id);
-        break;
       case 'toggleMsg':
         Main.toggleGlobalMessage();
         break;
       case 'filters-open':
         Filter.open();
+        break;
+      case 'settings-toggle':
+        SettingsMenu.toggle();
+        break;
+      case 'settings-save':
+        SettingsMenu.save();
         break;
     }
   }
@@ -2891,12 +2880,6 @@ Main.addCSS = function()
 .postHidden .buttons {\
   display: none !important;\
 }\
-.burichan_new .preview,\
-.futaba_new .preview {\
-  border: 1px solid rgba(0, 0, 0, 0.20);\
-  border-bottom: 2px solid rgba(0, 0, 0, 0.20);\
-  border-right: 2px solid rgba(0, 0, 0, 0.20);\
-}\
 .burichan_new .preview {\
   background-color: #D6DAF0;\
 }\
@@ -2912,6 +2895,9 @@ Main.addCSS = function()
 }\
 div.op > span .postHideButtonCollapsed {\
   margin-right: 1px;\
+}\
+.dropDownNav #boardNavMobile, {\
+  display: block !important;\
 }\
 .extPanel {\
   border: 1px solid rgba(0, 0, 0, 0.20);\
@@ -2949,17 +2935,8 @@ div.post div.postInfo {\
   width: auto;\
   display: inline;\
 }\
-#settingsMenu {\
-  position: fixed;\
-  display: inline-block;\
-  right: 20px;\
-  padding: 3px;\
-}\
-#settingsMenu label {\
-  display: block;\
-  user-select: none;\
-  -moz-user-select: none;\
-  -webkit-user-select: none;\
+.right {\
+  float: right;\
 }\
 .pointer {\
   cursor: pointer;\
@@ -3077,16 +3054,13 @@ div.post div.postInfo {\
   -moz-user-select: none;\
   -webkit-user-select: none;\
 }\
-.tomorrow #watchList li:first-child {\
-  border-top: 1px solid rgba(255, 255, 255, 0.07);\
-}\
 .photon #watchList li:first-child {\
   border-top: 1px solid #CCCCCC;\
 }\
 #watchList li:first-child {\
   margin-top: 3px;\
   padding-top: 2px;\
-  border-top: 1px solid rgba(0, 0, 0, 0.20);\
+  border-top: 1px solid rgba(0, 0, 0, 0.1);\
 }\
 #watchList a {\
   text-decoration: none;\
@@ -3139,50 +3113,96 @@ div.backlink {\
 #stickyNav img {\
   vertical-align: middle;\
 }\
-div.topPageNav {\
-  margin-top: 20px;\
+.topPageNav {\
   position: absolute;\
 }\
-.yotsuba_b_new div.topPageNav {\
+.yotsuba_b_new .topPageNav {\
   border-top: 1px solid rgba(255, 255, 255, 0.25);\
   border-left: 1px solid rgba(255, 255, 255, 0.25);\
 }\
 .newPostsMarker {\
   box-shadow: 0 5px red;\
 }\
-#filters {\
-  padding: 10px;\
-  position: fixed;\
-  width: 460px;\
-  top: 60px;\
-  left: 50%;\
-  margin-left: -240px;\
-}\
-#fHeader {\
+.panelHeader {\
   font-weight: bold;\
   text-align: center;\
   margin-bottom: 10px;\
+  margin-top: 10px;\
 }\
-#filters table {\
+#filtersMenu,\
+#settingsMenu {\
+  position: fixed;\
+  line-height: 14px;\
+  font-size: 14px;\
+  top: 0;\
+  left: 0;\
+  width: 100%;\
+  height: 100%;\
+  background-color: rgba(0, 0, 0, 0.25);\
+}\
+#filtersMenu:after,\
+#settingsMenu:after {\
+  display: inline-block;\
+  height: 100%;\
+  vertical-align: middle;\
+  content: "";\
+}\
+#filtersMenu > div,\
+#settingsMenu > div {\
+  -moz-box-sizing: border-box;\
+  box-sizing: border-box;\
+  display: inline-block;\
+  height: 510px;\
+  max-height: 100%;\
+  width: 400px;\
+  position: relative;\
+  left: 50%;\
+  margin-left: -200px;\
+  overflow: auto;\
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);\
+  vertical-align: middle;\
+}\
+#settingsMenu ul {\
+  list-style: none;\
+  padding: 0 0 10px 0;\
+  margin: 0;\
+  border-bottom: 1px solid rgba(0, 0, 0, 0.20);\
+}\
+.tomorrow #settingsMenu ul {\
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);\
+}\
+#settingsMenu .right {\
+  margin-top: 5px;\
+}\
+#settingsMenu label {\
+  display: block;\
+  user-select: none;\
+  -moz-user-select: none;\
+  -webkit-user-select: none;\
+}\
+#filtersMenu table {\
   width: 100%;\
 }\
-#filters th {\
+#filtersMenu th {\
   font-size: 0.8em;\
 }\
-#filters tbody {\
+#filtersMenu tbody {\
   text-align: center;\
 }\
-#filters select,\
+#filtersMenu select,\
 .fPattern,\
 .fColor {\
   padding: 1px;\
   font-size: 11px;\
 }\
-#filters select {\
-  width: 70px;\
+#filtersMenu select {\
+  width: 75px;\
+}\
+#filtersMenu tfoot td {\
+  padding-top: 10px;\
 }\
 .fPattern {\
-  width: 200px;\
+  width: 160px;\
 }\
 .fColor {\
   width: 60px;\
@@ -3190,9 +3210,6 @@ div.topPageNav {\
 .fDel {\
   font-size: 12px;\
   line-height: 1.5;\
-}\
-#filters tfoot td {\
-  padding-top: 10px;\
 }\
 .filter-preview {\
   cursor: default;\

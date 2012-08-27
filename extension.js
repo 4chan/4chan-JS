@@ -2586,11 +2586,25 @@ SettingsMenu.open = function() {
     + '<button data-cmd="settings-toggle">Close</button></div>';
   
   cnt.innerHTML = html;
+  cnt.addEventListener('click', SettingsMenu.onClick, false);
   document.body.appendChild(cnt);
 };
 
-SettingsMenu.close = function() {
-  document.body.removeChild($.id('settingsMenu'));
+SettingsMenu.onClick = function(e) {
+  var el;
+  
+  if (e.target.id == 'settingsMenu' && (el = $.id('settingsMenu'))) {
+    e.preventDefault();
+    e.stopPropagation();
+    SettingsMenu.close(el);
+  }
+};
+
+SettingsMenu.close = function(el) {
+  if (el = (el || $.id('settingsMenu'))) {
+    el.removeEventListener('click', SettingsMenu.onClick, false);
+    document.body.removeChild(el);
+  }
 };
 
 /**
@@ -3333,7 +3347,6 @@ div.backlink {\
   list-style: none;\
   padding: 0 0 10px 0;\
   margin: 0;\
-  border-bottom: 1px solid rgba(0, 0, 0, 0.20);\
 }\
 .tomorrow #settingsMenu ul {\
   border-bottom: 1px solid #282a2e;\

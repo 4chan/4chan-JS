@@ -1453,7 +1453,7 @@ ThreadWatcher.init = function() {
   }
   else {
     cnt.style.left = '10px';
-    cnt.style.top = '320px';
+    cnt.style.top = '380px';
   }
   
   if (Config.fixedThreadWatcher) {
@@ -1463,7 +1463,9 @@ ThreadWatcher.init = function() {
     cnt.style.position = null;
   }
   
-  cnt.innerHTML = '<div class="drag" id="twHeader">Thread Watcher</div>';
+  cnt.innerHTML = '<div class="drag" id="twHeader">Thread Watcher'
+    + '<img id="twPrune" class="pointer right" src="'
+    + Main.icons.down2 + '" alt="R" title="Prune"></div>';
   
   ThreadWatcher.listNode = document.createElement('ul');
   ThreadWatcher.listNode.id = 'watchList';
@@ -1524,6 +1526,9 @@ ThreadWatcher.onClick = function(e) {
       t.getAttribute('data-board')
     );
   }
+  else if (t.src) {
+    ThreadWatcher.prune();
+  }
 };
 
 ThreadWatcher.toggle = function(tid, board, synced) {
@@ -1561,6 +1566,30 @@ ThreadWatcher.toggle = function(tid, board, synced) {
 
 ThreadWatcher.save = function() {
   localStorage.setItem('4chan-watch', JSON.stringify(ThreadWatcher.watched));
+};
+
+ThreadWatcher.prune = function() {
+  var key, to = 0;
+  
+  for (key in ThreadWatcher.watched) {
+    setTimeout(ThreadWatcher.fetch, to, key);
+    to += 200;
+  }
+};
+
+ThreadWatcher.fetch = function(key) {
+  var tuid, xhr;
+  
+  tuid = key.split('-'); // tid, board
+  xhr = new XMLHttpRequest();
+  xhr.onload = function() {
+    if (this.status == 404) {
+      $.addClass($.id('watch-' + key).lastChild, 'deadLink');
+    }
+  };
+  xhr.open('HEAD', 'https://api.4chan.org/'
+    + tuid[1] + '/res/' + tuid[0] + '.json');
+  xhr.send(null);
 };
 
 /**
@@ -2672,6 +2701,7 @@ Main.run = function() {
 Main.icons = {
   up: 'arrow_up.png',
   down: 'arrow_down.png',
+  down2: 'arrow_down2.png',
   cross: 'cross.png',
   gis: 'gis.png',
   iqdb: 'iqdb.png',
@@ -2970,12 +3000,6 @@ Main.addCSS = function()
 .postHidden .buttons {\
   display: none !important;\
 }\
-.burichan_new .preview {\
-  background-color: #D6DAF0;\
-}\
-.futaba_new .preview {\
-  background-color: #F0E0D6;\
-}\
 .postHidden {\
   padding-right: 5px!important;\
 }\
@@ -2992,9 +3016,8 @@ div.op > span .postHideButtonCollapsed {\
 .extPanel {\
   border: 1px solid rgba(0, 0, 0, 0.20);\
 }\
-.tomorrow .extPanel,\
-.tomorrow .postForm td:first-child {\
-  border: 1px solid rgba(255, 255, 255, 0.07);\
+.tomorrow .extPanel {\
+  border: 1px solid #111;\
 }\
 .extControls {\
   display: inline;\
@@ -3038,16 +3061,17 @@ div.post div.postInfo {\
   -webkit-user-select: none !important;\
 }\
 #quickReply {\
+  display: block;\
   position: fixed;\
   padding: 0;\
   font-size: 14px;\
 }\
 #quickReply tr > td:first-child {\
   padding: 0 2px;\
-  border: none;\
 }\
-#quickReply .postblock {\
-  border: none;\
+.futaba_new #quickReply tr > td:first-child,\
+.burichan_new #quickReply tr > td:first-child {\
+  padding: 0 3px;\
 }\
 #qrHeader {\
   text-align: center;\
@@ -3116,10 +3140,11 @@ div.post div.postInfo {\
   box-shadow: none;\
 }\
 #qrError {\
+  width: 373px;\
   display: none;\
-  padding: 5px;\
   font-family: monospace;\
   background-color: #E62020;\
+  font-size: 12px;\
   color: white;\
   padding: 3px 5px;\
   text-shadow: 0 1px rgba(0, 0, 0, 0.20);\
@@ -3130,6 +3155,13 @@ div.post div.postInfo {\
 #twHeader {\
   font-weight: bold;\
   text-align: center;\
+}\
+.futaba_new #twHeader,\
+.burichan_new #twHeader {\
+  line-height: 1;\
+}\
+#twHeader img {\
+  margin-left: 3px;\
 }\
 #threadWatcher {\
   max-width: 265px;\
@@ -3144,13 +3176,22 @@ div.post div.postInfo {\
   -moz-user-select: none;\
   -webkit-user-select: none;\
 }\
-.photon #watchList li:first-child {\
-  border-top: 1px solid #CCCCCC;\
-}\
 #watchList li:first-child {\
   margin-top: 3px;\
   padding-top: 2px;\
-  border-top: 1px solid rgba(0, 0, 0, 0.1);\
+  border-top: 1px solid rgba(0, 0, 0, 0.20);\
+}\
+.photon #watchList li:first-child {\
+  border-top: 1px solid #ccc;\
+}\
+.yotsuba_new #watchList li:first-child {\
+  border-top: 1px solid #d9bfb7;\
+}\
+.yotsuba_b_new #watchList li:first-child {\
+  border-top: 1px solid #b7c5d9;\
+}\
+.tomorrow #watchList li:first-child {\
+  border-top: 1px solid #111;\
 }\
 #watchList a {\
   text-decoration: none;\
@@ -3179,7 +3220,7 @@ div.post div.postInfo {\
   display: none;\
 }\
 .deadlink {\
-  text-decoration: line-through;\
+  text-decoration: line-through !important;\
 }\
 div.backlink {\
   margin-left: 15px;\
@@ -3219,8 +3260,10 @@ div.backlink {\
 .panelHeader {\
   font-weight: bold;\
   text-align: center;\
-  margin-bottom: 10px;\
-  margin-top: 10px;\
+  margin-bottom: 5px;\
+  margin-top: 5px;\
+  padding-bottom: 5px;\
+  border-bottom: 1px solid rgba(0, 0, 0, 0.20);\
 }\
 .UIPanel {\
   position: fixed;\
@@ -3242,7 +3285,7 @@ div.backlink {\
   -moz-box-sizing: border-box;\
   box-sizing: border-box;\
   display: inline-block;\
-  height: 520px;\
+  height: 512px;\
   max-height: 100%;\
   width: 400px;\
   position: relative;\
@@ -3252,6 +3295,15 @@ div.backlink {\
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);\
   vertical-align: middle;\
 }\
+.UIPanel input[type="text"],\
+.UIPanel textarea {\
+  border: 1px solid #AAA;\
+  outline: none;\
+}\
+#customCSSMenu > div,\
+#filtersMenu > div {\
+  height: auto;\
+}\
 #settingsMenu ul {\
   list-style: none;\
   padding: 0 0 10px 0;\
@@ -3259,7 +3311,7 @@ div.backlink {\
   border-bottom: 1px solid rgba(0, 0, 0, 0.20);\
 }\
 .tomorrow #settingsMenu ul {\
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);\
+  border-bottom: 1px solid #282a2e;\
 }\
 #customCSSMenu textarea {\
   display: block;\
@@ -3267,11 +3319,12 @@ div.backlink {\
   min-width: 100%;\
   -moz-box-sizing: border-box;\
   box-sizing: border-box;\
-  height: 87%;\
+  height: 100px;\
+  margin: 0;\
 }\
 #customCSSMenu .right,\
 #settingsMenu .right {\
-  margin-top: 5px;\
+  margin-top: 2px;\
 }\
 #settingsMenu label {\
   display: block;\

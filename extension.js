@@ -102,11 +102,11 @@ Parser.init = function() {
       a = Math.abs(o);
       h = (0 | (a / 60));
       
-      this.utcOffset = ' GMT' + (o < 0 ? '+' : '-')
+      this.utcOffset = ' UTC' + (o < 0 ? '+' : '-')
         + h + ((m = a - h * 60) ? (':' + m) : '');
     }
     else {
-      this.utcOffset = ' GMT';
+      this.utcOffset = ' UTC';
     }
     
     this.weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -1376,7 +1376,7 @@ ReplyHiding.toggle = function(pid) {
 ReplyHiding.show = function(pid) {
   var post, sa;
   
-  post = $.id('p' + pid);
+  post = $.id('pc' + pid);
   
   $.removeClass(post, 'post-hidden');
   
@@ -1390,7 +1390,7 @@ ReplyHiding.show = function(pid) {
 ReplyHiding.hide = function(pid) {
   var post, sa;
   
-  post = $.id('p' + pid);
+  post = $.id('pc' + pid);
   post.className += ' post-hidden';
   
   sa = $.id('sa' + pid);
@@ -1453,7 +1453,7 @@ ThreadWatcher.init = function() {
   }
   else {
     cnt.style.left = '10px';
-    cnt.style.top = '110px';
+    cnt.style.top = '320px';
   }
   
   if (Config.fixedThreadWatcher) {
@@ -1893,7 +1893,7 @@ ThreadUpdater.onload = function() {
   }
   else if (this.status == 404) {
     self.setIcon(self.icons.dead);
-    self.setStatus('Not Found');
+    self.setError('Not Found - Thread has been pruned or deleted');
     if (self.auto) {
       self.stop();
     }
@@ -1906,7 +1906,7 @@ ThreadUpdater.onload = function() {
 
 ThreadUpdater.onerror = function() {
   var self = ThreadUpdater;
-  self.setStatus('Connection Error');
+  self.setError('Connection Error');
   self.lastUpdated = Date.now();
   self.adjustDelay(0, self.force);
   self.updating = self.force = false;
@@ -1914,6 +1914,12 @@ ThreadUpdater.onerror = function() {
 
 ThreadUpdater.setStatus = function(msg) {
   this.statusNode.textContent = this.statusNodeBot.textContent = msg;
+};
+
+ThreadUpdater.setError = function(msg) {
+  this.statusNode.innerHTML
+    = this.statusNodeBot.innerHTML
+    = '<span class="tw-error">' + msg + '</span>';
 };
 
 ThreadUpdater.setIcon = function(data) {
@@ -2710,7 +2716,7 @@ Main.setPageNav = function() {
   }
   else {
     cnt.style.left = '10px';
-    cnt.style.top = '75px';
+    cnt.style.top = '50px';
   }
 
   el = $.cls('pagelist')[0].cloneNode(true);
@@ -2732,11 +2738,12 @@ Main.initGlobalMessage = function() {
     if ((oldHash = localStorage.getItem('4chan-msg'))
       && (Main.msgHash = $.hash(msg.textContent)) == oldHash) {
       msg.style.display = 'none';
+      btn.style.opacity = '0.5';
       btn.src = Main.icons.plus;
     }
     else {
       btn.src = Main.icons.minus;
-      btn.style.position = 'absolute';
+      //btn.style.position = 'absolute';
     }
     msg.parentNode.insertBefore(btn, msg);
   }
@@ -2750,15 +2757,16 @@ Main.toggleGlobalMessage = function() {
   if (msg.style.display == 'none') {
     msg.style.display = null;
     btn.src = Main.icons.minus;
-    btn.style.position = 'absolute';
+    btn.style.opacity = '1';
     localStorage.removeItem('4chan-msg');
   }
   else {
     msg.style.display = 'none';
     btn.src = Main.icons.plus;
-    btn.style.position = null;
+    btn.style.opacity = '0.5';
     localStorage.setItem('4chan-msg', Main.msgHash || $.hash(msg.textContent));
   }
+  console.log(btn.style.opacity);
 };
 
 Main.setStickyNav = function() {
@@ -3195,6 +3203,9 @@ div.backlink {\
 #stickyNav img {\
   vertical-align: middle;\
 }\
+.tw-error {\
+  color: red;\
+}\
 .topPageNav {\
   position: absolute;\
 }\
@@ -3203,7 +3214,7 @@ div.backlink {\
   border-left: 1px solid rgba(255, 255, 255, 0.25);\
 }\
 .newPostsMarker {\
-  box-shadow: 0 5px red;\
+  box-shadow: 0 3px red;\
 }\
 .panelHeader {\
   font-weight: bold;\
@@ -3317,6 +3328,7 @@ div.backlink {\
 .post-hidden:not(#quote-preview) .summary,\
 .post-hidden:not(#quote-preview) .op .file,\
 .post-hidden:not(#quote-preview) .file,\
+.post-hidden .wbtn,\
 .post-hidden .extControls,\
 .post-hidden:not(#quote-preview) .backlink,\
 div.post-hidden:not(#quote-preview) div.file,\

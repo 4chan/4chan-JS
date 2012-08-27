@@ -1046,7 +1046,7 @@ QR.close = function() {
   cnt.removeEventListener('click', QR.onClick, false);
   Draggable.unset($.id('qrHeader'));
   $.id('qrFile').removeEventListener('change', QR.onFileChanged, false);
-  $.tag('textarea', tbody)[0].removeEventListener('keydown', QR.spoilerText, false);
+  $.tag('textarea', cnt)[0].removeEventListener('keydown', QR.spoilerText, false);
   
   document.body.removeChild(cnt);
 };

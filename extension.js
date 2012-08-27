@@ -455,11 +455,11 @@ Parser.parsePost = function(pid, tid) {
     
     if (Main.tid) {
       if (Config.embedSoundCloud) {
-        Media.embedSoundCloud(msg);
+        Media.parseSoundCloud(msg);
       }
       
       if (Config.embedYouTube) {
-        Media.embedYouTube(msg);
+        Media.parseYouTube(msg);
       }
     }
     
@@ -2267,24 +2267,85 @@ Filter.buildEntry = function(filter) {
 var Media = {};
 
 Media.init = function() {
-  this.matchSC = /(?:http:\/\/)?soundcloud\.com\/[^\s<]+/g;
+  this.active = true;
+  this.debounce = false;
   
+  this.matchSC = /(?:http:\/\/)?soundcloud\.com\/[^\s<]+/g;
+  this.nodesSC = [];
+
+  this.testYT = /youtube\.com|youtu\.be/;
   this.matchYT = /(?:https?:\/\/)?(?:www\.youtube\.com\/watch\?v=|youtu\.be\/)([^\s<&]+)[^\s<]*/g;
   this.urlYT = "<iframe width=\"640\" height=\"360\" "
     + "src=\"//www.youtube.com/embed/$1\" frameborder=\"0\" allowfullscreen></iframe>"
+  this.nodesYT = [];
 };
 
-Media.embedSoundCloud = function(msg) {
-  var i, url, matches;
+Media.clearDebounce = function() {
+  Media.debounce = false;
+};
+
+Media.checkEmbeds = function(e) {
+  var i, j, n, nodes, limit, height;
   
-  if (matches = msg.innerHTML.match(this.matchSC)) {
-    for(i = 0; url = matches[i]; ++i) {
-      this.fetchSoundCloud(msg, url);
+  if (Media.debounce) {
+    return;
+  }
+  
+  limit = document.documentElement.clientHeight + window.scrollY;
+  
+  if (Config.embedSoundCloud) {
+    dHeight = document.documentElement.offsetHeight - Media.baseHeight;
+    nodes = Media.nodesSC;
+    i = nodes.length - 1;
+    while ((n = nodes[i]) && (n[0] + dHeight) < limit) {
+      for (j = 0; n[2][j]; ++j) {
+        Media.embedSoundCloud(n[1], n[2][j]);
+      }
+      nodes.length--;
+      i--;
+    }
+  }
+  
+  if (Config.embedYouTube) {
+    dHeight = document.documentElement.offsetHeight - Media.baseHeight;
+    nodes = Media.nodesYT;
+    i = nodes.length - 1;
+    while ((n = nodes[i]) && (n[0] + dHeight) < limit) {
+      Media.embedYouTube(n[1]);
+      nodes.length--;
+      i--;
+    }
+  }
+  
+  Media.debounce = true;
+  setTimeout(Media.clearDebounce, 250);
+};
+
+Media.finalize = function() {
+  if (this.active) {
+    this.baseHeight = document.documentElement.offsetHeight;
+    window.addEventListener('scroll', Media.checkEmbeds, false);
+    if (this.nodesSC[1]) {
+      this.nodesSC.reverse();
+    }
+    if (this.nodesYT[1]) {
+      this.nodesYT.reverse();
     }
   }
 };
 
-Media.fetchSoundCloud = function(msg, url) {
+Media.parseSoundCloud = function(msg) {
+  var matches;
+  
+  if (matches = msg.innerHTML.match(this.matchSC)) {
+    if (!this.active) {
+      this.active = true;
+    }
+    this.nodesSC.push([ msg.getBoundingClientRect().top, msg, matches ]);
+  }
+};
+
+Media.embedSoundCloud = function(msg, url) {
   var xhr;
   
   xhr = new XMLHttpRequest();
@@ -2298,6 +2359,18 @@ Media.fetchSoundCloud = function(msg, url) {
     }
   };
   xhr.send(null);
+};
+
+
+Media.parseYouTube = function(msg) {
+  var matches;
+  
+  if (this.testYT.test(msg.innerHTML)) {
+    if (!this.active) {
+      this.active = true;
+    }
+    this.nodesYT.push([ msg.getBoundingClientRect().top, msg ]);
+  }
 };
 
 Media.embedYouTube = function(msg) {
@@ -2731,6 +2804,10 @@ Main.run = function() {
     else {
       Parser.parseBoard();
     }
+  }
+  
+  if (Media.active) {
+    Media.finalize();
   }
   
   if (Config.replyHiding) {

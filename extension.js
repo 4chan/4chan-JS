@@ -984,6 +984,7 @@ QR.show = function(tid, pid) {
     spoiler.innerHTML
       = '<label>[<input type="checkbox" value="on" name="spoiler">Spoiler?]</label>';
     file.parentNode.insertBefore(spoiler, file.nextSibling);
+    $.tag('textarea', tbody)[0].addEventListener('keydown', QR.spoilerText, false);
   }
   
   form.appendChild(table);
@@ -1006,6 +1007,29 @@ QR.show = function(tid, pid) {
   Draggable.set($.id('qrHeader'));
 };
 
+QR.spoilerText = function(e) {
+  if (e.ctrlKey && e.keyCode == 83) {
+    var ta, start, end, spoiler;
+    
+    e.stopPropagation();
+    e.preventDefault();
+    
+    ta = e.target;
+    start = ta.selectionStart;
+    end = ta.selectionEnd;
+  
+    if (ta.value) {
+      spoiler = '[spoiler]' + ta.value.slice(start, end) + '[/spoiler]';
+      ta.value = ta.value.slice(0, start) + spoiler + ta.value.slice(end);
+      ta.setSelectionRange(end + 19, end + 19);
+    }
+    else {
+      ta.value = '[spoiler][/spoiler]';
+      ta.setSelectionRange(9, 9);
+    }
+  }
+};
+
 QR.close = function() {
   var cnt = $.id('quickReply');
   
@@ -1022,6 +1046,7 @@ QR.close = function() {
   cnt.removeEventListener('click', QR.onClick, false);
   Draggable.unset($.id('qrHeader'));
   $.id('qrFile').removeEventListener('change', QR.onFileChanged, false);
+  $.tag('textarea', tbody)[0].removeEventListener('keydown', QR.spoilerText, false);
   
   document.body.removeChild(cnt);
 };

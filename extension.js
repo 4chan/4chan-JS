@@ -2162,7 +2162,7 @@ Filter.buildEntry = function(filter) {
   
   // Pattern
   html += '<td><input class="fPattern" type="text" value="'
-    + filter.pattern + '"></td>';
+    + filter.pattern.replace(/"/g, '&quot;') + '"></td>';
   
   // Type
   sel = [ '', '', '' ];

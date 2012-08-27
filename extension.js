@@ -1594,15 +1594,20 @@ ThreadWatcher.save = function() {
 };
 
 ThreadWatcher.prune = function() {
-  var key, to = 0;
+  var i, to, key, total, img;
   
+  i = to = 0;
+  total = $.id('watchList').childElementCount;
+  img = $.id('twPrune');
+  img.src = Main.icons.rotate;
   for (key in ThreadWatcher.watched) {
-    setTimeout(ThreadWatcher.fetch, to, key);
+    ++i;
+    setTimeout(ThreadWatcher.fetch, to, key, i == total ? img : null);
     to += 200;
   }
 };
 
-ThreadWatcher.fetch = function(key) {
+ThreadWatcher.fetch = function(key, img) {
   var tuid, xhr;
   
   tuid = key.split('-'); // tid, board
@@ -1611,7 +1616,15 @@ ThreadWatcher.fetch = function(key) {
     if (this.status == 404) {
       $.addClass($.id('watch-' + key).lastChild, 'deadLink');
     }
+    if (img) {
+      img.src = Main.icons.down2;
+    }
   };
+  if (img) {
+    xhr.onerror = function() {
+      img.src = Main.icons.down2;
+    };
+  }
   xhr.open('HEAD', 'https://api.4chan.org/'
     + tuid[1] + '/res/' + tuid[0] + '.json');
   xhr.send(null);
@@ -2812,7 +2825,6 @@ Main.initGlobalMessage = function() {
     }
     else {
       btn.src = Main.icons.minus;
-      //btn.style.position = 'absolute';
     }
     msg.parentNode.insertBefore(btn, msg);
   }

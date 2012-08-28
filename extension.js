@@ -641,7 +641,7 @@ QuotePreview.resolve = function(link) {
     offset = post.getBoundingClientRect();
     if (offset.top > 0
         && offset.bottom < document.documentElement.clientHeight
-        && !$.hasClass(post, 'post-hidden')) {
+        && !$.hasClass(post.parentNode, 'post-hidden')) {
       this.highlight = post;
       $.addClass(post, 'highlight');
       return;

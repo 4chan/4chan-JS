@@ -3698,7 +3698,8 @@ div.backlink {\
 #quote-preview .filter-preview {\
   display: none;\
 }\
-.post-hidden:not(#quote-preview) {\
+.post-hidden:not(#quote-preview) .post,\
+.post-hidden:not(#quote-preview) .sideArrows {\
   opacity: 0.5;\
 }\
 .post-hidden:not(.thread) .postInfo {\
@@ -3716,10 +3717,6 @@ div.backlink {\
 div.post-hidden:not(#quote-preview) div.file,\
 div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   display: none;\
-}\
-div.post div.file .fileThumb img {\
-  position: relative;\
-  z-index: 1;\
 }\
 ';
 

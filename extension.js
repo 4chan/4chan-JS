@@ -3604,6 +3604,10 @@ div.post-hidden:not(#quote-preview) div.file,\
 div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   display: none;\
 }\
+div.post div.file .fileThumb img {\
+  position: relative;\
+  z-index: 1;\
+}\
 ';
 
   style = document.createElement('style');

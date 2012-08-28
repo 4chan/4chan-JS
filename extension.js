@@ -2135,11 +2135,16 @@ Filter.exec = function(cnt, pi, nb, msg) {
         break;
       }
     }
-    else if ((com ||
-      (com = (this.entities.innerHTML = msg.innerHTML.replace(/<br>/g, '\n')).textContent))
-      && f.pattern.test(com)) {
-      hit = true;
-      break;
+    else {
+      if (!com) {
+        this.entities.innerHTML
+          = msg.innerHTML.replace(/<br>/g, '\n').replace(/[<[^>]+>/g, '');
+        com = this.entities.textContent;
+      }
+      if (f.pattern.test(com)) {
+        hit = true;
+        break;
+      }
     }
   }
   if (hit) {

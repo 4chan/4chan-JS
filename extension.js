@@ -698,7 +698,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
   onload = function() {
     var i, j, el, posts;
     
-    link.style.cursor = null;
+    link.style.cursor = '';
     
     if (this.status == 200 || this.status == 304 || this.status == 0) {
       if (!QuotePreview.xhr) {
@@ -732,7 +732,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
   };
   
   onerror = function() {
-    link.style.cursor = null;
+    link.style.cursor = '';
   };
   
   QuotePreview.xhr =
@@ -749,7 +749,7 @@ QuotePreview.show = function(link, post, remote) {
     
     if (remote) {
       Parser.parsePost(post);
-      post.style.display = null;
+      post.style.display = '';
     }
     else {
       post = post.cloneNode(true);
@@ -785,7 +785,7 @@ QuotePreview.remove = function(el) {
   }
   
   clearTimeout(QuotePreview.timeout);
-  el.style.cursor = null;
+  el.style.cursor = '';
   if (QuotePreview.xhr) {
     QuotePreview.xhr.abort();
     QuotePreview.xhr = null;
@@ -833,7 +833,7 @@ ImageExpansion.toggle = function(t) {
 ImageExpansion.checkLoadStart = function(img, thumb) {
   if (img.naturalWidth) {
     thumb.parentNode.parentNode.style.display = 'table';
-    img.style.display = null;
+    img.style.display = '';
     thumb.style.display = 'none';
   }
   else {
@@ -1508,7 +1508,7 @@ ThreadWatcher.init = function() {
     cnt.style.position = 'fixed';
   }
   else {
-    cnt.style.position = null;
+    cnt.style.position = '';
   }
   
   cnt.innerHTML = '<div class="drag" id="twHeader">Thread Watcher'
@@ -1619,14 +1619,15 @@ ThreadWatcher.save = function() {
 ThreadWatcher.prune = function() {
   var i, to, key, total, img;
   
-  i = to = 0;
-  total = $.id('watchList').childElementCount;
-  img = $.id('twPrune');
-  img.src = Main.icons.rotate;
-  for (key in ThreadWatcher.watched) {
-    ++i;
-    setTimeout(ThreadWatcher.fetch, to, key, i == total ? img : null);
-    to += 200;
+  if (total = $.id('watchList').childElementCount) {
+    i = to = 0;
+    img = $.id('twPrune');
+    img.src = Main.icons.rotate;
+    for (key in ThreadWatcher.watched) {
+      ++i;
+      setTimeout(ThreadWatcher.fetch, to, key, i == total ? img : null);
+      to += 200;
+    }
   }
 };
 
@@ -2254,7 +2255,7 @@ Filter.open = function() {
       filterList.appendChild(this.buildEntry(f, i));
     }
   }
-  cnt.style.display = null;
+  cnt.style.display = '';
 };
 
 Filter.close = function() {
@@ -2600,27 +2601,27 @@ var Draggable = {
     style = Draggable.el.style;
     if (left < 1) {
       style.left = '0px';
-      style.right = null;
+      style.right = '';
     }
     else if (Draggable.right < left) {
-      style.left = null;
+      style.left = '';
       style.right = '0px';
     }
     else {
       style.left = left + 'px';
-      style.right = null;
+      style.right = '';
     }
     if (top < 1) {
       style.top = '0px';
-      style.bottom = null;
+      style.bottom = '';
     }
     else if (Draggable.bottom < top) {
       style.bottom = '0px';
-      style.top = null;
+      style.top = '';
     }
     else {
       style.top = top + 'px';
-      style.bottom = null;
+      style.bottom = '';
     }
   }
 };
@@ -2998,7 +2999,7 @@ Main.toggleGlobalMessage = function() {
   msg = $.id('globalMessage');
   btn = $.id('toggleMsgBtn');
   if (msg.style.display == 'none') {
-    msg.style.display = null;
+    msg.style.display = '';
     btn.src = Main.icons.minus;
     btn.style.opacity = '1';
     localStorage.removeItem('4chan-msg');
@@ -3107,7 +3108,9 @@ Main.syncStorage = function(e) {
 Main.onclick = function(e) {
   var t, ids, cmd, tid, attr;
   
-  t = e.target;
+  if ((t = e.target) == document) {
+    return;
+  }
   
   if (cmd = t.getAttribute('data-cmd')) {
     id = t.getAttribute('data-id');

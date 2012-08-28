@@ -330,6 +330,10 @@ Parser.parseBoard = function()
   for (i = 0; threads[i]; ++i) {
     Parser.parseThread(threads[i].id.slice(1));
   }
+  
+  if (UA.hasCustomEventCtor) {
+    document.dispatchEvent(new CustomEvent('4chanParsingDone'));
+  }
 };
 
 Parser.parseThread = function(tid, offset, limit) {
@@ -424,6 +428,10 @@ Parser.parseThread = function(tid, offset, limit) {
     for (i = j; i < limit; ++i) {
       Parser.parseMarkup(posts[i]);
     }
+  }
+  
+  if (Main.tid && UA.hasCustomEventCtor) {
+    document.dispatchEvent(new CustomEvent('4chanParsingDone', { detail: j }));
   }
 };
 
@@ -2626,6 +2634,7 @@ UA.init = function() {
   document.head = document.head || $.tag('head')[0];
   this.isOpera = Object.prototype.toString.call(window.opera) == '[object Opera]';
   this.hasCORS = 'withCredentials' in new XMLHttpRequest;
+  this.hasCustomEventCtor = typeof window.CustomEvent == 'function';
 };
 
 /**
@@ -2803,6 +2812,10 @@ Main.init = function()
   Main.tid = params[3];
   
   Main.prettify = Main.board == 'g';
+  
+  if (UA.hasCustomEventCtor) {
+    document.dispatchEvent(new CustomEvent('4chanMainInit'));
+  }
 };
 
 Main.run = function() {

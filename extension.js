@@ -1747,18 +1747,37 @@ ThreadExpansion.fetch = function(tid) {
 var ThreadUpdater = {};
 
 ThreadUpdater.init = function() {
+  var visibility;
+  
   this.unread = false;
   this.auto = false;
-  this.delay = 0;
-  this.step = 5;
-  this.range = [ 10, 300 ];
+  
+  this.delayId = 0;
+  this.delayIdHidden = 4;
+  this.delayRange = [ 10, 15, 20, 30, 60, 90, 120, 180, 240, 300 ];
+  
   this.lastModified = '0';
   this.lastReply = null;
+  this.lastFocusUpdate = 0;
   
   this.iconNode = document.head.querySelector('link[rel="shortcut icon"]');
   this.iconNode.type = 'image/x-icon';
-  
   this.defaultIcon = this.iconNode.getAttribute('href');
+  
+  if (!document.hidden) {
+    if ('mozHidden' in document) {
+      this.hidden = 'mozHidden';
+      this.visibilitychange = 'mozvisibilitychange';
+    }
+    else if ('webkitHidden' in document) {
+      this.hidden = 'webkitHidden';
+      this.visibilitychange = 'webkitvisibilitychange';
+    }
+    else if ('msHidden' in document) {
+      this.hidden = 'msHidden';
+      this.visibilitychange = 'msvisibilitychange';
+    }
+  }
   
   this.initControls();
 };
@@ -1810,9 +1829,13 @@ ThreadUpdater.start = function() {
   this.autoNodeBot.setAttribute('checked', 'checked');
   this.force = this.updating = false;
   this.lastUpdated = Date.now();
-  this.delay = this.range[0];
+  if (this.hidden) {
+    document.addEventListener(this.visibilitychange,
+      this.onVisibilityChange, false);
+  }
   document.addEventListener('scroll', this.onScroll, false);
-  this.updateInterval = setTimeout(this.update, this.delay * 1000);
+  this.delayId = 0;
+  this.updateInterval = setTimeout(this.update, this.delayRange[0] * 1000);
   this.pulse();
 };
 
@@ -1822,6 +1845,10 @@ ThreadUpdater.stop = function() {
   this.autoNodeBot.removeAttribute('checked');
   this.setStatus('');
   this.setIcon(this.defaultIcon);
+  if (this.hidden) {
+    document.removeEventListener(this.visibilitychange,
+      this.onVisibilityChange, false);
+  }
   document.removeEventListener('scroll', this.onScroll, false);
   clearTimeout(this.updateInterval);
   clearTimeout(this.pulseInterval);
@@ -1829,26 +1856,54 @@ ThreadUpdater.stop = function() {
 
 ThreadUpdater.pulse = function() {
   var self = ThreadUpdater;
-  self.setStatus(self.delay - (0 | (Date.now() - self.lastUpdated) / 1000));
+  self.setStatus(self.delayRange[self.delayId]
+    - (0 | (Date.now() - self.lastUpdated) / 1000));
   self.pulseInterval = setTimeout(self.pulse, 1000);
+};
+
+ThreadUpdater.resetDelay = function() {
+  //console.log('TU: resetting delay to: ' + this.delayRange[this.delayId]);
+  clearTimeout(this.updateInterval);
+  clearTimeout(this.pulseInterval);
+  this.lastUpdated = Date.now();
+  this.updateInterval
+    = setTimeout(this.update, this.delayRange[this.delayId] * 1000);
+  this.pulse();
 };
 
 ThreadUpdater.adjustDelay = function(postCount, force)
 {
-  if (!force) {
-    if (postCount == 0) {
-      if ((this.delay += this.step) > this.range[1]) {
-        this.delay = this.range[1];
+  if (postCount == 0) {
+    if (!force) {
+      if (this.delayId < this.delayRange.length - 1) {
+        ++this.delayId;
       }
     }
-    else {
-      this.delay = this.range[0];
-    }
+  }
+  else {
+    this.delayId = document[this.hidden] ? this.delayIdHidden : 0;
   }
   if (this.auto) {
-    this.updateInterval = setTimeout(this.update, this.delay * 1000);
+    this.updateInterval
+      = setTimeout(this.update, this.delayRange[this.delayId] * 1000);
     this.pulse();
   }
+  //console.log('TU: ' + postCount + ' : ' + this.delayRange[this.delayId]);
+};
+
+ThreadUpdater.onVisibilityChange = function(e) {
+  var self, now;
+  
+  self = ThreadUpdater;
+  now = Date.now();
+  
+  if (document[self.hidden] && self.delayId < self.delayIdHidden) {
+    self.delayId = self.delayIdHidden;
+  }
+  else {
+    self.delayId = 0;
+  }
+  self.resetDelay();
 };
 
 ThreadUpdater.onScroll = function(e) {
@@ -2731,6 +2786,10 @@ Main.init = function()
   params = location.pathname.split(/\//);
   Main.board = params[1];
   Main.tid = params[3];
+  
+  if (Main.board == 'g') {
+    Main.prettify = true;
+  }
 };
 
 Main.run = function() {

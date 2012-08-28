@@ -333,7 +333,7 @@ Parser.parseBoard = function()
 };
 
 Parser.parseThread = function(tid, offset, limit) {
-  var i, thread, posts, pi, el, frag, summary, omitted, key, filtered;
+  var i, j, thread, posts, pi, el, frag, summary, omitted, key, filtered;
   
   thread = $.id('t' + tid);
   posts = thread.getElementsByClassName('post');
@@ -413,17 +413,32 @@ Parser.parseThread = function(tid, offset, limit) {
     }
   }
   
-  i = offset ? offset < 0 ? posts.length + offset : offset : 0;
-  limit = limit ? i + limit : posts.length;
+  j = offset ? offset < 0 ? posts.length + offset : offset : 0;
+  limit = limit ? j + limit : posts.length;
   
-  for (; i < limit; ++i) {
+  for (i = j; i < limit; ++i) {
     Parser.parsePost(posts[i].id.slice(1), tid);
+  }
+  
+  if (offset && Main.prettify) {
+    for (i = j; i < limit; ++i) {
+      Parser.parseMarkup(posts[i]);
+    }
+  }
+};
+
+Parser.parseMarkup = function(post) {
+  var i, pre, el;
+  
+  if ((pre = post.getElementsByClassName('prettyprint'))[0]) {
+    for (i = 0; el = pre[i]; ++i) {
+      el.innerHTML = prettyPrintOne(el.innerHTML);
+    }
   }
 };
 
 Parser.parsePost = function(pid, tid) {
-  var i, f, filters, hit, cnt, quickReply, el, pi, nb, post, href,
-    embed, a, img, filename, msg, sa, filtered;
+  var cnt, el, pi, href, img, file, msg, filtered;
   
   if (tid) {
     pi = document.getElementById('pi' + pid);
@@ -2787,9 +2802,7 @@ Main.init = function()
   Main.board = params[1];
   Main.tid = params[3];
   
-  if (Main.board == 'g') {
-    Main.prettify = true;
-  }
+  Main.prettify = Main.board == 'g';
 };
 
 Main.run = function() {

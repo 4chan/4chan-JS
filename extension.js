@@ -2642,28 +2642,30 @@ UA.init = function() {
  * Config
  */
 var Config = {
-  threadHiding: true,
-  replyHiding: true,
-  threadWatcher: true,
-  threadExpansion: true,
-  fixedThreadWatcher: false,
-  threadUpdater: true,
-  imageExpansion: true,
-  pageTitle: true,
-  backlinks: true,
   quotePreview: true,
+  backlinks: true,
   quickReply: true,
-  reportButton: true,
-  stickyNav: true,
-  imageSearch: true,
-  revealSpoilers: true,
-  localTime: true,
-  topPageNav: true,
-  hideGlobalMsg: true,
-  filter: true,
-  embedSoundCloud: true,
-  embedYouTube: true,
+  threadUpdater: true,
+  threadWatcher: true,
+  pageTitle: true,
+  
+  filter: false,
+  threadHiding: false,
+  replyHiding: false,
+  threadExpansion: false,
+  imageExpansion: false,
+  imageSearch: false,
+  reportButton: false,
+  localTime: false,
+  revealSpoilers: false,
+  embedSoundCloud: false,
+  embedYouTube: false,
+  hideGlobalMsg: false,
+  
+  stickyNav: false,
+  topPageNav: false,
   dropDownNav: false,
+  fixedThreadWatcher: false,
   customCSS: false
 };
 
@@ -2684,29 +2686,35 @@ Config.save = function() {
 var SettingsMenu = {};
 
 SettingsMenu.options = {
-  threadHiding: 'Thread hiding',
-  replyHiding: 'Reply hiding',
-  threadWatcher: 'Thread watcher',
-  threadExpansion: 'Thread expansion',
-  fixedThreadWatcher: 'Fixed thread watcher',
-  threadUpdater: 'Thread updater',
-  imageExpansion: 'Image expansion',
-  pageTitle: 'Excerpts in page title',
-  backlinks: 'Backlinks',
-  quotePreview: 'Quote preview',
-  quickReply: 'Quick reply',
-  reportButton: 'Report button',
-  stickyNav: 'Sticky navigation arrows',
-  imageSearch: 'Image search',
-  revealSpoilers: "Don't spoiler images",
-  localTime: 'Local time',
-  topPageNav: 'Page navigation at the top',
-  hideGlobalMsg: 'Enable announcement hiding',
-  filter: 'Filter (<a href="javascript:;" data-cmd="filters-open">edit</a>)',
-  embedSoundCloud: 'Embed SoundCloud',
-  embedYouTube: 'Embed YouTube',
-  dropDownNav: 'Use Drop-down Navigation',
-  customCSS: 'Custom CSS (<a href="javascript:;" data-cmd="css-open">edit</a>)'
+    'Essentials': {
+      quotePreview: 'Quote preview',
+      backlinks: 'Backlinks',
+      quickReply: 'Quick reply',
+      threadUpdater: 'Thread updater',
+      threadWatcher: 'Thread watcher',
+      pageTitle: 'Excerpts in page title'
+    },
+    'Advanced': {
+      filter: 'Filter (<a href="javascript:;" data-cmd="filters-open">edit</a>)',
+      threadHiding: 'Thread hiding',
+      replyHiding: 'Reply hiding',
+      threadExpansion: 'Thread expansion',
+      imageExpansion: 'Image expansion',
+      imageSearch: 'Image search',
+      reportButton: 'Report button',
+      localTime: 'Convert dates to local time',
+      revealSpoilers: "Don't spoiler images",
+      embedSoundCloud: 'Embed SoundCloud',
+      embedYouTube: 'Embed YouTube',
+      hideGlobalMsg: 'Enable announcement hiding'
+    },
+    'Customisations': {
+      stickyNav: 'Navigation arrows',
+      topPageNav: 'Page navigation at the top',
+      dropDownNav: 'Use drop-down navigation',
+      fixedThreadWatcher: 'Fixed thread watcher',
+      customCSS: 'Custom CSS (<a href="javascript:;" data-cmd="css-open">edit</a>)'
+    }
 };
 
 SettingsMenu.save = function() {
@@ -2734,7 +2742,7 @@ SettingsMenu.toggle = function() {
 };
 
 SettingsMenu.open = function() {
-  var key, html, cnt;
+  var cat, key, html, cnt, opts;
   
   cnt = document.createElement('div');
   cnt.id = 'settingsMenu';
@@ -2742,10 +2750,14 @@ SettingsMenu.open = function() {
   
   html = '<div class="extPanel reply"><div class="panelHeader">Settings</div><ul>';
   
-  for (key in SettingsMenu.options) {
-    html += '<li><label><input type="checkbox" class="menuOption" data-option="'
-      + key + '"' + (Config[key] ? ' checked="checked">' : '>')
-      + SettingsMenu.options[key] + '</label></li>';
+  for (cat in SettingsMenu.options) {
+    opts = SettingsMenu.options[cat];
+    html += '<li class="settings-cat">' + cat + '</li>';
+    for (key in opts) {
+      html += '<li><label><input type="checkbox" class="menuOption" data-option="'
+        + key + '"' + (Config[key] ? ' checked="checked">' : '>')
+        + opts[key] + '</label></li>';
+    }
   }
   
   html += '</ul><span class="right"><button data-cmd="settings-save">Save</button>'
@@ -3475,6 +3487,7 @@ div.backlink {\
 }\
 .panelHeader {\
   font-weight: bold;\
+  font-size: 16px;\
   text-align: center;\
   margin-bottom: 5px;\
   margin-top: 5px;\
@@ -3501,7 +3514,6 @@ div.backlink {\
   -moz-box-sizing: border-box;\
   box-sizing: border-box;\
   display: inline-block;\
-  height: 512px;\
   max-height: 100%;\
   width: 400px;\
   position: relative;\
@@ -3520,6 +3532,9 @@ div.backlink {\
 #filtersMenu > div {\
   height: auto;\
 }\
+#settingsMenu > div {\
+  height: 593px;\
+}\
 #settingsMenu ul {\
   list-style: none;\
   padding: 0 0 10px 0;\
@@ -3527,6 +3542,11 @@ div.backlink {\
 }\
 .tomorrow #settingsMenu ul {\
   border-bottom: 1px solid #282a2e;\
+}\
+.settings-cat {\
+  font-weight: bold;\
+  padding-left: 5px;\
+  margin: 10px 0 5px 0;\
 }\
 #customCSSMenu textarea {\
   display: block;\

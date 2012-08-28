@@ -2085,6 +2085,7 @@ ThreadUpdater.icons = {
 var Filter = {};
 
 Filter.init = function() {
+  this.entities = document.createElement('div');
   Filter.load();
 };
 
@@ -2105,6 +2106,12 @@ Filter.onClick = function(e) {
         break;
       case 'filters-del':
         Filter.remove(e.target.parentNode.parentNode);
+        break;
+      case 'filters-help-open':
+        Filter.openHelp();
+        break;
+      case 'filters-help-close':
+        Filter.closeHelp();
         break;
     }
   }
@@ -2128,7 +2135,8 @@ Filter.exec = function(cnt, pi, nb, msg) {
         break;
       }
     }
-    else if ((com || (com = msg.innerHTML.replace(/<br>/g, ' ')))
+    else if ((com ||
+      (com = (this.entities.innerHTML = msg.innerHTML.replace(/<br>/g, '\n')).textContent))
       && f.pattern.test(com)) {
       hit = true;
       break;
@@ -2217,6 +2225,55 @@ Filter.load = function() {
   }
 };
 
+Filter.openHelp = function() {
+  var cnt;
+  
+  if ($.id('filtersHelp')) {
+    return;
+  }
+  
+  cnt = document.createElement('div');
+  cnt.id = 'filtersHelp';
+  cnt.className = 'UIPanel';
+  cnt.setAttribute('data-cmd', 'filters-help-close');
+  cnt.innerHTML = '\
+<div class="extPanel reply"><div class="panelHeader">Help</div>\
+<h4>Tripcode and Name filters:</h4>\
+<ul><li>Those use simple string comparison.</li>\
+<li>Type them exactly as they appear on 4chan, including the exclamation mark for tripcode filters.</li>\
+<li>Example: <code>!Ep8pui8Vw2</code></li></ul>\
+<h4>Comment filters:</h4>\
+<ul><li><strong>Matching whole words:</strong></li>\
+<li><code>feel</code> &mdash; will match <em>"feel"</em> but not <em>"feeling"</em>. This search is case-insensitive.</li></ul>\
+<ul><li><strong>AND operator:</strong></li>\
+<li><code>feel girlfriend</code> &mdash; will match <em>"feel"</em> AND <em>"girlfriend"</em> in any order.</li></ul>\
+<ul><li><strong>Exact match:</strong></li>\
+<li><code>"that feel when"</code> &mdash; place double quotes around the pattern to search for an exact string</li></ul>\
+<ul><li><strong>Wildcards:</strong></li>\
+<li><code>feel*</code> &mdash; matches expressions such as <em>"feel"</em>, <em>"feels"</em>, <em>"feeling"</em>, <em>"feeler"</em>, etc…</li>\
+<li><code>idolm*ster</code> &mdash; this can match <em>"idolmaster"</em> or <em>"idolm@ster"</em>, etc…</li></ul>\
+<ul><li><strong>Regular expressions:</strong></li>\
+<li><code>/feel when no (girl|boy)friend/i</code></li>\
+<li><code>/^(?!.*touhou).*$/i</code> &mdash; NOT operator.</li>\
+<li><code>/^>/</code> &mdash; comments starting with a quote.</li>\
+<li><code>/^$/</code> &mdash; comments with no text.</li></ul>\
+<h4>Colors:</h4>\
+<ul><li>The color field can accept any valid CSS color:</li>\
+<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etc…</li></ul>';
+
+  document.body.appendChild(cnt);
+  cnt.addEventListener('click', this.onClick, false);
+};
+
+Filter.closeHelp = function() {
+  var cnt;
+  
+  if (cnt = $.id('filtersHelp')) {
+    cnt.removeEventListener('click', this.onClick, false);
+    document.body.removeChild(cnt);
+  }
+};
+
 Filter.open = function() {
   var i, f, cnt, menu, html, rawFilters, filterId, filterList;
   
@@ -2228,8 +2285,10 @@ Filter.open = function() {
   cnt.id = 'filtersMenu';
   cnt.className = 'UIPanel';
   cnt.style.display = 'none';
+  cnt.setAttribute('data-cmd', 'filters-close');
   cnt.innerHTML = '\
-<div class="extPanel reply"><div class="panelHeader">Filters and Highlighters</div>\
+<div class="extPanel reply"><div class="panelHeader">Filters and Highlighters\
+<a data-cmd="filters-help-open" href="javascript:;">Help</a></div>\
 <table><thead><tr>\
 <th>On</th>\
 <th>Pattern</th>\
@@ -2482,6 +2541,7 @@ CustomCSS.open = function() {
   cnt = document.createElement('div');
   cnt.id = 'customCSSMenu';
   cnt.className = 'UIPanel';
+  cnt.setAttribute('data-cmd', 'css-close');
   cnt.innerHTML = '\
 <div class="extPanel reply"><div class="panelHeader">Custom CSS</div>\
 <textarea id="customCSSBox">'
@@ -3494,6 +3554,13 @@ div.backlink {\
   padding-bottom: 5px;\
   border-bottom: 1px solid rgba(0, 0, 0, 0.20);\
 }\
+.panelHeader a {\
+  text-decoration: none;\
+  font-size: 14px;\
+  font-weight: none;\
+  position: absolute;\
+  right: 10px;\
+}\
 .UIPanel {\
   position: fixed;\
   line-height: 14px;\
@@ -3514,9 +3581,10 @@ div.backlink {\
   -moz-box-sizing: border-box;\
   box-sizing: border-box;\
   display: inline-block;\
+  height: auto;\
   max-height: 100%;\
-  width: 400px;\
   position: relative;\
+  width: 400px;\
   left: 50%;\
   margin-left: -200px;\
   overflow: auto;\
@@ -3527,13 +3595,6 @@ div.backlink {\
 .UIPanel textarea {\
   border: 1px solid #AAA;\
   outline: none;\
-}\
-#customCSSMenu > div,\
-#filtersMenu > div {\
-  height: auto;\
-}\
-#settingsMenu > div {\
-  height: 593px;\
 }\
 #settingsMenu ul {\
   list-style: none;\
@@ -3567,11 +3628,38 @@ div.backlink {\
   -moz-user-select: none;\
   -webkit-user-select: none;\
 }\
+#filtersHelp > div {\
+  width: 600px;\
+  left: 50%;\
+  margin-left: -300px;\
+}\
+#filtersHelp h4 {\
+  font-size: 15px;\
+  margin: 20px 0 0 10px;\
+}\
+#filtersHelp h4:before {\
+  content: "»";\
+  margin-right: 3px;\
+}\
+#filtersHelp ul {\
+  padding: 0;\
+  margin: 10px;\
+}\
+#filtersHelp li {\
+  padding: 3px 0;\
+  list-style: none;\
+}\
+#filtersHelp code {\
+  background-color: #eee;\
+  color: #000000;\
+  padding: 1px 4px;\
+  font-size: 12px;\
+}\
 #filtersMenu table {\
   width: 100%;\
 }\
 #filtersMenu th {\
-  font-size: 0.8em;\
+  font-size: 12px;\
 }\
 #filtersMenu tbody {\
   text-align: center;\

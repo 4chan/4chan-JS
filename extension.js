@@ -3698,8 +3698,8 @@ div.backlink {\
 #quote-preview .filter-preview {\
   display: none;\
 }\
-.post-hidden:not(#quote-preview) .post,\
-.post-hidden:not(#quote-preview) .sideArrows {\
+.post-hidden .extButton,\
+.post-hidden:not(#quote-preview) .postInfo {\
   opacity: 0.5;\
 }\
 .post-hidden:not(.thread) .postInfo {\

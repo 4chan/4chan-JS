@@ -3509,6 +3509,7 @@ div.backlink {\
 .post-hidden:not(#quote-preview) .op .file,\
 .post-hidden:not(#quote-preview) .file,\
 .post-hidden .wbtn,\
+.post-hidden .postNum span,\
 .post-hidden .extControls,\
 .post-hidden:not(#quote-preview) .backlink,\
 div.post-hidden:not(#quote-preview) div.file,\

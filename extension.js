@@ -869,6 +869,25 @@ QR.init = function() {
   this.captchaInterval = null;
   this.pulse = null;
   this.xhr = null;
+  
+  window.addEventListener('storage', this.syncStorage, false);
+};
+
+QR.syncStorage = function(e) {
+  var key;
+  
+  if (!e.key) {
+    return;
+  }
+  
+  key = e.key.split('-');
+  
+  if (key[0] == '4chan'
+    && key[1] == 'cd'
+    && e.newValue
+    && Main.board == key[2]) {
+    QR.startCooldown(e.newValue);
+  }
 };
 
 QR.quotePost = function(pid, qr) {
@@ -1247,16 +1266,11 @@ QR.submit = function(force) {
         return;
       }
       
-      if (/You are banned! ;_;/.test(this.responseText)) {
-        if (/heeding this warning/.test(this.responseText)) {
-          resp = this.responseText
-            .split(/<br\/><br\/>\n<b>/)[1]
-            .split(/<\/b><br\/><br\/>/)[0];
-          QR.showPostError('<h3>You were issued a warning:<h3>' + resp);
-        }
-        else {
-          QR.showPostError('You are <a href="https://www.4chan.org/banned">banned</a>! ;_;');
-        }
+      if (/heeding this warning/.test(this.responseText)) {
+        resp = this.responseText
+          .split(/<br\/><br\/>\n<b>/)[1]
+          .split(/<\/b><br\/><br\/>/)[0];
+        QR.showPostError('<h3>You were issued a warning:<h3>' + resp);
         QR.reloadCaptcha();
         return;
       }
@@ -1281,13 +1295,15 @@ QR.submit = function(force) {
         if (Config.threadUpdater) {
           setTimeout(ThreadUpdater.forceUpdate, 500);
         }
-        return;
+        else if (Config.threadWatcher) {
+          ThreadWatcher.refreshCurrent(this.getResponseHeader('Last-Modified'));
+        }
       }
     }
     else {
       QR.showPostError('Error: ' + this.status + ' ' + this.statusText);
-    };
-  }
+    }
+  };
   clearInterval(QR.pulse);
   btn.value = 'Sending';
   QR.xhr.send(new FormData(document.forms.qrPost));
@@ -1515,7 +1531,7 @@ ThreadWatcher.init = function() {
   
   cnt.innerHTML = '<div class="drag" id="twHeader">Thread Watcher'
     + '<img id="twPrune" class="pointer right" src="'
-    + Main.icons.down2 + '" alt="R" title="Prune"></div>';
+    + Main.icons.refresh + '" alt="R" title="Prune"></div>';
   
   ThreadWatcher.listNode = document.createElement('ul');
   ThreadWatcher.listNode.id = 'watchList';
@@ -1524,8 +1540,26 @@ ThreadWatcher.init = function() {
   
   document.body.appendChild(cnt);
   
-  cnt.addEventListener('click', ThreadWatcher.onClick, false);
+  ThreadWatcher.refreshCurrent();
+  
+  cnt.addEventListener('mouseup', ThreadWatcher.onClick, false);
   Draggable.set($.id('twHeader'));
+  
+  window.addEventListener('storage', this.syncStorage, false);
+};
+
+ThreadWatcher.syncStorage = function(e) {
+  var key;
+  
+  if (!e.key) {
+    return;
+  }
+  
+  key = e.key.split('-');
+  
+  if (key[0] == '4chan' && key[1] == 'watch' && e.newValue != e.oldValue) {
+    ThreadWatcher.reload(true);
+  }
 };
 
 ThreadWatcher.reload = function(full) {
@@ -1542,7 +1576,7 @@ ThreadWatcher.reload = function(full) {
         + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
         + Main.linkToThread(tuid[0], tuid[1]) + '">/'
         + tuid[1] + '/ - '
-        + ThreadWatcher.watched[key] + '</a></li>';
+        + ThreadWatcher.watched[key][0] + '</a></li>';
     }
     
     if (full) {
@@ -1570,14 +1604,18 @@ ThreadWatcher.reload = function(full) {
 
 ThreadWatcher.onClick = function(e) {
   var t = e.target;
+  
   if (t.hasAttribute('data-id')) {
     ThreadWatcher.toggle(
       t.getAttribute('data-id'),
       t.getAttribute('data-board')
     );
   }
+  else if ($.hasClass(t, 'hasNewReplies')) {
+    $.removeClass(t, 'hasNewReplies');
+  }
   else if (t.src) {
-    ThreadWatcher.prune();
+    ThreadWatcher.refresh();
   }
 };
 
@@ -1598,13 +1636,13 @@ ThreadWatcher.toggle = function(tid, board, synced) {
       label = label.slice(0, ThreadWatcher.charLimit);
     }
     else if (label = $.id('m' + tid).innerHTML) {
-      label = label.replace(/<br>/g, ' ')
+      label = label.replace(/(?:<br>)+/g, ' ')
         .replace(/<[^>]*?>/g, '').slice(0, ThreadWatcher.charLimit);
     }
     else {
       label = tid;
     }
-    ThreadWatcher.watched[key] = label;
+    ThreadWatcher.watched[key] = [ label, Main.lastModified ];
     if (btn = $.id('wbtn-' + key)) {
       btn.src = Main.icons.watched;
       btn.setAttribute('data-active', '1');
@@ -1618,7 +1656,7 @@ ThreadWatcher.save = function() {
   localStorage.setItem('4chan-watch', JSON.stringify(ThreadWatcher.watched));
 };
 
-ThreadWatcher.prune = function() {
+ThreadWatcher.refresh = function() {
   var i, to, key, total, img;
   
   if (total = $.id('watchList').childElementCount) {
@@ -1633,6 +1671,18 @@ ThreadWatcher.prune = function() {
   }
 };
 
+ThreadWatcher.refreshCurrent = function(lastmodified) {
+  var key = Main.tid + '-' + Main.board;
+  
+  lastmodified = lastmodified || Main.lastModified;
+  
+  if (this.watched[key] && this.watched[key][1] != lastmodified) {
+    //console.log('TW: refreshing current thread: ' + lastmodified);
+    this.watched[key][1] = lastmodified;
+    this.save();
+  }
+};
+
 ThreadWatcher.fetch = function(key, img) {
   var tuid, xhr;
   
@@ -1642,17 +1692,25 @@ ThreadWatcher.fetch = function(key, img) {
     if (this.status == 404) {
       $.addClass($.id('watch-' + key).lastChild, 'deadLink');
     }
+    else {
+      if (this.status == 304 || this.status == 0) {
+        $.removeClass($.id('watch-' + key).lastChild, 'hasNewReplies');
+      }
+      else if (this.status == 200) {
+        $.addClass($.id('watch-' + key).lastChild, 'hasNewReplies');
+        ThreadWatcher.watched[key][1] = this.getResponseHeader('Last-Modified')
+      }
+    }
     if (img) {
-      img.src = Main.icons.down2;
+      img.src = Main.icons.refresh;
+      ThreadWatcher.save();
     }
   };
   if (img) {
-    xhr.onerror = function() {
-      img.src = Main.icons.down2;
-    };
+    xhr.onerror = xhr.onload;
   }
-  xhr.open('HEAD', 'https://api.4chan.org/'
-    + tuid[1] + '/res/' + tuid[0] + '.json');
+  xhr.open('HEAD', 'https://api.4chan.org/' + tuid[1] + '/res/' + tuid[0] + '.json');
+  xhr.setRequestHeader('If-Modified-Since', ThreadWatcher.watched[key][1]);
   xhr.send(null);
 };
 
@@ -2034,13 +2092,17 @@ ThreadUpdater.onload = function() {
       thread.appendChild(frag);
       Parser.parseThread(thread.id.slice(1), -nodes.length);
       window.scrollBy(0, lastrep.offsetTop - lastoffset);
+      
+      if (Config.threadWatcher) {
+        ThreadWatcher.refreshCurrent(this.getResponseHeader('Last-Modified'));
+      }
     }
   }
   else if (this.status == 304 || this.status == 0) {
     self.setStatus('Not Modified');
   }
   else if (this.status == 404) {
-    self.setIcon(self.icons.dead);
+    self.setIcon(self.icons[Main.type + 'dead']);
     self.setError('Not Found - Thread has been pruned or deleted');
     if (self.auto) {
       self.stop();
@@ -2078,7 +2140,8 @@ ThreadUpdater.setIcon = function(data) {
 ThreadUpdater.icons = {
   ws: '//static.4chan.org/image/favicon-ws-newposts.ico',
   nws: '//static.4chan.org/image/favicon-nws-newposts.ico',
-  dead: '//static.4chan.org/image/adminicon.gif'
+  wsdead: '//static.4chan.org/image/favicon-ws-deadthread.ico',
+  nwsdead: '//static.4chan.org/image/favicon-nws-deadthread.ico'
 };
 
 /**
@@ -2700,9 +2763,21 @@ var UA = {};
 
 UA.init = function() {
   document.head = document.head || $.tag('head')[0];
+  
   this.isOpera = Object.prototype.toString.call(window.opera) == '[object Opera]';
+  
   this.hasCORS = 'withCredentials' in new XMLHttpRequest;
+  
   this.hasCustomEventCtor = typeof window.CustomEvent == 'function';
+  
+  if (/webkit/i.test(navigator.userAgent)) {
+    Main.lastModified
+      = new Date(Date.parse(document.lastModified + ' GMT')).toUTCString();
+  }
+  else {
+    Main.lastModified
+      = new Date(document.lastModified).toUTCString();
+  }
 };
 
 /**
@@ -2982,7 +3057,6 @@ Main.run = function() {
   }
   
   document.addEventListener('click', Main.onclick, false);
-  window.addEventListener('storage', Main.syncStorage, false);
   
   $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
   $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
@@ -2993,7 +3067,7 @@ Main.run = function() {
 Main.icons = {
   up: 'arrow_up.png',
   down: 'arrow_down.png',
-  down2: 'arrow_down2.png',
+  refresh: 'refresh.png',
   cross: 'cross.png',
   gis: 'gis.png',
   iqdb: 'iqdb.png',
@@ -3087,7 +3161,6 @@ Main.toggleGlobalMessage = function() {
     btn.style.opacity = '0.5';
     localStorage.setItem('4chan-msg', Main.msgHash || $.hash(msg.textContent));
   }
-  console.log(btn.style.opacity);
 };
 
 Main.setStickyNav = function() {
@@ -3160,27 +3233,6 @@ Main.getCookie = function(name) {
   }
   return null;
 };
-
-Main.syncStorage = function(e) {
-  var key;
-  
-  if (!e.key) {
-    return;
-  }
-  
-  key = e.key.split('-');
-  
-  if (key[0] != '4chan') {
-    return;
-  }
-  
-  if (key[1] == 'watch' && e.newValue) {
-    ThreadWatcher.reload(true);
-  }
-  else if (key[1] == 'cd' && e.newValue && Main.board == key[2]) {
-    QR.startCooldown(e.newValue);
-  }
-}
 
 Main.onclick = function(e) {
   var t, ids, cmd, tid, attr;
@@ -3514,6 +3566,9 @@ div.post div.postInfo {\
 }\
 .deadlink {\
   text-decoration: line-through !important;\
+}\
+.hasNewReplies {\
+  font-weight: bold;\
 }\
 div.backlink {\
   margin-left: 15px;\

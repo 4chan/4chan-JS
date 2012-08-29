@@ -2329,7 +2329,7 @@ Filter.openHelp = function() {
 <li><code>/^$/</code> &mdash; comments with no text.</li></ul>\
 <h4>Colors:</h4>\
 <ul><li>The color field can accept any valid CSS color:</li>\
-<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etc…</li></ul>';
+<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etc…</li></ul><button class="right" data-cmd="filters-help-close">Close</button>';
 
   document.body.appendChild(cnt);
   cnt.addEventListener('click', this.onClick, false);
@@ -3675,7 +3675,7 @@ div.backlink {\
   min-width: 100%;\
   -moz-box-sizing: border-box;\
   box-sizing: border-box;\
-  height: 100px;\
+  height: 200px;\
   margin: 0;\
 }\
 #customCSSMenu .right,\

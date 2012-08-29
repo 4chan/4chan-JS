@@ -3470,6 +3470,7 @@ div.post div.postInfo {\
 }\
 #qrBrowse {\
   margin-left: 3px;\
+  margin-right: 5px;\
   width: 65px;\
 }\
 #qrPassword {\

@@ -97,6 +97,8 @@ Parser.init = function() {
     this.needMsg = true;
   }
   
+  Parser.prettify = typeof prettyPrint == 'function';
+  
   if (Config.localTime) {
     if (o = (new Date).getTimezoneOffset()) {
       a = Math.abs(o);
@@ -424,7 +426,7 @@ Parser.parseThread = function(tid, offset, limit) {
     Parser.parsePost(posts[i].id.slice(1), tid);
   }
   
-  if (offset && Main.prettify) {
+  if (offset && Parser.prettify) {
     for (i = j; i < limit; ++i) {
       Parser.parseMarkup(posts[i]);
     }
@@ -593,7 +595,7 @@ Parser.parseBacklinks = function(pid, tid)
       continue;
     }
     
-    if (ids[1] == Main.tid) {
+    if (ids[1] == tid) {
       j.textContent += ' (OP)';
     }
     
@@ -2888,8 +2890,6 @@ Main.init = function()
   params = location.pathname.split(/\//);
   Main.board = params[1];
   Main.tid = params[3];
-  
-  Main.prettify = Main.board == 'g';
   
   if (UA.hasCustomEventCtor) {
     document.dispatchEvent(new CustomEvent('4chanMainInit'));

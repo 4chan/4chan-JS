@@ -2389,7 +2389,7 @@ Filter.open = function() {
   cnt.setAttribute('data-cmd', 'filters-close');
   cnt.innerHTML = '\
 <div class="extPanel reply"><div class="panelHeader">Filters and Highlights\
-<a data-cmd="filters-help-open" href="javascript:;">Help</a></div>\
+<span>[<a data-cmd="filters-help-open" href="javascript:;">Help</a>]</span></div>\
 <table><thead><tr>\
 <th>On</th>\
 <th>Pattern</th>\
@@ -3663,7 +3663,7 @@ div.backlink {\
 .tomorrow .panelHeader {\
   border-bottom: 1px solid #111;\
 }\
-.panelHeader a {\
+.panelHeader span {\
   text-decoration: none;\
   font-size: 14px;\
   font-weight: none;\
@@ -3709,6 +3709,9 @@ div.backlink {\
   list-style: none;\
   padding: 0 0 10px 0;\
   margin: 0;\
+}\
+#settingsMenu label input {\
+  margin-right: 3px;\
 }\
 .tomorrow #settingsMenu ul {\
   border-bottom: 1px solid #282a2e;\

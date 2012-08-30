@@ -3833,4 +3833,4 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   document.head.appendChild(style);
 };
 
-Main.init(); 
+Main.init();

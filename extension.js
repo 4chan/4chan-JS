@@ -35,11 +35,11 @@ if (!document.documentElement.classList) {
   $.hasClass = function(el, klass) {
     return (' ' + el.className + ' ').indexOf(' ' + klass + ' ') != -1;
   };
-  
+
   $.addClass = function(el, klass) {
     el.className = (el.className == '') ? klass : el.className + ' ' + klass;
   };
-  
+
   $.removeClass = function(el, klass) {
     el.className = (' ' + el.className + ' ').replace(' ' + klass + ' ', '');
   }
@@ -48,11 +48,11 @@ else {
   $.hasClass = function(el, klass) {
     return el.classList.contains(klass);
   };
-  
+
   $.addClass = function(el, klass) {
     el.classList.add(klass);
   };
-  
+
   $.removeClass = function(el, klass) {
     el.classList.remove(klass);
   }
@@ -60,7 +60,7 @@ else {
 
 $.get = function(url, callbacks, headers) {
   var key, xhr;
-  
+
   xhr = new XMLHttpRequest();
   xhr.open('GET', url);
   if (callbacks) {
@@ -92,25 +92,25 @@ var Parser = {};
 
 Parser.init = function() {
   var o, a, h, m;
-  
+
   if (Config.filter || Config.embedSoundCloud || Config.embedYoutube) {
     this.needMsg = true;
   }
-  
+
   Parser.prettify = typeof prettyPrint == 'function';
-  
+
   if (Config.localTime) {
     if (o = (new Date).getTimezoneOffset()) {
       a = Math.abs(o);
       h = (0 | (a / 60));
-      
+
       this.utcOffset = ' UTC' + (o < 0 ? '+' : '-')
         + h + ((m = a - h * 60) ? (':' + m) : '');
     }
     else {
       this.utcOffset = ' UTC';
     }
-    
+
     this.weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   }
 };
@@ -119,7 +119,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
   var
     container = document.createElement('div'),
     isOP = false,
-    
+
     userId,
     fileDims = '',
     imgSrc = '',
@@ -141,15 +141,15 @@ Parser.buildHTMLFromJSON = function(data, board) {
     emailStart = '',
     emailEnd = '',
     noFilename,
-      
+
     staticPath = '//static.4chan.org',
     imgDir = '//images.4chan.org/' + board + '/src';
-  
+
   if (data.resto == 0) {
     isOP = true;
     data.resto = data.no;
   }
-  
+
   var noLink = data.resto + '#p' + data.no;
   var quoteLink = noLink.replace('p', 'q');
 
@@ -161,38 +161,38 @@ Parser.buildHTMLFromJSON = function(data, board) {
   else {
     userId = '';
   }
-  
+
   switch (data.capcode) {
     case 'admin':
       capcodeStart = ' <strong class="capcode hand id_admin"'
         + 'title="Highlight posts by the Administrator">## Admin</strong>';
       capcodeClass = ' capcodeAdmin';
-    
+
       capcode = ' <img src="' + staticPath + '/image/adminicon.gif" '
         + 'alt="This user is the 4chan Administrator." '
         + 'title="This user is the 4chan Administrator." class="identityIcon"/>';
       break;
-    
+
     case 'mod':
       capcodeStart = ' <strong class="capcode hand id_mod" '
         + 'title="Highlight posts by Moderators">## Moderator</strong>';
       capcodeClass = ' capcodeMod';
-    
+
       capcode = ' <img src="' + staticPath + '/image/modicon.gif" '
         + 'alt="This user is a 4chan Moderator." '
         + 'title="This user is a 4chan Moderator." class="identityIcon"/>';
       break;
-    
+
     case 'developer':
       capcodeStart = ' <strong class="capcode hand id_developer" '
         + 'title="Highlight posts by Developers">## Developer</strong>';
       capcodeClass = ' capcodeDeveloper';
-    
+
       capcode = ' <img src="' + staticPath + '/image/developericon.gif" '
         + 'alt="This user is a 4chan Developer." '
         + 'title="This user is a 4chan Developer." class="identityIcon"/>';
       break;
-    
+
     default:
       break;
   }
@@ -201,7 +201,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     emailStart = '<a href="mailto:' + data.email.replace(/ /g, '%20') + '" class="useremail">';
     emailEnd = '</a>';
   }
-  
+
   if (data.country) {
     flag = '<img src="' + staticPath + '/image/country/'
       + data.country.toLowerCase() + '.gif" alt="' + data.country + '" title="'
@@ -230,30 +230,30 @@ Parser.buildHTMLFromJSON = function(data, board) {
     else {
       fileSize = data.fsize + ' ';
     }
-    
+
     if (data.spoiler) {
       fileSize = 'Spoiler Image, ' + fileSize;
       if (!Config.revealSpoilers) {
         fileClass = ' imgspoiler';
-        
+
         fileThumb = '//static.4chan.org/image/spoiler.png';
         data.tn_w = 100;
         data.tn_h = 100;
-        
+
         noFilename = true;
       }
     }
-    
+
     if (!fileThumb) {
       fileThumb = '//thumbs.4chan.org/' + board + '/thumb/' + data.tim + 's.jpg';
     }
-    
+
     imgSrc = '<a class="fileThumb' + fileClass + '" href="' + imgDir + '/'
       + data.tim + data.ext + '" target="_blank"><img src="' + fileThumb
       + '" alt="' + fileSize + 'B" data-md5="' + data.md5
       + '" style="height: ' + data.tn_h + 'px; width: '
       + data.tn_w + 'px;"></a>';
-    
+
     if (data.filedeleted) {
       imgSrc = '<span class="fileThumb"><img src="' + staticPath
       + '/image/filedeleted-res.gif" alt="File deleted."></span>';
@@ -268,14 +268,14 @@ Parser.buildHTMLFromJSON = function(data, board) {
         + (noFilename ? '' : (', <span title="' + longFile + '">'
         + shortFile + '</span>')) + ')</span>';
     }
-    
+
     fileBuildStart = fileInfo ? '<div class="fileInfo">' : '';
     fileBuildEnd = fileInfo ? '</div>' : '';
-    
+
     fileHtml = '<div id="f' + data.no + '" class="file">'
       + fileBuildStart + fileInfo + fileBuildEnd + imgSrc + '</div>';
   }
-  
+
   if (shortSubject = data.sub) {
     if (shortSubject.length > 28) {
       shortSubject = data.sub.replace('&#44;', ',');
@@ -286,10 +286,10 @@ Parser.buildHTMLFromJSON = function(data, board) {
   else {
     data.sub = '';
   }
-  
+
   container.className = 'postContainer replyContainer';
   container.id = 'pc' + data.no;
-  
+
   container.innerHTML =
     '<div class="sideArrows" id="sa' + data.no + '">&gt;&gt;</div>' +
     '<div id="p' + data.no + '" class="post ' + (isOP ? 'op' : 'reply') + highlight + '">' +
@@ -310,9 +310,9 @@ Parser.buildHTMLFromJSON = function(data, board) {
           emailStart + '<span class="name">' + data.name + '</span>' + emailEnd
           + capcodeStart + emailEnd + userId + flag +
         '</span> ' +
-  
+
         '<span class="dateTime" data-utc="' + data.time + '">' + data.now + '</span> ' +
-  
+
         '<span class="postNum desktop">' +
           '<a href="' + noLink + '" title="Highlight this post">No.</a><a href="' +
           quoteLink + '">' + data.no + '</a>' +
@@ -321,18 +321,18 @@ Parser.buildHTMLFromJSON = function(data, board) {
       (isOP ? '' : fileHtml) +
       '<blockquote class="postMessage" id="m' + data.no + '">' + data.com + '</blockquote> ' +
     '</div>';
-    
+
   return container;
 };
 
 Parser.parseBoard = function()
 {
   var i, threads = document.getElementsByClassName('thread');
-  
+
   for (i = 0; threads[i]; ++i) {
     Parser.parseThread(threads[i].id.slice(1));
   }
-  
+
   if (UA.hasCustomEventCtor) {
     document.dispatchEvent(new CustomEvent('4chanParsingDone'));
   }
@@ -340,23 +340,23 @@ Parser.parseBoard = function()
 
 Parser.parseThread = function(tid, offset, limit) {
   var i, j, thread, posts, pi, el, frag, summary, omitted, key, filtered;
-  
+
   thread = $.id('t' + tid);
   posts = thread.getElementsByClassName('post');
-  
+
   if (!offset) {
     pi = document.getElementById('pi' + tid);
-    
+
     if (!Main.tid) {
       if (Config.filter) {
         filtered = Filter.exec(
           thread,
-          pi, 
+          pi,
           thread.getElementsByClassName('nameBlock')[0],
           document.getElementById('m' + tid)
         );
       }
-      
+
       if (Config.threadHiding && !filtered) {
         el = document.createElement('span');
         el.id = 'sa' + tid;
@@ -370,16 +370,16 @@ Parser.parseThread = function(tid, offset, limit) {
           ThreadHiding.hide(tid);
         }
       }
-      
+
       if (Config.threadExpansion
           && (summary = thread.children[1])
           && $.hasClass(summary, 'summary')) {
         frag = document.createDocumentFragment();
-        
+
         omitted = summary.cloneNode(true);
         omitted.className = '';
         summary.textContent = '';
-        
+
         el = document.createElement('img');
         el.className = 'extButton expbtn';
         el.title = 'Expand thread';
@@ -388,18 +388,18 @@ Parser.parseThread = function(tid, offset, limit) {
         el.setAttribute('data-id', tid);
         el.src = Main.icons.plus;
         frag.appendChild(el);
-        
+
         frag.appendChild(omitted);
-        
+
         el = document.createElement('span');
         el.style.display = 'none';
         el.textContent = 'Showing all replies.'
         frag.appendChild(el);
-        
+
         summary.appendChild(frag);
       }
     }
-    
+
     if (Config.threadWatcher) {
       el = document.createElement('img');
       el.className = 'extButton wbtn';
@@ -418,20 +418,20 @@ Parser.parseThread = function(tid, offset, limit) {
       pi.insertBefore(el, pi.firstChild);
     }
   }
-  
+
   j = offset ? offset < 0 ? posts.length + offset : offset : 0;
   limit = limit ? j + limit : posts.length;
-  
+
   for (i = j; i < limit; ++i) {
     Parser.parsePost(posts[i].id.slice(1), tid);
   }
-  
+
   if (offset && Parser.prettify) {
     for (i = j; i < limit; ++i) {
       Parser.parseMarkup(posts[i]);
     }
   }
-  
+
   if (Main.tid && UA.hasCustomEventCtor) {
     document.dispatchEvent(new CustomEvent('4chanParsingDone', { detail: j }));
   }
@@ -439,7 +439,7 @@ Parser.parseThread = function(tid, offset, limit) {
 
 Parser.parseMarkup = function(post) {
   var i, pre, el;
-  
+
   if ((pre = post.getElementsByClassName('prettyprint'))[0]) {
     for (i = 0; el = pre[i]; ++i) {
       el.innerHTML = prettyPrintOne(el.innerHTML);
@@ -449,19 +449,19 @@ Parser.parseMarkup = function(post) {
 
 Parser.parsePost = function(pid, tid) {
   var cnt, el, pi, href, img, file, msg, filtered, html;
-  
+
   if (tid) {
     pi = document.getElementById('pi' + pid);
-    
+
     if (Parser.needMsg) {
       msg = document.getElementById('m' + pid);
     }
-    
+
     if (pid != tid) {
       if (Config.filter) {
         filtered = Filter.exec(pi.parentNode, pi, pi.children[2], msg);
       }
-      
+
       if (Config.replyHiding && !filtered) {
         el = document.getElementById('sa' + pid);
         el.innerHTML = '<img class="extButton"'
@@ -472,41 +472,41 @@ Parser.parsePost = function(pid, tid) {
           ReplyHiding.hide(pid);
         }
       }
-      
+
       if (Config.backlinks) {
         Parser.parseBacklinks(pid, tid);
       }
     }
-    
+
     if (Main.tid) {
       if (Config.embedSoundCloud) {
         Media.parseSoundCloud(msg);
       }
-      
+
       if (Config.embedYouTube) {
         Media.parseYouTube(msg);
       }
     }
-    
+
     html = '';
-    
+
     if (QR.enabled) {
       html += '<img class="extButton" alt="QR" data-cmd="qr" data-id="'
         + tid + '-' + pid + '" src="' + Main.icons.quote + '" title="Quick reply">'
     }
-    
+
     if (Config.reportButton) {
       html += '<img class="extButton" alt="!" data-cmd="report" data-id="'
         + pid + '" src="' + Main.icons.report + '" title="Report">'
     }
-    
+
     if (html) {
       cnt = document.createElement('div');
       cnt.className = 'extControls';
       cnt.innerHTML = html;
       pi.appendChild(cnt);
     }
-    
+
     if (Config.imageSearch && (file = document.getElementById('fT' + pid))) {
       href = file.firstElementChild.href;
       el = document.createElement('div');
@@ -524,7 +524,7 @@ Parser.parsePost = function(pid, tid) {
     pi = pid.getElementsByClassName('postInfo')[0];
     pid = pi.id.slice(2);
   }
-  
+
   if (Config.revealSpoilers
       && (file = document.getElementById('f' + pid))
       && (file = file.children[1])
@@ -535,24 +535,24 @@ Parser.parsePost = function(pid, tid) {
     if ($.hasClass(file, 'imgspoiler')) {
       img.style.maxWidth = img.style.maxHeight
         = $.hasClass(pi.parentNode, 'op') ? '250px' : '125px';
-      
+
       img.src = '//thumbs.4chan.org'
         + (file.pathname.replace(/src(\/[0-9]+).+$/, 'thumb$1s.jpg'))
-      
+
       filename = file.previousSibling.firstChild;
       filename.lastChild.textContent
         = filename.lastChild.textContent.slice(0, -1) + ', ' + filename.title + ')';
     }
     file.appendChild(img);
   }
-  
+
   if (Config.localTime) {
     el = pi.getElementsByClassName('dateTime')[0];
     el.textContent
       = Parser.getLocaleDate(new Date(el.getAttribute('data-utc') * 1000))
       + this.utcOffset;
   }
-  
+
 };
 
 Parser.getLocaleDate = function(date) {
@@ -568,46 +568,46 @@ Parser.getLocaleDate = function(date) {
 Parser.parseBacklinks = function(pid, tid)
 {
   var i, j, msg, backlinks, linklist, ids, target, bid, html, bl, el;
-  
+
   msg = document.getElementById('m' + pid);
-  
+
   if (!(backlinks = msg.getElementsByClassName('quotelink'))) {
     return;
   }
-  
+
   linklist = {};
-  
+
   for (i = 0; j = backlinks[i]; ++i) {
     // [tid, pid]
     ids = j.getAttribute('href').split('#p');
-    
+
     if (!ids[1]) {
       continue;
     }
-    
+
     if (ids[1] == tid) {
       j.textContent += ' (OP)';
     }
-    
+
     if (!(target = document.getElementById('m' + ids[1]))) {
       if (Main.tid && ids[0].charAt(0) != '/') {
         j.textContent += ' →';
       }
       continue;
     }
-    
+
     // Already processed?
     if (linklist[ids[1]]) {
       continue;
     }
-    
+
     linklist[ids[1]] = true;
-    
+
     // Backlink node
     bl = document.createElement('span');
     bl.innerHTML =
       '<a href="#p' + pid + '" class="quotelink">&gt;&gt;' + pid + '</a> ';
-    
+
     // Backlinks container
     if (!(el = document.getElementById('bl_' + ids[1]))) {
       el = document.createElement('div');
@@ -616,7 +616,7 @@ Parser.parseBacklinks = function(pid, tid)
       el.innerHTML = 'Replies: ';
       target.parentNode.insertBefore(el, target);
     }
-    
+
     el.appendChild(bl);
   }
 };
@@ -628,7 +628,7 @@ var QuotePreview = {};
 
 QuotePreview.init = function() {
   var thread;
-  
+
   this.debounce = 250;
   this.timeout = null;
   this.xhr = null;
@@ -639,17 +639,17 @@ QuotePreview.init = function() {
 
 QuotePreview.resolve = function(link) {
   var self, t, post, ids, offset;
-  
+
   self = QuotePreview;
-  
+
   // [ string, board, tid, pid ]
   t = link.getAttribute('href')
     .match(/^(?:\/([^\/]+)\/)?(?:res\/)?([0-9]+)?#p([0-9]+)$/);
-  
+
   if (!t || t[1] == 'rs') {
     return;
   }
-  
+
   // Quoted post in scope
   if (post = document.getElementById('p' + t[3])) {
     // Visible and not filtered out?
@@ -687,21 +687,21 @@ QuotePreview.resolve = function(link) {
 
 QuotePreview.showRemote = function(link, board, tid, pid) {
   var onload, onerror;
-  
+
   link.style.cursor = 'wait';
-  
+
   onload = function() {
     var i, j, el, posts;
-    
+
     link.style.cursor = '';
-    
+
     if (this.status == 200 || this.status == 304 || this.status == 0) {
       if (!QuotePreview.xhr) {
         return;
       }
-      
+
       posts = JSON.parse(this.responseText).posts;
-      
+
       for (i = 0; j = posts[i]; ++i) {
         if (j.no != pid) {
           continue;
@@ -710,14 +710,14 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
         el.className = 'post preview';
         el.style.display = 'none';
         el.id = 'quote-preview';
-        
+
         QuotePreview.cachedKey = [board, tid, pid].join('-');
         QuotePreview.cachedNode = el;
-        
+
         document.body.appendChild(el);
-        
+
         QuotePreview.show(link, el, true);
-        
+
         return;
       }
     }
@@ -725,11 +725,11 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
       $.addClass(link, 'deadlink');
     }
   };
-  
+
   onerror = function() {
     link.style.cursor = '';
   };
-  
+
   QuotePreview.xhr =
     $.get('//api.4chan.org/' + board + '/res/' + tid + '.json',
       {
@@ -741,7 +741,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
 
 QuotePreview.show = function(link, post, remote) {
     var rect, docWidth, offsetLimit, style, pos;
-    
+
     if (remote) {
       Parser.parsePost(post);
       post.style.display = '';
@@ -751,13 +751,13 @@ QuotePreview.show = function(link, post, remote) {
       post.id = 'quote-preview';
       post.className += ' preview';
     }
-    
+
     rect = link.getBoundingClientRect();
     docWidth = document.documentElement.offsetWidth;
     style = post.style;
-    
+
     document.body.appendChild(post);
-    
+
     if ((docWidth - rect.right) < (0 | (docWidth * 0.3))) {
       pos = docWidth - rect.left;
       style.right = pos + 5 + 'px'
@@ -766,7 +766,7 @@ QuotePreview.show = function(link, post, remote) {
       pos = rect.left + rect.width;
       style.left = pos + 5 + 'px';
     }
-    
+
     style.top =
       rect.top + link.offsetHeight + window.scrollY -
       post.offsetHeight / 2 - rect.height / 2 + 'px';
@@ -774,18 +774,18 @@ QuotePreview.show = function(link, post, remote) {
 
 QuotePreview.remove = function(el) {
   var cnt;
-  
+
   if (QuotePreview.highlight) {
     $.removeClass(QuotePreview.highlight, 'highlight');
   }
-  
+
   clearTimeout(QuotePreview.timeout);
   el.style.cursor = '';
   if (QuotePreview.xhr) {
     QuotePreview.xhr.abort();
     QuotePreview.xhr = null;
   }
-  
+
   if (cnt = document.getElementById('quote-preview')) {
     document.body.removeChild(cnt);
   }
@@ -798,7 +798,7 @@ var ImageExpansion = {};
 
 ImageExpansion.expand = function(thumb) {
   var img;
-  
+
   img = document.createElement('img');
   img.alt = 'Image';
   img.className = 'fitToPage';
@@ -810,7 +810,7 @@ ImageExpansion.expand = function(thumb) {
 
 ImageExpansion.contract = function(img) {
   var p = img.parentNode;
-  
+
   p.parentNode.style.display = '';
   p.firstChild.style.display = '';
   p.removeChild(img);
@@ -861,19 +861,19 @@ QR.init = function() {
   this.captchaInterval = null;
   this.pulse = null;
   this.xhr = null;
-  
+
   window.addEventListener('storage', this.syncStorage, false);
 };
 
 QR.syncStorage = function(e) {
   var key;
-  
+
   if (!e.key) {
     return;
   }
-  
+
   key = e.key.split('-');
-  
+
   if (key[0] == '4chan'
     && key[1] == 'cd'
     && e.newValue
@@ -884,28 +884,28 @@ QR.syncStorage = function(e) {
 
 QR.quotePost = function(pid, qr) {
   var q, pos, sel, ta;
-  
+
   if (qr) {
     ta = $.tag('textarea', document.forms.qrPost)[0];
   }
   else {
     ta = $.tag('textarea', document.forms.post)[0];
   }
-  
+
   pos = ta.selectionStart;
-  
+
   if (UA.isOpera) {
     sel = document.getSelection();
   }
   else {
     sel = window.getSelection().toString()
   }
-  
+
   q = '>>' + pid + '\n';
   if (sel) {
     q += '>' + sel.replace(/\n/g, '\n>') + '\n';
   }
-  
+
   if (ta.value) {
     ta.value = ta.value.slice(0, pos)
       + q + ta.value.slice(ta.selectionEnd);
@@ -913,13 +913,13 @@ QR.quotePost = function(pid, qr) {
   else {
     ta.value = q;
   }
-  
+
   if (UA.isOpera) {
     pos += q.split('\n').length;
   }
-  
+
   ta.selectionStart = ta.selectionEnd = pos + q.length;
-  
+
   if (qr) {
     ta.focus();
   }
@@ -928,7 +928,7 @@ QR.quotePost = function(pid, qr) {
 QR.show = function(tid, pid) {
   var i, j, cnt, postForm, form, table, fields, tr, tbody, spoiler, file,
     el, cd, qrError;
-  
+
   if (QR.currentTid) {
     if (!Main.tid && QR.currentTid != tid) {
       $.id('qrTid').textContent = $.id('qrResto').value = QR.currentTid = tid;
@@ -936,16 +936,16 @@ QR.show = function(tid, pid) {
     }
     return;
   }
-  
+
   QR.currentTid = tid;
-  
+
   postForm = $.id('postForm');
-  
+
   cnt = document.createElement('div');
   cnt.id = 'quickReply';
   cnt.className = 'extPanel reply';
   cnt.setAttribute('data-trackpos', 'QR-position');
-  
+
   if (Config['QR-position']) {
     cnt.style.cssText = Config['QR-position'];
   }
@@ -953,12 +953,12 @@ QR.show = function(tid, pid) {
     cnt.style.right = '0px';
     cnt.style.top = '50px';
   }
-  
+
   cnt.innerHTML =
     '<div id="qrHeader" class="drag postblock">Quick Reply - Thread No.<span id="qrTid">'
     + tid + '</span><img alt="X" src="' + Main.icons.cross + '" id="qrClose" '
     + 'class="extButton" title="Close Window"></div>';
-  
+
   form = postForm.parentNode.cloneNode(false);
   form.setAttribute('name', 'qrPost');
   form.innerHTML =
@@ -966,11 +966,11 @@ QR.show = function(tid, pid) {
     + $.byName('MAX_FILE_SIZE')[0].value + '" name="MAX_FILE_SIZE">'
     + '<input type="hidden" value="regist" name="mode">'
     + '<input id="qrResto" type="hidden" value="' + tid + '" name="resto">';
-  
+
   table = document.createElement('table');
   table.className = 'postForm';
   table.appendChild(tbody = document.createElement('tbody'));
-  
+
   fields = postForm.firstChild.children;
   for (i = 0, j = fields.length - 1; i < j; ++i) {
     if (fields[i].id == 'captchaFormPart') {
@@ -990,7 +990,7 @@ QR.show = function(tid, pid) {
       if (el.textContent == 'File') {
         file = el.nextSibling.firstChild
         file.id = 'qrFile';
-        
+
         el = document.createElement('input');
         el.id = 'qrDummyFile';
         el.type = 'text';
@@ -998,13 +998,13 @@ QR.show = function(tid, pid) {
         el.readOnly = true;
         el.setAttribute('autocomplete', 'off');
         file.parentNode.insertBefore(el, file);
-        
+
         el = document.createElement('button');
         el.id = 'qrBrowse';
         el.setAttribute('type', 'button');
         el.textContent = 'Browse';
         file.parentNode.insertBefore(el, file);
-        
+
         file.addEventListener('change', QR.onFileChanged, false);
       }
       else if (el.textContent == 'Password') {
@@ -1013,7 +1013,7 @@ QR.show = function(tid, pid) {
     }
     tbody.appendChild(tr);
   }
-  
+
   if (spoiler = tbody.querySelector('input[name="spoiler"]')) {
     spoiler = spoiler.parentNode.parentNode;
     spoiler.parentNode.removeChild(spoiler);
@@ -1022,38 +1022,38 @@ QR.show = function(tid, pid) {
     file.parentNode.insertBefore(spoiler, file.nextSibling);
     $.tag('textarea', tbody)[0].addEventListener('keydown', QR.spoilerText, false);
   }
-  
+
   form.appendChild(table);
   cnt.appendChild(form);
-  
+
   qrError = document.createElement('div');
   qrError.id = 'qrError';
   cnt.appendChild(qrError);
-  
+
   cnt.addEventListener('click', QR.onClick, false);
-  
+
   document.body.appendChild(cnt);
-  
+
   if (cd = localStorage.getItem('4chan-cd-' + Main.board)) {
     QR.startCooldown(cd);
   }
-  
+
   QR.reloadCaptcha();
-  
+
   Draggable.set($.id('qrHeader'));
 };
 
 QR.spoilerText = function(e) {
   if (e.ctrlKey && e.keyCode == 83) {
     var ta, start, end, spoiler;
-    
+
     e.stopPropagation();
     e.preventDefault();
-    
+
     ta = e.target;
     start = ta.selectionStart;
     end = ta.selectionEnd;
-  
+
     if (ta.value) {
       spoiler = '[spoiler]' + ta.value.slice(start, end) + '[/spoiler]';
       ta.value = ta.value.slice(0, start) + spoiler + ta.value.slice(end);
@@ -1068,22 +1068,22 @@ QR.spoilerText = function(e) {
 
 QR.close = function() {
   var cnt = $.id('quickReply');
-  
+
   QR.currentTid = null;
-  
+
   clearInterval(QR.captchaInterval);
   clearInterval(QR.pulse);
-  
+
   if (QR.xhr) {
     QR.xhr.abort();
     QR.xhr = null;
   }
-  
+
   cnt.removeEventListener('click', QR.onClick, false);
   Draggable.unset($.id('qrHeader'));
   $.id('qrFile').removeEventListener('change', QR.onFileChanged, false);
   $.tag('textarea', cnt)[0].removeEventListener('keydown', QR.spoilerText, false);
-  
+
   document.body.removeChild(cnt);
 };
 
@@ -1099,10 +1099,10 @@ QR.cloneCaptcha = function() {
 
 QR.reloadCaptcha = function(focus) {
   var pulse, func, el;
-  
+
   el = $.id('recaptcha_image')
   el.firstChild.setAttribute('data-loading', '1');
-  
+
   poll = function() {
     clearTimeout(pulse);
     if (!el.firstChild.hasAttribute('data-loading')) {
@@ -1125,7 +1125,7 @@ QR.reloadCaptcha = function(focus) {
 
 QR.onClick = function(e) {
   var t = e.target;
-  
+
   if (t.type == 'submit') {
     e.preventDefault();
     QR.submit(e.shiftKey);
@@ -1147,13 +1147,13 @@ QR.onClick = function(e) {
       case 'qrClose':
         QR.close();
         break;
-    }    
+    }
   }
 };
 
 QR.showPostError = function(msg) {
   var qrError;
-  
+
   qrError = $.id('qrError');
   qrError.innerHTML = msg;
   qrError.style.display = 'block';
@@ -1171,27 +1171,27 @@ QR.hidePostError = function() {
 
 QR.resetFile = function() {
   var file, el;
-  
+
   el = document.createElement('input');
   el.id = 'qrFile';
   el.type = 'file';
   el.name = 'upfile';
   el.addEventListener('change', QR.onFileChanged, false);
-  
+
   file = $.id('qrFile');
   file.removeEventListener('change', QR.onFileChanged, false);
-  
+
   file.parentNode.replaceChild(el, file);
-  
+
   $.id('qrDummyFile').value = '';
 };
 
 QR.submit = function(force) {
   var i, btn, cd, email, field;
-  
+
   QR.hidePostError();
   btn = $.id('quickReply').querySelector('input[type="submit"]');
-  
+
   if (QR.xhr) {
     QR.xhr.abort();
     QR.xhr = null;
@@ -1199,7 +1199,7 @@ QR.submit = function(force) {
     btn.value = 'Submit';
     return;
   }
-  
+
   if (!force && QR.cooldown) {
     if (QR.auto = !QR.auto) {
       btn.value = QR.cooldown + 's (auto)';
@@ -1209,15 +1209,15 @@ QR.submit = function(force) {
     }
     return;
   }
-  
+
   QR.auto = false;
-  
+
   if (!force && (field = $.id('qrCapField')).value == '') {
     QR.showPostError('You forgot to type in the CAPTCHA.');
     field.focus();
     return;
   }
-  
+
   if (field = $.byName('name')[1]) {
     Main.setCookie('4chan_name', field.value);
   }
@@ -1227,7 +1227,7 @@ QR.submit = function(force) {
   if ((email = $.byName('email')[1]) && email.value != 'sage') {
     Main.setCookie('4chan_email', email.value);
   }
-  
+
   QR.xhr = new XMLHttpRequest();
   QR.xhr.open('POST', document.forms.qrPost.action, true);
   QR.xhr.withCredentials = true;
@@ -1246,18 +1246,18 @@ QR.submit = function(force) {
   };
   QR.xhr.onload = function() {
     var resp;
-    
+
     QR.xhr = null;
-    
+
     btn.value = 'Submit';
-    
+
     if (this.status == 200) {
       if (resp = this.responseText.match(/"errmsg"[^>]*>(.*?)<\/span/)) {
         QR.reloadCaptcha();
         QR.showPostError(resp[1]);
         return;
       }
-      
+
       if (/heeding this warning/.test(this.responseText)) {
         resp = this.responseText
           .split(/<br\/><br\/>\n<b>/)[1]
@@ -1266,18 +1266,18 @@ QR.submit = function(force) {
         QR.reloadCaptcha();
         return;
       }
-      
+
       if (/sage/i.test(email.value)) {
         cd = Main.tid ? QR.sageDelay : QR.baseDelay;
       }
       else {
         cd = QR.baseDelay;
       }
-      
+
       cd += Date.now();
       localStorage.setItem('4chan-cd-' + Main.board, cd);
       QR.startCooldown(cd);
-      
+
       if (Main.tid) {
         $.byName('com')[1].value = '';
         QR.reloadCaptcha();
@@ -1303,15 +1303,15 @@ QR.submit = function(force) {
 
 QR.startCooldown = function(ms) {
   var btn, interval;
-  
+
   if (!(btn = $.id('quickReply')) || QR.xhr) {
     return;
   }
-  
+
   btn = btn.querySelector('input[type="submit"]');
-  
+
   ms = parseInt(ms, 10);
-  
+
   if ((QR.cooldown = 0 | ((ms - Date.now()) / 1000)) <= 0) {
     QR.cooldown = false;
     localStorage.removeItem('4chan-cd-' + Main.board);
@@ -1357,31 +1357,31 @@ ThreadHiding.toggle = function(tid) {
 
 ThreadHiding.show = function(tid) {
   var sa;
-  
+
   sa = $.id('sa' + tid);
   sa.removeAttribute('data-hidden');
   sa.firstChild.src = Main.icons.minus;
-  
+
  $.removeClass( $.id('t' + tid), 'post-hidden');
-  
+
   delete this.hidden[tid];
 };
 
 ThreadHiding.hide = function(tid) {
   var sa;
-  
+
   sa = $.id('sa' + tid);
   sa.setAttribute('data-hidden', tid);
   sa.firstChild.src = Main.icons.plus;
-  
+
   $.id('t' + tid).className += ' post-hidden';
-  
+
   this.hidden[tid] = Date.now();
 };
 
 ThreadHiding.load = function() {
   var storage;
-  
+
   if (storage = localStorage.getItem('4chan-hide-t-' + Main.board)) {
     this.hidden = JSON.parse(storage);
   }
@@ -1389,9 +1389,9 @@ ThreadHiding.load = function() {
 
 ThreadHiding.purge = function() {
   var tid, now;
-  
+
   now = Date.now();
-  
+
   for (tid in this.hidden) {
     if (now - this.hidden[tid] > this.threshold) {
       delete this.hidden[tid];
@@ -1433,34 +1433,34 @@ ReplyHiding.toggle = function(pid) {
 
 ReplyHiding.show = function(pid) {
   var post, sa;
-  
+
   post = $.id('pc' + pid);
-  
+
   $.removeClass(post, 'post-hidden');
-  
+
   sa = $.id('sa' + pid);
   sa.removeAttribute('data-hidden');
   sa.firstChild.src = Main.icons.minus;
-  
+
   delete this.hidden[pid];
 };
 
 ReplyHiding.hide = function(pid) {
   var post, sa;
-  
+
   post = $.id('pc' + pid);
   post.className += ' post-hidden';
-  
+
   sa = $.id('sa' + pid);
   sa.setAttribute('data-hidden', pid);
   sa.firstChild.src = Main.icons.plus;
-  
+
   this.hidden[pid] = Date.now();
 };
 
 ReplyHiding.load = function() {
   var storage;
-  
+
   if (storage = localStorage.getItem('4chan-hide-r-' + Main.board)) {
     this.hidden = JSON.parse(storage);
   }
@@ -1468,9 +1468,9 @@ ReplyHiding.load = function() {
 
 ReplyHiding.purge = function() {
   var tid, now;
-  
+
   now = Date.now();
-  
+
   for (tid in this.hidden) {
     if (now - this.hidden[tid] > this.threshold) {
       delete this.hidden[tid];
@@ -1496,16 +1496,16 @@ var ThreadWatcher = {};
 
 ThreadWatcher.init = function() {
   var cnt, html;
-  
+
   this.listNode = null;
   this.charLimit = 40;
   this.watched = {};
-  
+
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
   cnt.className = 'extPanel reply';
   cnt.setAttribute('data-trackpos', 'TW-position');
-  
+
   if (Config['TW-position']) {
     cnt.style.cssText = Config['TW-position'];
   }
@@ -1513,44 +1513,44 @@ ThreadWatcher.init = function() {
     cnt.style.left = '10px';
     cnt.style.top = '380px';
   }
-  
+
   if (Config.fixedThreadWatcher) {
     cnt.style.position = 'fixed';
   }
   else {
     cnt.style.position = '';
   }
-  
+
   cnt.innerHTML = '<div class="drag" id="twHeader">Thread Watcher'
     + (UA.hasCORS ? ('<img id="twPrune" class="pointer right" src="'
     + Main.icons.refresh + '" alt="R" title="Prune"></div>') : '</div>');
-  
+
   this.listNode = document.createElement('ul');
   this.listNode.id = 'watchList';
   this.reload();
   cnt.appendChild(this.listNode);
-  
+
   document.body.appendChild(cnt);
-  
+
   if (Main.tid) {
     this.refreshCurrent();
   }
-  
+
   cnt.addEventListener('mouseup', this.onClick, false);
   Draggable.set($.id('twHeader'));
-  
+
   window.addEventListener('storage', this.syncStorage, false);
 };
 
 ThreadWatcher.syncStorage = function(e) {
   var key;
-  
+
   if (!e.key) {
     return;
   }
-  
+
   key = e.key.split('-');
-  
+
   if (key[0] == '4chan' && key[1] == 'watch' && e.newValue != e.oldValue) {
     ThreadWatcher.reload(true, true);
   }
@@ -1558,37 +1558,37 @@ ThreadWatcher.syncStorage = function(e) {
 
 ThreadWatcher.reload = function(rebuildButtons, preserveUnread) {
   var i, storage, html, tuid, key, buttons, btn, active, nodes;
-  
+
   if (storage = localStorage.getItem('4chan-watch')) {
     html = '';
-    
+
     this.watched = JSON.parse(storage);
     active = {};
-    
+
     if (preserveUnread) {
       nodes = $.cls('hasNewReplies', $.id('watchList'));
       for (i = 0; nodes[i]; ++i) {
         active[nodes[i].parentNode.id.slice(6)] = true;
       }
     }
-    
+
     for (key in this.watched) {
       tuid = key.split('-');
       html += '<li id="watch-' + key
         + '"><span class="pointer" data-cmd="unwatch" data-id="'
         + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
         + Main.linkToThread(tuid[0], tuid[1]) + '"';
-      
+
       if (!this.watched[key][1]) {
         html += ' class="deadlink"';
       }
       else if (active[key]) {
         html += ' class="hasNewReplies"';
       }
-      
+
       html += '>/' + tuid[1] + '/ - ' + this.watched[key][0] + '</a></li>';
     }
-    
+
     if (rebuildButtons) {
       buttons = $.cls('wbtn', $.id('delform'));
       for (i = 0; btn = buttons[i]; ++i) {
@@ -1607,15 +1607,15 @@ ThreadWatcher.reload = function(rebuildButtons, preserveUnread) {
         }
       }
     }
-    
+
     ThreadWatcher.listNode.innerHTML = html;
   }
-  
+
 };
 
 ThreadWatcher.onClick = function(e) {
   var t = e.target;
-  
+
   if (t.hasAttribute('data-id')) {
     ThreadWatcher.toggle(
       t.getAttribute('data-id'),
@@ -1632,9 +1632,9 @@ ThreadWatcher.onClick = function(e) {
 
 ThreadWatcher.toggle = function(tid, board, synced) {
   var key, label, btn, lastmodified;
-  
+
   key = tid + '-' + (board || Main.board);
-  
+
   if (this.watched[key]) {
     delete this.watched[key];
     if (btn = $.id('wbtn-' + key)) {
@@ -1677,7 +1677,7 @@ ThreadWatcher.save = function() {
 
 ThreadWatcher.refresh = function() {
   var i, to, key, total, img;
-  
+
   if (total = $.id('watchList').childElementCount) {
     i = to = 0;
     img = $.id('twPrune');
@@ -1691,9 +1691,9 @@ ThreadWatcher.refresh = function() {
 
 ThreadWatcher.refreshCurrent = function(lastmodified) {
   var key = Main.tid + '-' + Main.board;
-  
+
   lastmodified = lastmodified || Main.lastModified;
-  
+
   if (this.watched[key] && this.watched[key][1] != lastmodified) {
     this.watched[key][1] = lastmodified;
     this.save();
@@ -1702,7 +1702,7 @@ ThreadWatcher.refreshCurrent = function(lastmodified) {
 
 ThreadWatcher.fetch = function(key, img) {
   var tuid, xhr;
-  
+
   if (!ThreadWatcher.watched[key][1]) {
     if (img) {
       img.src = Main.icons.refresh;
@@ -1710,7 +1710,7 @@ ThreadWatcher.fetch = function(key, img) {
     }
     return;
   }
-  
+
   tuid = key.split('-'); // tid, board
   xhr = new XMLHttpRequest();
   xhr.onload = function() {
@@ -1746,14 +1746,14 @@ var ThreadExpansion = {};
 
 ThreadExpansion.toggle = function(tid) {
   var thread, msg, expmsg, summary, tmp;
-  
+
   thread = $.id('t' + tid);
   summary = thread.children[1];
   if (thread.hasAttribute('data-truncated')) {
     msg = $.id('m' + tid);
     expmsg = msg.nextSibling;
   }
-  
+
   if ($.hasClass(thread, 'tExpanded')) {
     thread.className = thread.className.replace(' tExpanded', ' tCollapsed');
     summary.children[0].src = Main.icons.plus;
@@ -1788,15 +1788,15 @@ ThreadExpansion.fetch = function(tid) {
       onload: function() {
         var i, p, n, frag, thread, tail, posts, count, msg, metacap,
           expmsg, summary, abbr;
-        
+
         thread = $.id('t' + tid);
         summary = thread.children[1];
-        
+
         if (this.status == 200) {
           tail = +$.cls('reply', thread)[0].id.slice(1);
           posts = JSON.parse(this.responseText).posts;
           frag = document.createDocumentFragment();
-          
+
           for (i = 1; p = posts[i]; ++i) {
             if (p.no < tail) {
               n = Parser.buildHTMLFromJSON(p, Main.board);
@@ -1807,7 +1807,7 @@ ThreadExpansion.fetch = function(tid) {
               break;
             }
           }
-          
+
           msg = $.id('m' + tid);
           if ((abbr = $.cls('abbr', msg)[0])
             && /^Comment/.test(abbr.textContent)) {
@@ -1824,10 +1824,10 @@ ThreadExpansion.fetch = function(tid) {
               msg.innerHTML = posts[0].com;
             }
           }
-          
+
           thread.insertBefore(frag, summary.nextSibling);
           Parser.parseThread(tid, 1, i - 1);
-          
+
           thread.className += ' tExpanded';
           summary.children[0].src = Main.icons.minus;
           summary.children[1].style.display = 'none';
@@ -1857,28 +1857,28 @@ var ThreadUpdater = {};
 
 ThreadUpdater.init = function() {
   var visibility;
-  
+
   if (!UA.hasCORS) {
     return;
   }
-  
+
   this.enabled = true;
-  
+
   this.unread = false;
   this.auto = false;
-  
+
   this.delayId = 0;
   this.delayIdHidden = 4;
   this.delayRange = [ 10, 15, 20, 30, 60, 90, 120, 180, 240, 300 ];
-  
+
   this.lastModified = '0';
   this.lastReply = null;
   this.lastFocusUpdate = 0;
-  
+
   this.iconNode = document.head.querySelector('link[rel="shortcut icon"]');
   this.iconNode.type = 'image/x-icon';
   this.defaultIcon = this.iconNode.getAttribute('href');
-  
+
   if (!document.hidden) {
     if ('mozHidden' in document) {
       this.hidden = 'mozHidden';
@@ -1893,18 +1893,18 @@ ThreadUpdater.init = function() {
       this.visibilitychange = 'msvisibilitychange';
     }
   }
-  
+
   this.initControls();
 };
 
 ThreadUpdater.initControls = function() {
   var i, j, frag, el, label, navlinks;
-  
+
   for (i = 0; i < 2; ++i) {
     j = i ? '' : 'Bot';
-    
+
     frag = document.createDocumentFragment();
-    
+
     // Update button
     frag.appendChild(document.createTextNode(' ['));
     el = document.createElement('a');
@@ -1913,7 +1913,7 @@ ThreadUpdater.initControls = function() {
     el.setAttribute('data-cmd', 'update');
     frag.appendChild(el);
     frag.appendChild(document.createTextNode(']'));
-    
+
     // Auto checkbox
     frag.appendChild(document.createTextNode(' ['));
     label = document.createElement('label');
@@ -1926,12 +1926,12 @@ ThreadUpdater.initControls = function() {
     label.appendChild(document.createTextNode('Auto'));
     frag.appendChild(label);
     frag.appendChild(document.createTextNode('] '));
-    
+
     // Status span
     frag.appendChild(
       this['statusNode' + j] = document.createElement('span')
     );
-    
+
     if (navlinks = $.cls('navLinks' + j)[0]) {
       navlinks.appendChild(frag);
     }
@@ -2007,10 +2007,10 @@ ThreadUpdater.adjustDelay = function(postCount, force)
 
 ThreadUpdater.onVisibilityChange = function(e) {
   var self, now;
-  
+
   self = ThreadUpdater;
   now = Date.now();
-  
+
   if (document[self.hidden] && self.delayId < self.delayIdHidden) {
     self.delayId = self.delayIdHidden;
   }
@@ -2022,7 +2022,7 @@ ThreadUpdater.onVisibilityChange = function(e) {
 
 ThreadUpdater.onScroll = function(e) {
   var self;
-  
+
   if (document.documentElement.scrollHeight ==
     (document.documentElement.clientHeight + window.scrollY)) {
     self = ThreadUpdater;
@@ -2046,22 +2046,22 @@ ThreadUpdater.toggleAuto = function() {
 
 ThreadUpdater.update = function() {
   var self, now = Date.now();
-  
+
   self = ThreadUpdater;
-  
+
   if (self.updating) {
     return;
   }
-  
+
   if (self.auto) {
     clearTimeout(self.pulseInterval);
-    clearTimeout(self.updateInterval);  
+    clearTimeout(self.updateInterval);
   }
-  
+
   self.updating = true;
-  
+
   self.setStatus('Updating...');
-  
+
   $.get('//api.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
     {
       onload: self.onload,
@@ -2076,21 +2076,21 @@ ThreadUpdater.update = function() {
 
 ThreadUpdater.onload = function() {
   var i, self, nodes, thread, newposts, frag, postcount, lastrep, lastid, lastoffset;
-  
+
   self = ThreadUpdater;
   nodes = [];
-  
+
   self.setStatus('');
-  
+
   if (this.status == 200) {
     self.lastModified = this.getResponseHeader('Last-Modified');
-    
+
     thread = $.id('t' + Main.tid);
-    
+
     lastrep = thread.childNodes[thread.childElementCount - 1];
     lastid = +lastrep.id.slice(2);
     lastoffset = lastrep.offsetTop;
-    
+
     try {
       newposts = JSON.parse(this.responseText).posts;
     }
@@ -2098,14 +2098,14 @@ ThreadUpdater.onload = function() {
       console.log(e);
       newposts = [];
     }
-    
+
     for (i = newposts.length - 1; i >= 0; i--) {
       if (newposts[i].no <= lastid) {
         break;
       }
       nodes.push(newposts[i]);
     }
-    
+
     if (nodes[0]) {
       if (!self.force) {
         if (!self.lastReply && lastid != Main.tid) {
@@ -2122,7 +2122,7 @@ ThreadUpdater.onload = function() {
       thread.appendChild(frag);
       Parser.parseThread(thread.id.slice(1), -nodes.length);
       window.scrollBy(0, lastrep.offsetTop - lastoffset);
-      
+
       if (Config.threadWatcher) {
         ThreadWatcher.refreshCurrent(this.getResponseHeader('Last-Modified'));
       }
@@ -2139,7 +2139,7 @@ ThreadUpdater.onload = function() {
     }
     return;
   }
-  
+
   self.lastUpdated = Date.now();
   self.adjustDelay(nodes.length, self.force);
   self.updating = self.force = false;
@@ -2187,7 +2187,7 @@ Filter.init = function() {
 
 Filter.onClick = function(e) {
   var cmd;
-  
+
   if (cmd = e.target.getAttribute('data-cmd')) {
     switch (cmd) {
       case 'filters-add':
@@ -2215,7 +2215,7 @@ Filter.onClick = function(e) {
 
 Filter.exec = function(cnt, pi, nb, msg) {
   var trip, name, com, f, filters = Filter.activeFilters, hit = false;
-  
+
   for (i = 0; f = filters[i]; ++i) {
     if (f.type == 0) {
       if ((trip || (trip = nb.getElementsByClassName('postertrip')[0]))
@@ -2264,15 +2264,15 @@ Filter.exec = function(cnt, pi, nb, msg) {
 Filter.load = function() {
   var i, w, f, rawFilters, rawPattern, fid, regexEscape, regexType,
     wordSepS, wordSepE, words, inner, regexWildcard, replaceWildcard;
-  
+
   this.activeFilters = [];
-  
+
   if (!(rawFilters = localStorage.getItem('4chan-filters'))) {
     return;
   }
-  
+
   rawFilters = JSON.parse(rawFilters);
-  
+
   regexEscape = new RegExp('(\\'
     + ['/', '.', '*', '+', '?', '(', ')', '[', ']', '{', '}', '\\' ].join('|\\')
     + ')', 'g');
@@ -2281,7 +2281,7 @@ Filter.load = function() {
   wordSepE = '\\b)';
   regexWildcard = /\\\*/g;
   replaceWildcard = '[^\\s]*';
-  
+
   try {
     for (fid = 0; f = rawFilters[fid]; ++fid) {
       if (f.active && f.pattern != '') {
@@ -2328,11 +2328,11 @@ Filter.load = function() {
 
 Filter.openHelp = function() {
   var cnt;
-  
+
   if ($.id('filtersHelp')) {
     return;
   }
-  
+
   cnt = document.createElement('div');
   cnt.id = 'filtersHelp';
   cnt.className = 'UIPanel';
@@ -2368,7 +2368,7 @@ Filter.openHelp = function() {
 
 Filter.closeHelp = function() {
   var cnt;
-  
+
   if (cnt = $.id('filtersHelp')) {
     cnt.removeEventListener('click', this.onClick, false);
     document.body.removeChild(cnt);
@@ -2377,11 +2377,11 @@ Filter.closeHelp = function() {
 
 Filter.open = function() {
   var i, f, cnt, menu, html, rawFilters, filterId, filterList;
-  
+
   if ($.id('filtersMenu')) {
     return;
   }
-  
+
   cnt = document.createElement('div');
   cnt.id = 'filtersMenu';
   cnt.className = 'UIPanel';
@@ -2403,12 +2403,12 @@ Filter.open = function() {
 <button data-cmd="filters-save">Save</button>\
 <button data-cmd="filters-close">Close</button>\
 </span></td></tr></tfoot></table></div>';
-  
+
   document.body.appendChild(cnt);
   cnt.addEventListener('click', this.onClick, false);
-  
+
   filterList = $.id('filter-list');
-  
+
   if (rawFilters = localStorage.getItem('4chan-filters')) {
     rawFilters = JSON.parse(rawFilters);
     for (i = 0; f = rawFilters[i]; ++i) {
@@ -2420,7 +2420,7 @@ Filter.open = function() {
 
 Filter.close = function() {
   var cnt;
-  
+
   if (cnt = $.id('filtersMenu')) {
     cnt.removeEventListener('click', this.onClick, false);
     document.body.removeChild(cnt);
@@ -2439,10 +2439,10 @@ Filter.remove = function(tr) {
 
 Filter.save = function() {
   var i, rawFilters, entries, tr;
-  
+
   rawFilters = [];
   entries = $.id('filter-list').children;
-  
+
   for (i = 0; tr = entries[i]; ++i) {
     rawFilters.push({
       active: tr.children[0].firstChild.checked,
@@ -2452,7 +2452,7 @@ Filter.save = function() {
       hide: tr.children[4].firstChild.checked
     });
   }
-  
+
   if (rawFilters[0]) {
     localStorage.setItem('4chan-filters', JSON.stringify(rawFilters));
   }
@@ -2463,19 +2463,19 @@ Filter.save = function() {
 
 Filter.buildEntry = function(filter) {
   var tr, html, sel;
-  
+
   tr = document.createElement('tr');
-  
+
   html = '';
-  
+
   // On
   html += '<td><input type="checkbox"'
     + (filter.active ? ' checked="checked"></td>' : '></td>');
-  
+
   // Pattern
   html += '<td><input class="fPattern" type="text" value="'
     + filter.pattern.replace(/"/g, '&quot;') + '"></td>';
-  
+
   // Type
   sel = [ '', '', '' ];
   sel[filter.type] = 'selected="selected"';
@@ -2483,20 +2483,20 @@ Filter.buildEntry = function(filter) {
     + sel[0] + '>Tripcode</option><option value="1"'
     + sel[1] + '>Name</option><option value="2"'
     + sel[2] + '>Comment</option></select></td>';
-  
+
   // Color
   html += '<td><input type="text" class="fColor" value="'
     + filter.color + '"></td>';
-  
+
   // Hide
   html += '<td><input type="checkbox"'
     + (filter.hide ? ' checked="checked"></td>' : '></td>');
-  
+
   // Del
   html += '<td><span data-cmd="filters-del" class="pointer fDel">x</span></td>';
-  
+
   tr.innerHTML = html;
-  
+
   return tr;
 }
 
@@ -2508,7 +2508,7 @@ var Media = {};
 Media.init = function() {
   this.active = true;
   this.debounce = false;
-  
+
   this.matchSC = /(?:http:\/\/)?soundcloud\.com\/[^\s<]+/g;
   this.nodesSC = [];
 
@@ -2525,13 +2525,13 @@ Media.clearDebounce = function() {
 
 Media.checkEmbeds = function(e) {
   var i, j, n, nodes, limit, height;
-  
+
   if (Media.debounce) {
     return;
   }
-  
+
   limit = document.documentElement.clientHeight + window.scrollY;
-  
+
   if (Config.embedSoundCloud) {
     dHeight = document.documentElement.offsetHeight - Media.baseHeight;
     nodes = Media.nodesSC;
@@ -2544,7 +2544,7 @@ Media.checkEmbeds = function(e) {
       i--;
     }
   }
-  
+
   if (Config.embedYouTube) {
     dHeight = document.documentElement.offsetHeight - Media.baseHeight;
     nodes = Media.nodesYT;
@@ -2555,7 +2555,7 @@ Media.checkEmbeds = function(e) {
       i--;
     }
   }
-  
+
   Media.debounce = true;
   setTimeout(Media.clearDebounce, 250);
 };
@@ -2575,7 +2575,7 @@ Media.finalize = function() {
 
 Media.parseSoundCloud = function(msg) {
   var matches;
-  
+
   if (matches = msg.innerHTML.match(this.matchSC)) {
     if (!this.active) {
       this.active = true;
@@ -2586,7 +2586,7 @@ Media.parseSoundCloud = function(msg) {
 
 Media.embedSoundCloud = function(msg, url) {
   var xhr;
-  
+
   xhr = new XMLHttpRequest();
   xhr.open('GET', 'http://soundcloud.com/oembed?show_artwork=false&'
     + '&maxwidth=500px&show_comments=false&format=json&url='
@@ -2603,7 +2603,7 @@ Media.embedSoundCloud = function(msg, url) {
 
 Media.parseYouTube = function(msg) {
   var matches;
-  
+
   if (this.testYT.test(msg.innerHTML)) {
     if (!this.active) {
       this.active = true;
@@ -2634,11 +2634,11 @@ CustomCSS.init = function() {
 
 CustomCSS.open = function() {
   var cnt;
-  
+
   if ($.id('customCSSMenu')) {
     return;
   }
-  
+
   cnt = document.createElement('div');
   cnt.id = 'customCSSMenu';
   cnt.className = 'UIPanel';
@@ -2651,14 +2651,14 @@ CustomCSS.open = function() {
 <button data-cmd="css-save">Save</button>\
 <button data-cmd="css-close">Close</button>\
 </span></td></tr></tfoot></table></div>';
-  
+
   document.body.appendChild(cnt);
   cnt.addEventListener('click', this.onClick, false);
 };
 
 CustomCSS.save = function() {
   var ta, style;
-  
+
   if (ta = $.id('customCSSBox')) {
     localStorage.setItem('4chan-css', ta.value);
     if (Config.customCSS && (style = $.id('customCSS'))) {
@@ -2670,7 +2670,7 @@ CustomCSS.save = function() {
 
 CustomCSS.close = function() {
   var cnt;
-  
+
   if (cnt = $.id('customCSSMenu')) {
     cnt.removeEventListener('click', this.onClick, false);
     document.body.removeChild(cnt);
@@ -2679,7 +2679,7 @@ CustomCSS.close = function() {
 
 CustomCSS.onClick = function(e) {
   var cmd;
-  
+
   if (cmd = e.target.getAttribute('data-cmd')) {
     switch (cmd) {
       case 'css-close':
@@ -2702,36 +2702,36 @@ var Draggable = {
   scrollX: null,
   scrollY: null,
   dx: null, dy: null, right: null, bottom: null,
-  
+
   set: function(handle) {
     handle.addEventListener('mousedown', Draggable.startDrag, false);
   },
-  
+
   unset: function(handle) {
     handle.removeEventListener('mousedown', Draggable.startDrag, false);
   },
-  
+
   startDrag: function(e) {
     var self, doc, offs;
-    
+
     if (this.parentNode.hasAttribute('data-shiftkey') && !e.shiftKey) {
       return;
     }
-    
+
     e.preventDefault();
-    
+
     self = Draggable;
     doc = document.documentElement;
-    
+
     self.el = this.parentNode;
-    
+
     self.key = self.el.getAttribute('data-trackpos');
     offs = self.el.getBoundingClientRect();
     self.dx = e.clientX - offs.left;
     self.dy = e.clientY - offs.top;
     self.right = doc.clientWidth - offs.width;
     self.bottom = doc.clientHeight - offs.height;
-    
+
     if (getComputedStyle(self.el, null).position != 'fixed') {
       self.scrollX = window.scrollX;
       self.scrollY = window.scrollY;
@@ -2739,11 +2739,11 @@ var Draggable = {
     else {
       self.scrollX = self.scrollY = 0;
     }
-    
+
     document.addEventListener('mouseup', self.endDrag, false);
     document.addEventListener('mousemove', self.onDrag, false);
   },
-  
+
   endDrag: function(e) {
     document.removeEventListener('mouseup', Draggable.endDrag, false);
     document.removeEventListener('mousemove', Draggable.onDrag, false);
@@ -2753,10 +2753,10 @@ var Draggable = {
     }
     delete Draggable.el;
   },
-  
+
   onDrag: function(e) {
     var left, top, style;
-    
+
     left = e.clientX - Draggable.dx + Draggable.scrollX;
     top = e.clientY - Draggable.dy + Draggable.scrollY;
     style = Draggable.el.style;
@@ -2794,13 +2794,13 @@ var UA = {};
 
 UA.init = function() {
   document.head = document.head || $.tag('head')[0];
-  
+
   this.isOpera = Object.prototype.toString.call(window.opera) == '[object Opera]';
-  
+
   this.hasCORS = 'withCredentials' in new XMLHttpRequest;
-  
+
   this.hasCustomEventCtor = typeof window.CustomEvent == 'function';
-  
+
   if (/webkit/i.test(navigator.userAgent)) {
     Main.lastModified
       = new Date(Date.parse(document.lastModified + ' GMT')).toUTCString();
@@ -2819,22 +2819,23 @@ var Config = {
   backlinks: true,
   quickReply: true,
   threadUpdater: true,
-  threadWatcher: true,
-  pageTitle: true,
-  
-  filter: false,
-  threadHiding: false,
-  replyHiding: false,
+  threadHiding: true,
+
+  threadWatcher: false,
   threadExpansion: false,
+  pageTitle: false,
   imageExpansion: false,
+  localTime: false,
   imageSearch: false,
   reportButton: false,
-  localTime: false,
+
+  filter: false,
+  replyHiding: false,
   revealSpoilers: false,
-  embedSoundCloud: false,
-  embedYouTube: false,
   hideGlobalMsg: false,
-  
+  embedYouTube: false,
+  embedSoundCloud: false,
+
   stickyNav: false,
   topPageNav: false,
   dropDownNav: false,
@@ -2860,46 +2861,48 @@ var SettingsMenu = {};
 
 SettingsMenu.options = {
     'Essentials': {
-      quotePreview: [ 'Quote preview', 'Tooltip' ],
-      backlinks: [ 'Backlinks', '' ],
-      quickReply: [ 'Quick reply', '' ],
-      threadUpdater: [ 'Thread updater', '' ],
-      threadWatcher: [ 'Thread watcher', '' ],
-      pageTitle: [ 'Excerpts in page title', '' ]
+      quotePreview: [ 'Quote preview', 'Enable inline quote previews' ],
+      backlinks: [ 'Backlinks', 'Show who has replied to a post' ],
+      quickReply: [ 'Quick reply', 'Enable inline reply box' ],
+      threadUpdater: [ 'Thread updater', 'Enable inline thread updating' ],
+      threadHiding: [ 'Thread hiding', 'Enable thread hiding' ]
+    },
+    'Basic': {
+      threadWatcher: [ 'Thread watcher', 'Enable thread watcher' ],
+      threadExpansion: [ 'Thread expansion', 'Enable inline thread expansion' ],
+      pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ],
+      imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],
+      localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ],
+      imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
+      reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ]
     },
     'Advanced': {
-      filter: [ 'Filter [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', '' ],
-      threadHiding: [ 'Thread hiding', '' ],
-      replyHiding: [ 'Reply hiding', '' ],
-      threadExpansion: [ 'Thread expansion', '' ],
-      imageExpansion: [ 'Image expansion', '' ],
-      imageSearch: [ 'Image search', '' ],
-      reportButton: [ 'Report button', '' ],
-      localTime: [ 'Convert dates to local time', '' ],
-      revealSpoilers: [ "Don't spoiler images", '' ],
-      embedSoundCloud: [ 'Embed SoundCloud', '' ],
-      embedYouTube: [ 'Embed YouTube', '' ],
-      hideGlobalMsg: [ 'Enable announcement hiding', '' ]
+      filter: [ 'Filter [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
+      replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
+      revealSpoilers: [ "Don't spoiler images", 'Don\'t replace spoiler images with a placeholder and show filenames' ],
+      hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ],
+      embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
+      embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
     },
-    'Customisations': {
-      stickyNav: [ 'Navigation arrows', '' ],
-      topPageNav: [ 'Page navigation at the top', '' ],
-      dropDownNav: [ 'Use drop-down navigation', '' ],
-      fixedThreadWatcher: [ 'Fixed thread watcher', '' ],
-      customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', '' ]
+    'Customizations': {
+      stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows' ],
+      topPageNav: [ 'Page navigation at the top', 'Show the page switcher at the top of the page' ],
+      dropDownNav: [ 'Use drop-down navigation', 'Use persistent drop-down navigation bar instead of traditional links' ],
+      fixedThreadWatcher: [ 'Pin thread watcher', 'Pin the thread watcher to the page' ],
+      customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', 'Embed your own CSS rules' ]
     }
 };
 
 SettingsMenu.save = function() {
   var i, options, el, key;
-  
+
   options = $.id('settingsMenu').getElementsByClassName('menuOption');
-  
+
   for (i = 0; el = options[i]; ++i) {
     key = el.getAttribute('data-option');
     Config[key] = el.type == 'checkbox' ? el.checked : el.value;
   }
-  
+
   Config.save();
   SettingsMenu.close();
   location.href = location.href.replace(/#.+$/, '');
@@ -2916,13 +2919,13 @@ SettingsMenu.toggle = function() {
 
 SettingsMenu.open = function() {
   var cat, key, html, cnt, opts;
-  
+
   cnt = document.createElement('div');
   cnt.id = 'settingsMenu';
   cnt.className = 'UIPanel';
-  
+
   html = '<div class="extPanel reply"><div class="panelHeader">Settings</div><ul>';
-  
+
   for (cat in SettingsMenu.options) {
     opts = SettingsMenu.options[cat];
     html += '<li class="settings-cat">' + cat + '</li>';
@@ -2934,10 +2937,10 @@ SettingsMenu.open = function() {
         + opts[key][0] + '</label></li>';
     }
   }
-  
+
   html += '</ul><span class="right"><button data-cmd="settings-save">Save</button>'
     + '<button data-cmd="settings-toggle">Close</button></div>';
-  
+
   cnt.innerHTML = html;
   cnt.addEventListener('click', SettingsMenu.onClick, false);
   document.body.appendChild(cnt);
@@ -2945,7 +2948,7 @@ SettingsMenu.open = function() {
 
 SettingsMenu.onClick = function(e) {
   var el;
-  
+
   if (e.target.id == 'settingsMenu' && (el = $.id('settingsMenu'))) {
     e.preventDefault();
     e.stopPropagation();
@@ -2968,15 +2971,15 @@ var Main = {};
 Main.init = function()
 {
   var params;
-  
+
   document.addEventListener('DOMContentLoaded', Main.run, false);
-  
+
   Main.now = Date.now();
-  
+
   UA.init();
-  
+
   Config.load();
-  
+
   if (Main.stylesheet = Main.getCookie(style_group)) {
     Main.stylesheet = Main.stylesheet.toLowerCase().replace(/ /g, '_');
   }
@@ -2984,21 +2987,21 @@ Main.init = function()
     Main.stylesheet =
       style_group == 'nws_style' ? 'yotsuba_new' : 'yotsuba_b_new';
   }
-  
+
   Main.initIcons();
-  
+
   Main.addCSS();
-  
+
   if (Config.customCSS) {
     CustomCSS.init();
   }
-  
+
   Main.type = style_group.split('_')[0];
-  
+
   params = location.pathname.split(/\//);
   Main.board = params[1];
   Main.tid = params[3];
-  
+
   if (UA.hasCustomEventCtor) {
     document.dispatchEvent(new CustomEvent('4chanMainInit'));
   }
@@ -3006,54 +3009,54 @@ Main.init = function()
 
 Main.run = function() {
   //console.profile('4chan JS');
-  
+
   document.removeEventListener('DOMContentLoaded', Main.run, false);
-  
+
   if (Config.dropDownNav) {
     $.id('boardNavDesktop').style.display = 'none';
     $.id('boardNavDesktopFoot').style.display = 'none';
     $.removeClass($.id('boardNavMobile'), 'mobile');
   }
-  
+
   $.addClass(document.body, Main.stylesheet);
   $.addClass(document.body, Main.type);
-  
+
   if (Config.quotePreview || Config.filter) {
     thread = $.id('delform');
     thread.addEventListener('mouseover', Main.onThreadMouseOver, false);
     thread.addEventListener('mouseout', Main.onThreadMouseOut, false);
   }
-  
+
   if (Config.hideGlobalMsg) {
     Main.initGlobalMessage();
   }
-  
+
   if (Config.stickyNav) {
     Main.setStickyNav();
   }
-  
+
   if (Config.quickReply) {
     QR.init();
   }
-  
+
   if (Config.threadWatcher) {
     ThreadWatcher.init();
   }
-  
+
   if (Config.filter) {
     Filter.init();
   }
-  
+
   if (Config.embedSoundCloud || Config.embedYouTube) {
     Media.init();
   }
-  
+
   Parser.init();
-  
+
   if (Config.replyHiding) {
     ReplyHiding.init();
   }
-  
+
   if (Main.tid) {
     if (Config.pageTitle) {
       Main.setTitle();
@@ -3076,24 +3079,24 @@ Main.run = function() {
       Parser.parseBoard();
     }
   }
-  
+
   if (Media.active) {
     Media.finalize();
   }
-  
+
   if (Config.replyHiding) {
     ReplyHiding.purge();
   }
-  
+
   if (Config.quotePreview) {
     QuotePreview.init();
   }
-  
+
   document.addEventListener('click', Main.onclick, false);
-  
+
   $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
   $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
-  
+
   //console.profileEnd();
 };
 
@@ -3115,7 +3118,7 @@ Main.icons = {
 
 Main.initIcons = function() {
   var key, paths, url;
-  
+
   paths = {
     yotsuba_new: 'futaba/',
     futaba_new: 'futaba/',
@@ -3124,9 +3127,9 @@ Main.initIcons = function() {
     tomorrow: 'tomorrow/',
     photon: 'photon/'
   };
-  
+
   url = '//static.4chan.org/image/buttons/' + paths[Main.stylesheet];
-  
+
   for (key in Main.icons) {
     Main.icons[key] = url + Main.icons[key];
   }
@@ -3134,12 +3137,12 @@ Main.initIcons = function() {
 
 Main.setPageNav = function() {
   var el, cnt;
-  
+
   cnt = document.createElement('div');
   cnt.setAttribute('data-shiftkey', '1');
   cnt.setAttribute('data-trackpos', 'TN-position');
   cnt.className = 'topPageNav';
-  
+
   if (Config['TN-position']) {
     cnt.style.cssText = Config['TN-position'];
   }
@@ -3156,7 +3159,7 @@ Main.setPageNav = function() {
 
 Main.initGlobalMessage = function() {
   var msg, btn, oldHash;
-  
+
   if ((msg = $.id('globalMessage')) && msg.textContent) {
     btn = document.createElement('img');
     btn.id = 'toggleMsgBtn';
@@ -3179,7 +3182,7 @@ Main.initGlobalMessage = function() {
 
 Main.toggleGlobalMessage = function() {
   var msg, btn;
-  
+
   msg = $.id('globalMessage');
   btn = $.id('toggleMsgBtn');
   if (msg.style.display == 'none') {
@@ -3198,13 +3201,13 @@ Main.toggleGlobalMessage = function() {
 
 Main.setStickyNav = function() {
   var cnt, hdr;
-  
+
   cnt = document.createElement('div');
   cnt.id = 'stickyNav';
   cnt.className = 'extPanel reply';
   cnt.setAttribute('data-shiftkey', '1');
   cnt.setAttribute('data-trackpos', 'SN-position');
-  
+
   if (Config['SN-position']) {
     cnt.style.cssText = Config['SN-position'];
   }
@@ -3212,21 +3215,21 @@ Main.setStickyNav = function() {
     cnt.style.right = '10px';
     cnt.style.top = '50px';
   }
-  
+
   hdr = document.createElement('div');
   hdr.innerHTML = '<img class="pointer" src="'
     +  Main.icons.up + '" data-cmd="totop" alt="▲" title="Top">'
     + '<img class="pointer" src="' +  Main.icons.down
     + '" data-cmd="tobottom" alt="▼" title="Bottom">';
   Draggable.set(hdr);
-  
+
   cnt.appendChild(hdr);
   document.body.appendChild(cnt);
 };
 
 Main.setTitle = function() {
   var title, entities;
-  
+
   if (!(title = $.cls('subject', $.id('pi' + Main.tid))[0].textContent)) {
     if (title = $.id('m' + Main.tid).innerHTML) {
       entities = document.createElement('span');
@@ -3237,7 +3240,7 @@ Main.setTitle = function() {
       title = Main.tid;
     }
   }
-  
+
   document.title = '/' + Main.board + '/ - ' + title;
 };
 
@@ -3252,10 +3255,10 @@ Main.setCookie = function(key, value) {
 
 Main.getCookie = function(name) {
   var i, c, ca, key;
-  
+
   key = name + "=";
   ca = document.cookie.split(';');
-  
+
   for (i = 0; c = ca[i]; ++i) {
     while (c.charAt(0) == ' ') {
       c = c.substring(1, c.length);
@@ -3269,11 +3272,11 @@ Main.getCookie = function(name) {
 
 Main.onclick = function(e) {
   var t, ids, cmd, tid, attr;
-  
+
   if ((t = e.target) == document) {
     return;
   }
-  
+
   if (cmd = t.getAttribute('data-cmd')) {
     id = t.getAttribute('data-id');
     switch (cmd) {
@@ -3340,7 +3343,7 @@ Main.onclick = function(e) {
 
 Main.onThreadMouseOver = function(e) {
   var t = e.target;
-  
+
   if (Config.quotePreview && $.hasClass(t, 'quotelink')) {
     QuotePreview.resolve(e.target);
   }
@@ -3351,7 +3354,7 @@ Main.onThreadMouseOver = function(e) {
 
 Main.onThreadMouseOut = function(e) {
   var t = e.target;
-  
+
   if (Config.quotePreview && $.hasClass(t, 'quotelink')) {
     QuotePreview.remove(t);
   }
@@ -3828,4 +3831,4 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   document.head.appendChild(style);
 };
 
-Main.init(); 
+Main.init();

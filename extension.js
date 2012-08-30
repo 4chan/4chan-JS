@@ -1677,7 +1677,6 @@ ThreadWatcher.refreshCurrent = function(lastmodified) {
   lastmodified = lastmodified || Main.lastModified;
   
   if (this.watched[key] && this.watched[key][1] != lastmodified) {
-    //console.log('TW: refreshing current thread: ' + lastmodified);
     this.watched[key][1] = lastmodified;
     this.save();
   }
@@ -1690,7 +1689,7 @@ ThreadWatcher.fetch = function(key, img) {
   xhr = new XMLHttpRequest();
   xhr.onload = function() {
     if (this.status == 404) {
-      $.addClass($.id('watch-' + key).lastChild, 'deadLink');
+      $.addClass($.id('watch-' + key).lastChild, 'deadlink');
     }
     else {
       if (this.status == 304 || this.status == 0) {
@@ -2357,7 +2356,7 @@ Filter.open = function() {
   cnt.style.display = 'none';
   cnt.setAttribute('data-cmd', 'filters-close');
   cnt.innerHTML = '\
-<div class="extPanel reply"><div class="panelHeader">Filters and Highlighters\
+<div class="extPanel reply"><div class="panelHeader">Filters and Highlights\
 <a data-cmd="filters-help-open" href="javascript:;">Help</a></div>\
 <table><thead><tr>\
 <th>On</th>\
@@ -3614,6 +3613,15 @@ div.backlink {\
   margin-top: 5px;\
   padding-bottom: 5px;\
   border-bottom: 1px solid rgba(0, 0, 0, 0.20);\
+}\
+.yotsuba_new .panelHeader {\
+  border-bottom: 1px solid #d9bfb7;\
+}\
+.yotsuba_b_new .panelHeader {\
+  border-bottom: 1px solid #b7c5d9;\
+}\
+.tomorrow .panelHeader {\
+  border-bottom: 1px solid #111;\
 }\
 .panelHeader a {\
   text-decoration: none;\

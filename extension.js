@@ -448,7 +448,7 @@ Parser.parseMarkup = function(post) {
 };
 
 Parser.parsePost = function(pid, tid) {
-  var cnt, el, pi, href, img, file, msg, filtered;
+  var cnt, el, pi, href, img, file, msg, filtered, html;
   
   if (tid) {
     pi = document.getElementById('pi' + pid);
@@ -488,32 +488,22 @@ Parser.parsePost = function(pid, tid) {
       }
     }
     
-    cnt = document.createElement('div');
-    cnt.className = 'extControls';
+    html = '';
     
     if (QR.enabled) {
-      el = document.createElement('img');
-      el.className = 'extButton';
-      el.src = Main.icons.quote;
-      el.setAttribute('data-cmd', 'qr');
-      el.setAttribute('data-id', tid + '-' + pid);
-      el.title = 'Quick reply';
-      el.alt = 'Q';
-      cnt.appendChild(el);
+      html += '<img class="extButton" alt="QR" data-cmd="qr" data-id="'
+        + tid + '-' + pid + '" src="' + Main.icons.quote + '" title="Quick reply">'
     }
     
     if (Config.reportButton) {
-      el = document.createElement('img');
-      el.className = 'extButton';
-      el.src = Main.icons.report;
-      el.setAttribute('data-cmd', 'report');
-      el.setAttribute('data-id', pid);
-      el.title = 'Report post';
-      el.alt = '!';
-      cnt.appendChild(el);
+      html += '<img class="extButton" alt="!" data-cmd="report" data-id="'
+        + pid + '" src="' + Main.icons.report + '" title="Report">'
     }
     
-    if (cnt.firstChild) {
+    if (html) {
+      cnt = document.createElement('div');
+      cnt.className = 'extControls';
+      cnt.innerHTML = html;
       pi.appendChild(cnt);
     }
     
@@ -656,7 +646,7 @@ QuotePreview.resolve = function(link) {
   t = link.getAttribute('href')
     .match(/^(?:\/([^\/]+)\/)?(?:res\/)?([0-9]+)?#p([0-9]+)$/);
   
-  if (!t) {
+  if (!t || t[1] == 'rs') {
     return;
   }
   
@@ -676,6 +666,9 @@ QuotePreview.resolve = function(link) {
   }
   // Quoted post out of scope
   else {
+    if (!UA.hasCORS) {
+      return;
+    }
     if (!t[1]) {
       t[1] = Main.board;
     }
@@ -856,7 +849,6 @@ var QR = {};
 
 QR.init = function() {
   if (!UA.hasCORS || !document.forms.post) {
-    this.enabled = false;
     return;
   }
   this.enabled = true;
@@ -1292,7 +1284,7 @@ QR.submit = function(force) {
         if ($.id('qrFile').value) {
           QR.resetFile();
         }
-        if (Config.threadUpdater) {
+        if (ThreadUpdater.enabled) {
           setTimeout(ThreadUpdater.forceUpdate, 500);
         }
         else if (Config.threadWatcher) {
@@ -1530,19 +1522,21 @@ ThreadWatcher.init = function() {
   }
   
   cnt.innerHTML = '<div class="drag" id="twHeader">Thread Watcher'
-    + '<img id="twPrune" class="pointer right" src="'
-    + Main.icons.refresh + '" alt="R" title="Prune"></div>';
+    + (UA.hasCORS ? ('<img id="twPrune" class="pointer right" src="'
+    + Main.icons.refresh + '" alt="R" title="Prune"></div>') : '</div>');
   
-  ThreadWatcher.listNode = document.createElement('ul');
-  ThreadWatcher.listNode.id = 'watchList';
-  ThreadWatcher.reload();
-  cnt.appendChild(ThreadWatcher.listNode);
+  this.listNode = document.createElement('ul');
+  this.listNode.id = 'watchList';
+  this.reload();
+  cnt.appendChild(this.listNode);
   
   document.body.appendChild(cnt);
   
-  ThreadWatcher.refreshCurrent();
+  if (Main.tid) {
+    this.refreshCurrent();
+  }
   
-  cnt.addEventListener('mouseup', ThreadWatcher.onClick, false);
+  cnt.addEventListener('mouseup', this.onClick, false);
   Draggable.set($.id('twHeader'));
   
   window.addEventListener('storage', this.syncStorage, false);
@@ -1558,28 +1552,44 @@ ThreadWatcher.syncStorage = function(e) {
   key = e.key.split('-');
   
   if (key[0] == '4chan' && key[1] == 'watch' && e.newValue != e.oldValue) {
-    ThreadWatcher.reload(true);
+    ThreadWatcher.reload(true, true);
   }
 };
 
-ThreadWatcher.reload = function(full) {
-  var i, storage, html, tuid, key, buttons, bn;
+ThreadWatcher.reload = function(rebuildButtons, preserveUnread) {
+  var i, storage, html, tuid, key, buttons, btn, active, nodes;
   
-  html = '';
   if (storage = localStorage.getItem('4chan-watch')) {
-    ThreadWatcher.watched = JSON.parse(storage);
+    html = '';
     
-    for (key in ThreadWatcher.watched) {
+    this.watched = JSON.parse(storage);
+    active = {};
+    
+    if (preserveUnread) {
+      nodes = $.cls('hasNewReplies', $.id('watchList'));
+      for (i = 0; nodes[i]; ++i) {
+        active[nodes[i].parentNode.id.slice(6)] = true;
+      }
+    }
+    
+    for (key in this.watched) {
       tuid = key.split('-');
       html += '<li id="watch-' + key
         + '"><span class="pointer" data-cmd="unwatch" data-id="'
         + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
-        + Main.linkToThread(tuid[0], tuid[1]) + '">/'
-        + tuid[1] + '/ - '
-        + ThreadWatcher.watched[key][0] + '</a></li>';
+        + Main.linkToThread(tuid[0], tuid[1]) + '"';
+      
+      if (!this.watched[key][1]) {
+        html += ' class="deadlink"';
+      }
+      else if (active[key]) {
+        html += ' class="hasNewReplies"';
+      }
+      
+      html += '>/' + tuid[1] + '/ - ' + this.watched[key][0] + '</a></li>';
     }
     
-    if (full) {
+    if (rebuildButtons) {
       buttons = $.cls('wbtn', $.id('delform'));
       for (i = 0; btn = buttons[i]; ++i) {
         key = btn.getAttribute('data-id') + '-' + Main.board;
@@ -1597,9 +1607,10 @@ ThreadWatcher.reload = function(full) {
         }
       }
     }
+    
+    ThreadWatcher.listNode.innerHTML = html;
   }
   
-  ThreadWatcher.listNode.innerHTML = html;
 };
 
 ThreadWatcher.onClick = function(e) {
@@ -1620,12 +1631,12 @@ ThreadWatcher.onClick = function(e) {
 };
 
 ThreadWatcher.toggle = function(tid, board, synced) {
-  var key, label, btn;
+  var key, label, btn, lastmodified;
   
   key = tid + '-' + (board || Main.board);
   
-  if (ThreadWatcher.watched[key]) {
-    delete ThreadWatcher.watched[key];
+  if (this.watched[key]) {
+    delete this.watched[key];
     if (btn = $.id('wbtn-' + key)) {
       btn.src = Main.icons.notwatched;
       btn.removeAttribute('data-active');
@@ -1633,23 +1644,31 @@ ThreadWatcher.toggle = function(tid, board, synced) {
   }
   else {
     if (label = $.cls('subject', $.id('pi' + tid))[0].textContent) {
-      label = label.slice(0, ThreadWatcher.charLimit);
+      label = label.slice(0, this.charLimit);
     }
     else if (label = $.id('m' + tid).innerHTML) {
       label = label.replace(/(?:<br>)+/g, ' ')
-        .replace(/<[^>]*?>/g, '').slice(0, ThreadWatcher.charLimit);
+        .replace(/<[^>]*?>/g, '').slice(0, this.charLimit);
     }
     else {
       label = tid;
     }
-    ThreadWatcher.watched[key] = [ label, Main.lastModified ];
+    if (!Main.tid) {
+      lastmodified = $.cls('dateTime', $.id('t' + tid).lastChild)[0];
+      lastmodified =
+        new Date(lastmodified.getAttribute('data-utc') * 1000).toUTCString();
+    }
+    else {
+      lastmodified = Main.lastModified;
+    }
+    this.watched[key] = [ label, lastmodified ];
     if (btn = $.id('wbtn-' + key)) {
       btn.src = Main.icons.watched;
       btn.setAttribute('data-active', '1');
     }
   }
-  ThreadWatcher.save();
-  ThreadWatcher.reload();
+  this.save();
+  this.reload(false, true);
 };
 
 ThreadWatcher.save = function() {
@@ -1664,8 +1683,7 @@ ThreadWatcher.refresh = function() {
     img = $.id('twPrune');
     img.src = Main.icons.rotate;
     for (key in ThreadWatcher.watched) {
-      ++i;
-      setTimeout(ThreadWatcher.fetch, to, key, i == total ? img : null);
+      setTimeout(ThreadWatcher.fetch, to, key, ++i == total ? img : null);
       to += 200;
     }
   }
@@ -1685,11 +1703,20 @@ ThreadWatcher.refreshCurrent = function(lastmodified) {
 ThreadWatcher.fetch = function(key, img) {
   var tuid, xhr;
   
+  if (!ThreadWatcher.watched[key][1]) {
+    if (img) {
+      img.src = Main.icons.refresh;
+      ThreadWatcher.save();
+    }
+    return;
+  }
+  
   tuid = key.split('-'); // tid, board
   xhr = new XMLHttpRequest();
   xhr.onload = function() {
     if (this.status == 404) {
       $.addClass($.id('watch-' + key).lastChild, 'deadlink');
+      ThreadWatcher.watched[key][1] = 0;
     }
     else {
       if (this.status == 304 || this.status == 0) {
@@ -1697,7 +1724,6 @@ ThreadWatcher.fetch = function(key, img) {
       }
       else if (this.status == 200) {
         $.addClass($.id('watch-' + key).lastChild, 'hasNewReplies');
-        ThreadWatcher.watched[key][1] = this.getResponseHeader('Last-Modified')
       }
     }
     if (img) {
@@ -1832,6 +1858,12 @@ var ThreadUpdater = {};
 ThreadUpdater.init = function() {
   var visibility;
   
+  if (!UA.hasCORS) {
+    return;
+  }
+  
+  this.enabled = true;
+  
   this.unread = false;
   this.auto = false;
   
@@ -1908,8 +1940,7 @@ ThreadUpdater.initControls = function() {
 
 ThreadUpdater.start = function() {
   this.auto = true;
-  this.autoNode.setAttribute('checked', 'checked');
-  this.autoNodeBot.setAttribute('checked', 'checked');
+  this.autoNode.checked = this.autoNodeBot.checked = true;
   this.force = this.updating = false;
   this.lastUpdated = Date.now();
   if (this.hidden) {
@@ -1922,19 +1953,19 @@ ThreadUpdater.start = function() {
   this.pulse();
 };
 
-ThreadUpdater.stop = function() {
+ThreadUpdater.stop = function(manual) {
+  clearTimeout(this.updateInterval);
+  clearTimeout(this.pulseInterval);
   this.auto = this.updating = this.force = false;
-  this.autoNode.removeAttribute('checked');
-  this.autoNodeBot.removeAttribute('checked');
-  this.setStatus('');
-  this.setIcon(this.defaultIcon);
+  this.autoNode.checked = this.autoNodeBot.checked = false;
   if (this.hidden) {
     document.removeEventListener(this.visibilitychange,
       this.onVisibilityChange, false);
   }
-  document.removeEventListener('scroll', this.onScroll, false);
-  clearTimeout(this.updateInterval);
-  clearTimeout(this.pulseInterval);
+  if (manual) {
+    this.setStatus('');
+    this.setIcon(this.defaultIcon);
+  }
 };
 
 ThreadUpdater.pulse = function() {
@@ -2010,7 +2041,7 @@ ThreadUpdater.forceUpdate = function() {
 };
 
 ThreadUpdater.toggleAuto = function() {
-  this.auto ? this.stop() : this.start();
+  this.auto ? this.stop(true) : this.start();
 };
 
 ThreadUpdater.update = function() {
@@ -2106,6 +2137,7 @@ ThreadUpdater.onload = function() {
     if (self.auto) {
       self.stop();
     }
+    return;
   }
   
   self.lastUpdated = Date.now();
@@ -2461,7 +2493,7 @@ Filter.buildEntry = function(filter) {
     + (filter.hide ? ' checked="checked"></td>' : '></td>');
   
   // Del
-  html += '<td><span data-cmd="filters-del" class="pointer fDel">&#x2716;</span></td>';
+  html += '<td><span data-cmd="filters-del" class="pointer fDel">x</span></td>';
   
   tr.innerHTML = html;
   
@@ -2836,7 +2868,7 @@ SettingsMenu.options = {
       pageTitle: [ 'Excerpts in page title', '' ]
     },
     'Advanced': {
-      filter: [ 'Filter [<a href="javascript:;" data-cmd="filters-open">edit</a>]', '' ],
+      filter: [ 'Filter [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', '' ],
       threadHiding: [ 'Thread hiding', '' ],
       replyHiding: [ 'Reply hiding', '' ],
       threadExpansion: [ 'Thread expansion', '' ],
@@ -2854,7 +2886,7 @@ SettingsMenu.options = {
       topPageNav: [ 'Page navigation at the top', '' ],
       dropDownNav: [ 'Use drop-down navigation', '' ],
       fixedThreadWatcher: [ 'Fixed thread watcher', '' ],
-      customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">edit</a>]', '' ]
+      customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', '' ]
     }
 };
 
@@ -3279,6 +3311,9 @@ Main.onclick = function(e) {
       case 'report':
         Main.reportPost(id);
         break;
+      case 'delete':
+        Main.deletePost(id);
+        break;
       case 'toggleMsg':
         Main.toggleGlobalMessage();
         break;
@@ -3502,6 +3537,7 @@ div.post div.postInfo {\
 #twHeader {\
   font-weight: bold;\
   text-align: center;\
+  height: 17px;\
 }\
 .futaba_new #twHeader,\
 .burichan_new #twHeader {\

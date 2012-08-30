@@ -2828,33 +2828,33 @@ var SettingsMenu = {};
 
 SettingsMenu.options = {
     'Essentials': {
-      quotePreview: 'Quote preview',
-      backlinks: 'Backlinks',
-      quickReply: 'Quick reply',
-      threadUpdater: 'Thread updater',
-      threadWatcher: 'Thread watcher',
-      pageTitle: 'Excerpts in page title'
+      quotePreview: [ 'Quote preview', 'Tooltip' ],
+      backlinks: [ 'Backlinks', '' ],
+      quickReply: [ 'Quick reply', '' ],
+      threadUpdater: [ 'Thread updater', '' ],
+      threadWatcher: [ 'Thread watcher', '' ],
+      pageTitle: [ 'Excerpts in page title', '' ]
     },
     'Advanced': {
-      filter: 'Filter (<a href="javascript:;" data-cmd="filters-open">edit</a>)',
-      threadHiding: 'Thread hiding',
-      replyHiding: 'Reply hiding',
-      threadExpansion: 'Thread expansion',
-      imageExpansion: 'Image expansion',
-      imageSearch: 'Image search',
-      reportButton: 'Report button',
-      localTime: 'Convert dates to local time',
-      revealSpoilers: "Don't spoiler images",
-      embedSoundCloud: 'Embed SoundCloud',
-      embedYouTube: 'Embed YouTube',
-      hideGlobalMsg: 'Enable announcement hiding'
+      filter: [ 'Filter [<a href="javascript:;" data-cmd="filters-open">edit</a>]', '' ],
+      threadHiding: [ 'Thread hiding', '' ],
+      replyHiding: [ 'Reply hiding', '' ],
+      threadExpansion: [ 'Thread expansion', '' ],
+      imageExpansion: [ 'Image expansion', '' ],
+      imageSearch: [ 'Image search', '' ],
+      reportButton: [ 'Report button', '' ],
+      localTime: [ 'Convert dates to local time', '' ],
+      revealSpoilers: [ "Don't spoiler images", '' ],
+      embedSoundCloud: [ 'Embed SoundCloud', '' ],
+      embedYouTube: [ 'Embed YouTube', '' ],
+      hideGlobalMsg: [ 'Enable announcement hiding', '' ]
     },
     'Customisations': {
-      stickyNav: 'Navigation arrows',
-      topPageNav: 'Page navigation at the top',
-      dropDownNav: 'Use drop-down navigation',
-      fixedThreadWatcher: 'Fixed thread watcher',
-      customCSS: 'Custom CSS (<a href="javascript:;" data-cmd="css-open">edit</a>)'
+      stickyNav: [ 'Navigation arrows', '' ],
+      topPageNav: [ 'Page navigation at the top', '' ],
+      dropDownNav: [ 'Use drop-down navigation', '' ],
+      fixedThreadWatcher: [ 'Fixed thread watcher', '' ],
+      customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">edit</a>]', '' ]
     }
 };
 
@@ -2895,9 +2895,11 @@ SettingsMenu.open = function() {
     opts = SettingsMenu.options[cat];
     html += '<li class="settings-cat">' + cat + '</li>';
     for (key in opts) {
-      html += '<li><label><input type="checkbox" class="menuOption" data-option="'
+      html += '<li><label'
+        + (opts[key][1] ? ' title="' + opts[key][1] + '">' : '>')
+        + '<input type="checkbox" class="menuOption" data-option="'
         + key + '"' + (Config[key] ? ' checked="checked">' : '>')
-        + opts[key] + '</label></li>';
+        + opts[key][0] + '</label></li>';
     }
   }
   
@@ -3692,7 +3694,7 @@ div.backlink {\
   margin-top: 2px;\
 }\
 #settingsMenu label {\
-  display: block;\
+  display: inline-block;\
   user-select: none;\
   -moz-user-select: none;\
   -webkit-user-select: none;\

@@ -2923,7 +2923,7 @@ SettingsMenu.open = function() {
   cnt.className = 'UIPanel';
   
   html = '<div class="extPanel reply"><div class="panelHeader">Settings'
-    + '<span>[<a href="//www.4chan.org/tools">Help</a>]</span></div><ul>';
+    + '<span>[<a target="_blank" href="//www.4chan.org/tools">Help</a>]</span></div><ul>';
   
   for (cat in SettingsMenu.options) {
     opts = SettingsMenu.options[cat];

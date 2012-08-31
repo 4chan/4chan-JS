@@ -2837,6 +2837,9 @@ Config.load = function() {
     storage = JSON.parse(storage);
     $.extend(Config, storage);
   }
+  else {
+    Main.firstRun = true;
+  }
 };
 
 Config.save = function() {
@@ -2914,7 +2917,7 @@ SettingsMenu.open = function() {
   cnt.className = 'UIPanel';
   
   html = '<div class="extPanel reply"><div class="panelHeader">Settings'
-    + '<span>[<a href="/tools">Help</a>]</span></div><ul>';
+    + '<span>[<a href="//www.4chan.org/tools">Help</a>]</span></div><ul>';
   
   for (cat in SettingsMenu.options) {
     opts = SettingsMenu.options[cat];
@@ -2962,6 +2965,10 @@ Main.init = function()
 {
   var params;
   
+  if (window.screen.width <= 480 || window.screen.height <= 480) {
+    return;
+  }
+  
   document.addEventListener('DOMContentLoaded', Main.run, false);
   
   Main.now = Date.now();
@@ -3007,6 +3014,9 @@ Main.run = function() {
     $.id('boardNavDesktopFoot').style.display = 'none';
     $.removeClass($.id('boardNavMobile'), 'mobile');
   }
+  else if (Main.firstRun) {
+    $.id('settingsWindowLink').className = 'halo';
+  }
   
   $.addClass(document.body, Main.stylesheet);
   $.addClass(document.body, Main.type);
@@ -3041,11 +3051,11 @@ Main.run = function() {
     Media.init();
   }
   
-  Parser.init();
-  
   if (Config.replyHiding) {
     ReplyHiding.init();
   }
+  
+  Parser.init();
   
   if (Main.tid) {
     if (Config.pageTitle) {
@@ -3816,6 +3826,24 @@ div.backlink {\
 div.post-hidden:not(#quote-preview) div.file,\
 div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   display: none;\
+}\
+#settingsWindowLink.halo {\
+  font-weight: bold !important;\
+  -moz-animation: halo 1s linear infinite alternate;\
+  -webkit-animation: halo 1s linear infinite alternate;\
+  animation: halo 1s linear infinite alternate;\
+}\
+@-moz-keyframes halo {\
+  0% { color: inherit; }\
+  100% { color: #E04000; }\
+}\
+@-webkit-keyframes halo {\
+  0% { color: inherit; }\
+  100% { color: #E04000; }\
+}\
+@keyframes halo {\
+  0% { color: inherit; }\
+  100% { color: #E04000; }\
 }\
 ';
 

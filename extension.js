@@ -991,6 +991,8 @@ QR.show = function(tid, pid) {
         file = el.nextSibling.firstChild
         file.id = 'qrFile';
         
+        file.parentNode.removeChild(file.nextSibling);
+        
         el = document.createElement('input');
         el.id = 'qrDummyFile';
         el.type = 'text';
@@ -2923,7 +2925,8 @@ SettingsMenu.open = function() {
   cnt.id = 'settingsMenu';
   cnt.className = 'UIPanel';
   
-  html = '<div class="extPanel reply"><div class="panelHeader">Settings</div><ul>';
+  html = '<div class="extPanel reply"><div class="panelHeader">Settings'
+    + '<span>[<a href="/tools">Help</a>]</span></div><ul>';
   
   for (cat in SettingsMenu.options) {
     opts = SettingsMenu.options[cat];

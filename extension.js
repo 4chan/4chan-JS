@@ -1108,7 +1108,10 @@ QR.cloneCaptcha = function() {
 QR.reloadCaptcha = function(focus) {
   var pulse, func, el;
   
-  el = $.id('recaptcha_image')
+  if (!(el = $.id('recaptcha_image'))) {
+    return;
+  }
+  
   el.firstChild.setAttribute('data-loading', '1');
   
   poll = function() {
@@ -1220,7 +1223,7 @@ QR.submit = function(force) {
   
   QR.auto = false;
   
-  if (!force && (field = $.id('qrCapField')).value == '') {
+  if (!force && (field = $.id('qrCapField')) && field.value == '') {
     QR.showPostError('You forgot to type in the CAPTCHA.');
     field.focus();
     return;
@@ -1254,7 +1257,7 @@ QR.submit = function(force) {
       + '<a href="https://www.4chan.org/banned">banned</a>?');
   };
   QR.xhr.onload = function() {
-    var resp;
+    var resp, file;
     
     QR.xhr = null;
     
@@ -1290,7 +1293,7 @@ QR.submit = function(force) {
       if (Main.tid) {
         $.byName('com')[1].value = '';
         QR.reloadCaptcha();
-        if ($.id('qrFile').value) {
+        if ((file = $.id('qrFile')) && file.value) {
           QR.resetFile();
         }
         if (ThreadUpdater.enabled) {

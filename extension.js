@@ -1310,6 +1310,8 @@ QR.startCooldown = function(ms) {
     return;
   }
   
+  clearInterval(QR.pulse);
+  
   btn = btn.querySelector('input[type="submit"]');
   
   ms = parseInt(ms, 10);

@@ -629,6 +629,7 @@ var QuotePreview = {};
 QuotePreview.init = function() {
   var thread;
   
+  this.unlink = { rs: true, f: true };
   this.debounce = 250;
   this.timeout = null;
   this.xhr = null;
@@ -646,7 +647,7 @@ QuotePreview.resolve = function(link) {
   t = link.getAttribute('href')
     .match(/^(?:\/([^\/]+)\/)?(?:res\/)?([0-9]+)?#p([0-9]+)$/);
   
-  if (!t || t[1] == 'rs') {
+  if (!t || self.unlink[t[1]]) {
     return;
   }
   
@@ -751,7 +752,7 @@ QuotePreview.show = function(link, post, remote) {
     else {
       post = post.cloneNode(true);
       post.id = 'quote-preview';
-      post.className = 'post reply preview';
+      post.className += ' preview';
     }
     
     rect = link.getBoundingClientRect();
@@ -3603,6 +3604,10 @@ div.post div.postInfo {\
   display: block;\
   position: absolute;\
   padding: 3px 6px 6px 3px;\
+}\
+.yotsuba_new #quote-preview.highlight,\
+.yotsuba_b_new #quote-preview.highlight {\
+  border-width: 1px 2px 2px 1px !important;\
 }\
 #quote-preview img {\
   max-width: 125px;\

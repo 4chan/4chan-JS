@@ -2495,7 +2495,7 @@ Filter.buildEntry = function(filter) {
     + (filter.hide ? ' checked="checked"></td>' : '></td>');
   
   // Del
-  html += '<td><span data-cmd="filters-del" class="pointer fDel">x</span></td>';
+  html += '<td><span data-cmd="filters-del" class="pointer fDel">&times;</span></td>';
   
   tr.innerHTML = html;
   
@@ -3786,20 +3786,19 @@ div.backlink {\
   font-size: 11px;\
 }\
 #filtersMenu select {\
-  width: 75px;\
+  width: 85px;\
 }\
 #filtersMenu tfoot td {\
   padding-top: 10px;\
 }\
 .fPattern {\
-  width: 160px;\
+  width: 150px;\
 }\
 .fColor {\
   width: 60px;\
 }\
 .fDel {\
-  font-size: 12px;\
-  line-height: 1.5;\
+  font-size: 16px;\
 }\
 .filter-preview {\
   cursor: default;\

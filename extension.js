@@ -1018,6 +1018,9 @@ QR.show = function(tid, pid) {
     tbody.appendChild(tr);
   }
   
+  tbody.querySelector('input[type="submit"]')
+    .previousSibling.className = 'presubmit';
+  
   if (spoiler = tbody.querySelector('input[name="spoiler"]')) {
     spoiler = spoiler.parentNode.parentNode;
     spoiler.parentNode.removeChild(spoiler);
@@ -3488,9 +3491,6 @@ div.post div.postInfo {\
 #quickReply textarea {\
   min-width: 296px;\
 }\
-#quickReply input[name="sub"] {\
-  width: 208px;\
-}\
 #quickReply input[type="submit"] {\
   width: 85px;\
   margin-left: 3px;\
@@ -3507,6 +3507,9 @@ div.post div.postInfo {\
   cursor: pointer;\
   width: 135px;\
   padding: 1px 2px;\
+}\
+#quickReply input.presubmit {\
+  width: 208px;\
 }\
 #qrFile {\
   visibility: hidden;\

@@ -657,8 +657,10 @@ QuotePreview.resolve = function(link) {
     if (offset.top > 0
         && offset.bottom < document.documentElement.clientHeight
         && !$.hasClass(post.parentNode, 'post-hidden')) {
-      this.highlight = post;
-      $.addClass(post, 'highlight');
+      if (!$.hasClass(post, 'highlight')) {
+        this.highlight = post;
+        $.addClass(post, 'highlight');
+      }
       return;
     }
     // Nope
@@ -749,7 +751,7 @@ QuotePreview.show = function(link, post, remote) {
     else {
       post = post.cloneNode(true);
       post.id = 'quote-preview';
-      post.className += ' preview';
+      post.className = 'post reply preview';
     }
     
     rect = link.getBoundingClientRect();
@@ -1244,7 +1246,8 @@ QR.submit = function(force) {
   QR.xhr.onerror = function() {
     btn.value = 'Submit';
     QR.xhr = null;
-    QR.showPostError('Connection error. Are you <a href="https://www.4chan.org/banned">banned</a>?');
+    QR.showPostError('Connection error. Are you '
+      + '<a href="https://www.4chan.org/banned">banned</a>?');
   };
   QR.xhr.onload = function() {
     var resp;
@@ -1288,9 +1291,6 @@ QR.submit = function(force) {
         }
         if (ThreadUpdater.enabled) {
           setTimeout(ThreadUpdater.forceUpdate, 500);
-        }
-        else if (Config.threadWatcher) {
-          ThreadWatcher.refreshCurrent(this.getResponseHeader('Last-Modified'));
         }
       }
     }
@@ -1554,38 +1554,27 @@ ThreadWatcher.syncStorage = function(e) {
   key = e.key.split('-');
   
   if (key[0] == '4chan' && key[1] == 'watch' && e.newValue != e.oldValue) {
-    ThreadWatcher.reload(true, true);
+    ThreadWatcher.reload(true);
   }
 };
 
-ThreadWatcher.reload = function(rebuildButtons, preserveUnread) {
-  var i, storage, html, tuid, key, buttons, btn, active, nodes;
+ThreadWatcher.reload = function(rebuildButtons) {
+  var i, storage, html, tuid, key, buttons, btn, nodes;
   
   if (storage = localStorage.getItem('4chan-watch')) {
     html = '';
     
     this.watched = JSON.parse(storage);
-    active = {};
-    
-    if (preserveUnread) {
-      nodes = $.cls('hasNewReplies', $.id('watchList'));
-      for (i = 0; nodes[i]; ++i) {
-        active[nodes[i].parentNode.id.slice(6)] = true;
-      }
-    }
     
     for (key in this.watched) {
       tuid = key.split('-');
       html += '<li id="watch-' + key
         + '"><span class="pointer" data-cmd="unwatch" data-id="'
         + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
-        + Main.linkToThread(tuid[0], tuid[1]) + '"';
+        + Main.linkToThread(tuid[0], tuid[1], this.watched[key][1]) + '"';
       
-      if (!this.watched[key][1]) {
+      if (this.watched[key][1] == -1) {
         html += ' class="deadlink"';
-      }
-      else if (active[key]) {
-        html += ' class="hasNewReplies"';
       }
       
       html += '>/' + tuid[1] + '/ - ' + this.watched[key][0] + '</a></li>';
@@ -1624,16 +1613,13 @@ ThreadWatcher.onClick = function(e) {
       t.getAttribute('data-board')
     );
   }
-  else if ($.hasClass(t, 'hasNewReplies')) {
-    $.removeClass(t, 'hasNewReplies');
-  }
   else if (t.src) {
     ThreadWatcher.refresh();
   }
 };
 
 ThreadWatcher.toggle = function(tid, board, synced) {
-  var key, label, btn, lastmodified;
+  var key, label, btn, lastReply, thread;
   
   key = tid + '-' + (board || Main.board);
   
@@ -1655,22 +1641,23 @@ ThreadWatcher.toggle = function(tid, board, synced) {
     else {
       label = tid;
     }
-    if (!Main.tid) {
-      lastmodified = $.cls('dateTime', $.id('t' + tid).lastChild)[0];
-      lastmodified =
-        new Date(lastmodified.getAttribute('data-utc') * 1000).toUTCString();
+    
+    if (Main.tid && (thread = $.id('t' + tid)).children[1]) {
+      lastReply = thread.lastChild.id.slice(2);
     }
     else {
-      lastmodified = Main.lastModified;
+      lastReply = 0;
     }
-    this.watched[key] = [ label, lastmodified ];
+    
+    this.watched[key] = [ label, lastReply ];
+    
     if (btn = $.id('wbtn-' + key)) {
       btn.src = Main.icons.watched;
       btn.setAttribute('data-active', '1');
     }
   }
   this.save();
-  this.reload(false, true);
+  this.reload();
 };
 
 ThreadWatcher.save = function() {
@@ -1691,42 +1678,44 @@ ThreadWatcher.refresh = function() {
   }
 };
 
-ThreadWatcher.refreshCurrent = function(lastmodified) {
-  var key = Main.tid + '-' + Main.board;
+ThreadWatcher.refreshCurrent = function() {
+  var key, thread, lastReply;
   
-  lastmodified = lastmodified || Main.lastModified;
+  key = Main.tid + '-' + Main.board;
+  if ((thread = $.id('t' + Main.tid)).children[1]) {
+    lastReply = thread.lastChild.id.slice(2);
+  }
+  else {
+    lastReply = 0;
+  }
   
-  if (this.watched[key] && this.watched[key][1] != lastmodified) {
-    this.watched[key][1] = lastmodified;
+  if (this.watched[key] && this.watched[key][1] != lastReply) {
+    this.watched[key][1] = lastReply;
     this.save();
+    this.reload();
   }
 };
 
 ThreadWatcher.fetch = function(key, img) {
   var tuid, xhr;
   
-  if (!ThreadWatcher.watched[key][1]) {
+  if (ThreadWatcher.watched[key][1] == -1) {
+    delete ThreadWatcher.watched[key];
     if (img) {
       img.src = Main.icons.refresh;
       ThreadWatcher.save();
+      ThreadWatcher.reload();
     }
     return;
   }
   
   tuid = key.split('-'); // tid, board
+  
   xhr = new XMLHttpRequest();
   xhr.onload = function() {
     if (this.status == 404) {
       $.addClass($.id('watch-' + key).lastChild, 'deadlink');
-      ThreadWatcher.watched[key][1] = 0;
-    }
-    else {
-      if (this.status == 304 || this.status == 0) {
-        $.removeClass($.id('watch-' + key).lastChild, 'hasNewReplies');
-      }
-      else if (this.status == 200) {
-        $.addClass($.id('watch-' + key).lastChild, 'hasNewReplies');
-      }
+      ThreadWatcher.watched[key][1] = -1;
     }
     if (img) {
       img.src = Main.icons.refresh;
@@ -1737,7 +1726,6 @@ ThreadWatcher.fetch = function(key, img) {
     xhr.onerror = xhr.onload;
   }
   xhr.open('HEAD', 'https://api.4chan.org/' + tuid[1] + '/res/' + tuid[0] + '.json');
-  xhr.setRequestHeader('If-Modified-Since', ThreadWatcher.watched[key][1]);
   xhr.send(null);
 };
 
@@ -2126,7 +2114,7 @@ ThreadUpdater.onload = function() {
       window.scrollBy(0, lastrep.offsetTop - lastoffset);
       
       if (Config.threadWatcher) {
-        ThreadWatcher.refreshCurrent(this.getResponseHeader('Last-Modified'));
+        ThreadWatcher.refreshCurrent();
       }
     }
   }
@@ -2823,7 +2811,6 @@ var Config = {
   threadUpdater: true,
   threadWatcher: true,
   pageTitle: true,
-  
   filter: false,
   threadHiding: false,
   replyHiding: false,
@@ -2836,7 +2823,6 @@ var Config = {
   embedSoundCloud: false,
   embedYouTube: false,
   hideGlobalMsg: false,
-  
   stickyNav: false,
   topPageNav: false,
   dropDownNav: false,
@@ -3372,8 +3358,10 @@ Main.reportPost = function(pid) {
     "toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,width=680,height=200");
 };
 
-Main.linkToThread = function(tid, board) {
-  return '//' + location.host + '/' + (board || Main.board) + '/res/' + tid;
+Main.linkToThread = function(tid, board, post) {
+  return '//' + location.host + '/'
+    + (board || Main.board) + '/res/'
+    + tid + (post ? ('#p' + post) : '');
 };
 
 Main.addCSS = function()
@@ -3387,7 +3375,7 @@ Main.addCSS = function()
   display: none !important;\
 }\
 .postHidden {\
-  padding-right: 5px!important;\
+  padding-right: 5px !important;\
 }\
 .threadHideButton {\
   float: left;\

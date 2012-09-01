@@ -3124,10 +3124,16 @@ Main.run = function() {
 };
 
 Main.onFirstRun = function() {
-  var el = document.createElement('div');
-  el.id = 'first-run';
-  $.id('settingsWindowLink').parentNode.appendChild(el);
-  Config.save();
+  var link, el;
+  
+  if (link = $.id('settingsWindowLink')) {
+    el = document.createElement('div');
+    el.id = 'first-run';
+    el.innerHTML = '<div class="first-run-arrow"></div>'
+      + '<div class="first-run-msg">Check it out!</div>';
+    link.parentNode.appendChild(el);
+    Config.save();
+  }
 }
 
 Main.icons = {
@@ -3885,27 +3891,30 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   display: none;\
 }\
 #first-run {\
+  background-color: #E04000;\
+  position: absolute;\
+  color: white;\
+  font-size: 14px;\
+  font-weight: bold;\
+  margin-top: 5px;\
+  margin-left: -23px;\
+}\
+.futaba_new #first-run,\
+.burichan_new #first-run {\
+  margin-left: -12px;\
+}\
+.first-run-arrow {\
   width: 0;\
   height: 0;\
-  border-left: 30px solid transparent;\
-  border-right: 30px solid transparent;\
-  border-bottom: 30px solid #E04000;\
-  -moz-animation: arrow 1s ease-in-out infinite alternate;\
-  -webkit-animation: arrow 1s ease-in-out infinite alternate;\
-  animation: arrow 1s linear ease-in-out alternate;\
+  border: 5px solid transparent;\
+  border-bottom-color: #E04000;\
+  left: 50%;\
+  margin-left: -5px;\
+  margin-top: -10px;\
   position: absolute;\
 }\
-@-moz-keyframes arrow {\
-  0% { margin-top: 0; }\
-  100% { margin-top: 10px; }\
-}\
-@-webkit-keyframes arrow {\
-  0% { margin-top: 0; }\
-  100% { margin-top: 10px; }\
-}\
-@keyframes arrow {\
-  0% { margin-top: 0; }\
-  100% { margin-top: 10px; }\
+.first-run-msg {\
+  padding: 2px 5px;\
 }\
 ';
 

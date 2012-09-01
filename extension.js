@@ -2830,10 +2830,10 @@ var Config = {
   quotePreview: true,
   backlinks: true,
   quickReply: true,
+  threadWatcher: true,
   threadUpdater: true,
   threadHiding: true,
 
-  threadWatcher: false,
   threadExpansion: false,
   pageTitle: false,
   imageExpansion: false,
@@ -2879,11 +2879,11 @@ SettingsMenu.options = {
       quotePreview: [ 'Quote preview', 'Enable inline quote previews' ],
       backlinks: [ 'Backlinks', 'Show who has replied to a post' ],
       quickReply: [ 'Quick reply', 'Enable inline reply box' ],
+      threadWatcher: [ 'Thread watcher', 'Enable thread watcher' ],
       threadUpdater: [ 'Thread updater', 'Enable inline thread updating' ],
       threadHiding: [ 'Thread hiding', 'Enable thread hiding' ]
     },
     'Basic': {
-      threadWatcher: [ 'Thread watcher', 'Enable thread watcher' ],
       threadExpansion: [ 'Thread expansion', 'Enable inline thread expansion' ],
       pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ],
       imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],

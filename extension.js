@@ -662,6 +662,11 @@ QuotePreview.resolve = function(link) {
         this.highlight = post;
         $.addClass(post, 'highlight');
       }
+      else {
+        this.highlightAnti = post;
+        $.removeClass(post, 'highlight');
+        $.addClass(post, 'highlight-anti');
+      }
       return;
     }
     // Nope
@@ -776,17 +781,25 @@ QuotePreview.show = function(link, post, remote) {
 };
 
 QuotePreview.remove = function(el) {
-  var cnt;
+  var self, cnt;
   
-  if (QuotePreview.highlight) {
-    $.removeClass(QuotePreview.highlight, 'highlight');
+  self = QuotePreview;
+  
+  if (self.highlight) {
+    $.removeClass(self.highlight, 'highlight');
+    self.highlight = null;
+  }
+  else if (self.highlightAnti) {
+    $.addClass(self.highlightAnti, 'highlight');
+    $.removeClass(self.highlightAnti, 'highlight-anti');
+    self.highlightAnti = null
   }
   
-  clearTimeout(QuotePreview.timeout);
+  clearTimeout(self.timeout);
   el.style.cursor = '';
-  if (QuotePreview.xhr) {
-    QuotePreview.xhr.abort();
-    QuotePreview.xhr = null;
+  if (self.xhr) {
+    self.xhr.abort();
+    self.xhr = null;
   }
   
   if (cnt = document.getElementById('quote-preview')) {
@@ -3611,6 +3624,21 @@ div.post div.postInfo {\
 .yotsuba_new #quote-preview.highlight,\
 .yotsuba_b_new #quote-preview.highlight {\
   border-width: 1px 2px 2px 1px !important;\
+}\
+.yotsuba_b_new .highlight-anti,\
+.burichan_new .highlight-anti {\
+  background-color: #bfa6ba !important;\
+}\
+.yotsuba_new .highlight-anti,\
+.futaba_new .highlight-anti {\
+  background-color: #e8a690 !important;\
+}\
+.tomorrow .highlight-anti {\
+  background-color: #111 !important;\
+  border-color: #111;\
+}\
+.photon .highlight-anti {\
+  background-color: #bbb !important;\
 }\
 #quote-preview img {\
   max-width: 125px;\

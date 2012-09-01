@@ -3199,6 +3199,7 @@ Main.initGlobalMessage = function() {
   var msg, btn, oldHash;
   
   if ((msg = $.id('globalMessage')) && msg.textContent) {
+    msg.nextSibling.style.clear = 'both';
     btn = document.createElement('img');
     btn.id = 'toggleMsgBtn';
     btn.className = 'extButton';
@@ -3711,6 +3712,10 @@ div.backlink {\
 }\
 .newPostsMarker {\
   box-shadow: 0 3px red;\
+}\
+#toggleMsgBtn {\
+  float: left;\
+  margin-bottom: 6px;\
 }\
 .panelHeader {\
   font-weight: bold;\

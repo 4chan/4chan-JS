@@ -2350,7 +2350,7 @@ Filter.openHelp = function() {
   cnt.className = 'UIPanel';
   cnt.setAttribute('data-cmd', 'filters-help-close');
   cnt.innerHTML = '\
-<div class="extPanel reply"><div class="panelHeader">Help</div>\
+<div class="extPanel reply"><div class="panelHeader">Filters &amp; Highlights Help</div>\
 <h4>Tripcode and Name filters:</h4>\
 <ul><li>Those use simple string comparison.</li>\
 <li>Type them exactly as they appear on 4chan, including the exclamation mark for tripcode filters.</li>\
@@ -2400,7 +2400,7 @@ Filter.open = function() {
   cnt.style.display = 'none';
   cnt.setAttribute('data-cmd', 'filters-close');
   cnt.innerHTML = '\
-<div class="extPanel reply"><div class="panelHeader">Filters and Highlights\
+<div class="extPanel reply"><div class="panelHeader">Filters &amp; Highlights\
 <span>[<a data-cmd="filters-help-open" href="javascript:;">Help</a>]</span></div>\
 <table><thead><tr>\
 <th>On</th>\
@@ -2892,7 +2892,7 @@ SettingsMenu.options = {
       reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ]
     },
     'Advanced': {
-      filter: [ 'Filter [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
+      filter: [ 'Filters &amp; Highlights [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
       replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
       revealSpoilers: [ "Don't spoiler images", 'Don\'t replace spoiler images with a placeholder and show filenames' ],
       hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ],
@@ -3038,7 +3038,7 @@ Main.run = function() {
     $.removeClass($.id('boardNavMobile'), 'mobile');
   }
   else if (Main.firstRun) {
-    $.id('settingsWindowLink').className = 'halo';
+    Main.onFirstRun();
   }
   
   $.addClass(document.body, Main.stylesheet);
@@ -3122,6 +3122,13 @@ Main.run = function() {
   
   //console.profileEnd();
 };
+
+Main.onFirstRun = function() {
+  var el = document.createElement('div');
+  el.id = 'first-run';
+  $.id('settingsWindowLink').parentNode.appendChild(el);
+  Config.save();
+}
 
 Main.icons = {
   up: 'arrow_up.png',
@@ -3877,23 +3884,28 @@ div.post-hidden:not(#quote-preview) div.file,\
 div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   display: none;\
 }\
-#settingsWindowLink.halo {\
-  font-weight: bold !important;\
-  -moz-animation: halo 1s linear infinite alternate;\
-  -webkit-animation: halo 1s linear infinite alternate;\
-  animation: halo 1s linear infinite alternate;\
+#first-run {\
+  width: 0;\
+  height: 0;\
+  border-left: 30px solid transparent;\
+  border-right: 30px solid transparent;\
+  border-bottom: 30px solid #E04000;\
+  -moz-animation: arrow 1s ease-in-out infinite alternate;\
+  -webkit-animation: arrow 1s ease-in-out infinite alternate;\
+  animation: arrow 1s linear ease-in-out alternate;\
+  position: absolute;\
 }\
-@-moz-keyframes halo {\
-  0% { color: inherit; }\
-  100% { color: #E04000; }\
+@-moz-keyframes arrow {\
+  0% { margin-top: 0; }\
+  100% { margin-top: 10px; }\
 }\
-@-webkit-keyframes halo {\
-  0% { color: inherit; }\
-  100% { color: #E04000; }\
+@-webkit-keyframes arrow {\
+  0% { margin-top: 0; }\
+  100% { margin-top: 10px; }\
 }\
-@keyframes halo {\
-  0% { color: inherit; }\
-  100% { color: #E04000; }\
+@keyframes arrow {\
+  0% { margin-top: 0; }\
+  100% { margin-top: 10px; }\
 }\
 ';
 

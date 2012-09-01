@@ -2935,6 +2935,10 @@ SettingsMenu.toggle = function() {
 SettingsMenu.open = function() {
   var cat, key, html, cnt, opts;
   
+  if (Main.firstRun) {
+    Config.save();
+  }
+  
   cnt = document.createElement('div');
   cnt.id = 'settingsMenu';
   cnt.className = 'UIPanel';
@@ -3129,10 +3133,8 @@ Main.onFirstRun = function() {
   if (link = $.id('settingsWindowLink')) {
     el = document.createElement('div');
     el.id = 'first-run';
-    el.innerHTML = '<div class="first-run-arrow"></div>'
-      + '<div class="first-run-msg">Check it out!</div>';
+    el.innerHTML = 'Click me!';
     link.parentNode.appendChild(el);
-    Config.save();
   }
 }
 
@@ -3891,30 +3893,88 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   display: none;\
 }\
 #first-run {\
-  background-color: #E04000;\
-  position: absolute;\
-  color: white;\
-  font-size: 14px;\
-  font-weight: bold;\
+  border-radius: 5px;\
   margin-top: 5px;\
-  margin-left: -23px;\
+  margin-left: -7px;\
+  padding: 2px 5px;\
+  position: absolute;\
+  font-weight: bold;\
 }\
-.futaba_new #first-run,\
+.yotsuba_new #first-run,\
+.futaba_new #first-run {\
+  color: #800000;\
+  background-color: #F0E0D6;\
+  border: 2px solid #D9BFB7;\
+}\
+.yotsuba_b_new #first-run,\
 .burichan_new #first-run {\
-  margin-left: -12px;\
+  color: #000;\
+  background-color: #D6DAF0;\
+  border: 2px solid #B7C5D9;\
 }\
-.first-run-arrow {\
+.tomorrow #first-run {\
+  color: #C5C8C6;\
+  background-color: #282A2E;\
+  border: 2px solid #111;\
+}\
+.photon #first-run {\
+  color: #333;\
+  background-color: #ddd;\
+  border: 2px solid #ccc;\
+}\
+#first-run:before {\
+  content: "";\
+  border-width: 0 6px 6px;\
+  border-style: solid;\
+  left: 50%;\
+  margin-left: -6px;\
+  position: absolute;\
   width: 0;\
   height: 0;\
-  border: 5px solid transparent;\
-  border-bottom-color: #E04000;\
-  left: 50%;\
-  margin-left: -5px;\
-  margin-top: -10px;\
-  position: absolute;\
+  top: -6px;\
 }\
-.first-run-msg {\
-  padding: 2px 5px;\
+.yotsuba_new #first-run:before,\
+.futaba_new #first-run:before {\
+  border-color: #D9BFB7 transparent;\
+}\
+.yotsuba_b_new #first-run:before,\
+.burichan_new #first-run:before {\
+  border-color: #B7C5D9 transparent;\
+}\
+.tomorrow #first-run:before {\
+  border-color: #111 transparent;\
+}\
+.photon #first-run:before {\
+  border-color: #ccc transparent;\
+}\
+#first-run:after {\
+  content: "";\
+  border-width: 0 4px 4px;\
+  top: -4px;\
+  display: block;\
+  left: 50%;\
+  margin-left: -4px;\
+  position: absolute;\
+  width: 0;\
+  height: 0;\
+}\
+.yotsuba_new #first-run:after,\
+.futaba_new #first-run:after {\
+  border-color: #F0E0D6 transparent;\
+  border-style: solid;\
+}\
+.yotsuba_b_new #first-run:after,\
+.burichan_new #first-run:after {\
+  border-color: #D6DAF0 transparent;\
+  border-style: solid;\
+}\
+.tomorrow #first-run:after {\
+  border-color: #282A2E transparent;\
+  border-style: solid;\
+}\
+.photon #first-run:after {\
+  border-color: #DDD transparent;\
+  border-style: solid;\
 }\
 ';
 

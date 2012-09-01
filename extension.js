@@ -3668,8 +3668,7 @@ div.post div.postInfo {\
   max-height: 125px;\
 }\
 #quote-preview .extButton,\
-#quote-preview .extControls,\
-#quote-preview .postNum {\
+#quote-preview .extControls {\
   display: none;\
 }\
 .deadlink {\
@@ -3779,7 +3778,7 @@ div.backlink {\
   margin: 0;\
 }\
 #settingsMenu label input {\
-  margin-right: 3px;\
+  margin-right: 5px;\
 }\
 .tomorrow #settingsMenu ul {\
   border-bottom: 1px solid #282a2e;\

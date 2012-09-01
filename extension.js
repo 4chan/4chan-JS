@@ -3624,9 +3624,17 @@ div.post div.postInfo {\
 .yotsuba_new #quote-preview.highlight,\
 .yotsuba_b_new #quote-preview.highlight {\
   border-width: 1px 2px 2px 1px !important;\
+  border-style: solid !important;\
+}\
+.yotsuba_new #quote-preview.highlight {\
+  border-color: #D99F91 !important;\
+}\
+.yotsuba_b_new #quote-preview.highlight {\
+  border-color: #BA9DBF !important;\
 }\
 .yotsuba_b_new .highlight-anti,\
 .burichan_new .highlight-anti {\
+  border-width: 1px 2px 2px 1px !important;\
   background-color: #bfa6ba !important;\
 }\
 .yotsuba_new .highlight-anti,\

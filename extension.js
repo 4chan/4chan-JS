@@ -1303,15 +1303,13 @@ QR.submit = function(force) {
       localStorage.setItem('4chan-cd-' + Main.board, cd);
       QR.startCooldown(cd);
       
-      if (Main.tid) {
-        $.byName('com')[1].value = '';
-        QR.reloadCaptcha();
-        if ((file = $.id('qrFile')) && file.value) {
-          QR.resetFile();
-        }
-        if (ThreadUpdater.enabled) {
-          setTimeout(ThreadUpdater.forceUpdate, 500);
-        }
+      $.byName('com')[1].value = '';
+      QR.reloadCaptcha();
+      if ((file = $.id('qrFile')) && file.value) {
+        QR.resetFile();
+      }
+      if (Main.tid && ThreadUpdater.enabled) {
+        setTimeout(ThreadUpdater.forceUpdate, 500);
       }
     }
     else {

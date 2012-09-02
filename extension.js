@@ -153,7 +153,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
   var noLink = data.resto + '#p' + data.no;
   var quoteLink = noLink.replace('p', 'q');
 
-  if ((data.capcode == 'none') && data.id) {
+  if (!data.capcode && data.id) {
     userId = ' <span class="posteruid id_'
       + data.id + '">(ID: <span class="hand" title="Highlight posts by this ID">'
       + data.id + '</span>)</span> ';
@@ -2831,12 +2831,12 @@ var Config = {
   threadWatcher: true,
   threadUpdater: true,
   threadHiding: true,
+  pageTitle: false,
 
   imageExpansion: false,
   threadExpansion: false,
   imageSearch: false,
   reportButton: false,
-  pageTitle: false,
   localTime: false,
   hideGlobalMsg: false,
   topPageNav: false,
@@ -2879,14 +2879,14 @@ SettingsMenu.options = {
       quickReply: [ 'Quick reply', 'Enable inline reply box' ],
       threadWatcher: [ 'Thread watcher', 'Enable thread watcher' ],
       threadUpdater: [ 'Thread updater', 'Enable inline thread updating' ],
-      threadHiding: [ 'Thread hiding', 'Enable thread hiding' ]
+      threadHiding: [ 'Thread hiding', 'Enable thread hiding' ],
+      pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ]
     },
     'Recommended': {
       imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],
       threadExpansion: [ 'Thread expansion', 'Enable inline thread expansion' ],
       imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
       reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ],
-      pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ],
       localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ],
       hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ],
       topPageNav: [ 'Page navigation at the top', 'Show the page switcher at the top of the page' ],

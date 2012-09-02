@@ -3589,6 +3589,9 @@ div.post div.postInfo {\
 #twHeader img {\
   margin-left: 3px;\
 }\
+#twPrune {\
+  margin-top: -1px;\
+}\
 #threadWatcher {\
   max-width: 265px;\
   display: block;\

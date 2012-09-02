@@ -2834,25 +2834,25 @@ var Config = {
   threadUpdater: true,
   threadHiding: true,
 
-  threadExpansion: false,
-  pageTitle: false,
   imageExpansion: false,
-  localTime: false,
+  threadExpansion: false,
   imageSearch: false,
   reportButton: false,
+  pageTitle: false,
+  localTime: false,
+  hideGlobalMsg: false,
+  topPageNav: false,
+  stickyNav: false,
 
   filter: false,
-  replyHiding: false,
   revealSpoilers: false,
-  hideGlobalMsg: false,
+  replyHiding: false,
   embedYouTube: false,
   embedSoundCloud: false,
 
-  stickyNav: false,
-  topPageNav: false,
+  customCSS: false,
   dropDownNav: false,
-  fixedThreadWatcher: false,
-  customCSS: false
+  fixedThreadWatcher: false
 };
 
 Config.load = function() {
@@ -2875,7 +2875,7 @@ Config.save = function() {
 var SettingsMenu = {};
 
 SettingsMenu.options = {
-    'Essentials': {
+    'Essential': {
       quotePreview: [ 'Quote preview', 'Enable inline quote previews' ],
       backlinks: [ 'Backlinks', 'Show who has replied to a post' ],
       quickReply: [ 'Quick reply', 'Enable inline reply box' ],
@@ -2883,28 +2883,28 @@ SettingsMenu.options = {
       threadUpdater: [ 'Thread updater', 'Enable inline thread updating' ],
       threadHiding: [ 'Thread hiding', 'Enable thread hiding' ]
     },
-    'Basic': {
-      threadExpansion: [ 'Thread expansion', 'Enable inline thread expansion' ],
-      pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ],
+    'Recommended': {
       imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],
-      localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ],
+      threadExpansion: [ 'Thread expansion', 'Enable inline thread expansion' ],
       imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
-      reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ]
+      reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ],
+      pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ],
+      localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ],
+      hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ],
+      topPageNav: [ 'Page navigation at the top', 'Show the page switcher at the top of the page' ],
+      stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows' ]
     },
     'Advanced': {
       filter: [ 'Filters &amp; Highlights [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
-      replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
       revealSpoilers: [ "Don't spoiler images", 'Don\'t replace spoiler images with a placeholder and show filenames' ],
-      hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ],
+      replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
     },
-    'Customizations': {
-      stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows' ],
-      topPageNav: [ 'Page navigation at the top', 'Show the page switcher at the top of the page' ],
+    'Customization': {
+      customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', 'Embed your own CSS rules' ],
       dropDownNav: [ 'Use drop-down navigation', 'Use persistent drop-down navigation bar instead of traditional links' ],
-      fixedThreadWatcher: [ 'Pin thread watcher', 'Pin the thread watcher to the page' ],
-      customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', 'Embed your own CSS rules' ]
+      fixedThreadWatcher: [ 'Pin thread watcher', 'Pin the thread watcher to the page' ]
     }
 };
 

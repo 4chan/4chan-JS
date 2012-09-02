@@ -1270,7 +1270,7 @@ QR.submit = function(force) {
       + '<a href="https://www.4chan.org/banned">banned</a>?');
   };
   QR.xhr.onload = function() {
-    var resp, file;
+    var resp, file, el;
     
     QR.xhr = null;
     
@@ -1304,6 +1304,10 @@ QR.submit = function(force) {
       QR.startCooldown(cd);
       
       $.byName('com')[1].value = '';
+      $.byName('sub')[1].value = '';
+      if (el = $.byName('spoiler')[3]) {
+        el.checked = false;
+      }
       QR.reloadCaptcha();
       if ((file = $.id('qrFile')) && file.value) {
         QR.resetFile();

@@ -371,7 +371,7 @@ Parser.parseThread = function(tid, offset, limit) {
         }
       }
       
-      if (Config.threadExpansion
+      if (ThreadExpansion.enabled
           && (summary = thread.children[1])
           && $.hasClass(summary, 'summary')) {
         frag = document.createDocumentFragment();
@@ -748,7 +748,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
 };
 
 QuotePreview.show = function(link, post, remote) {
-    var rect, docWidth, offsetLimit, style, pos;
+    var rect, docWidth, style, pos;
     
     if (remote) {
       Parser.parsePost(post);
@@ -776,7 +776,7 @@ QuotePreview.show = function(link, post, remote) {
     }
     
     style.top =
-      rect.top + link.offsetHeight + window.scrollY -
+      rect.top + link.offsetHeight + (window.scrollY || window.pageYOffset) -
       post.offsetHeight / 2 - rect.height / 2 + 'px';
 };
 
@@ -842,7 +842,7 @@ ImageExpansion.toggle = function(t) {
 };
 
 ImageExpansion.checkLoadStart = function(img, thumb) {
-  if (img.naturalWidth) {
+  if (!img || img.naturalWidth) {
     thumb.parentNode.parentNode.style.display = 'table';
     img.style.display = '';
     thumb.style.display = 'none';
@@ -1753,6 +1753,10 @@ ThreadWatcher.fetch = function(key, img) {
  * Thread expansion
  */
 var ThreadExpansion = {};
+
+ThreadExpansion.init = function() {
+  this.enabled = UA.hasCORS;
+};
 
 ThreadExpansion.toggle = function(tid) {
   var thread, msg, expmsg, summary, tmp;
@@ -2811,15 +2815,6 @@ UA.init = function() {
   this.hasCORS = 'withCredentials' in new XMLHttpRequest;
   
   this.hasCustomEventCtor = typeof window.CustomEvent == 'function';
-  
-  if (/webkit/i.test(navigator.userAgent)) {
-    Main.lastModified
-      = new Date(Date.parse(document.lastModified + ' GMT')).toUTCString();
-  }
-  else {
-    Main.lastModified
-      = new Date(document.lastModified).toUTCString();
-  }
 };
 
 /**
@@ -3063,6 +3058,10 @@ Main.run = function() {
   
   if (Config.quickReply) {
     QR.init();
+  }
+  
+  if (Config.threadExpansion) {
+    ThreadExpansion.init();
   }
   
   if (Config.threadWatcher) {

@@ -1844,6 +1844,7 @@ ThreadExpansion.fetch = function(tid) {
           summary.children[2].style.display = 'inline';
         }
         else if (this.status == 404) {
+          summary.children[0].src = Main.icons.plus;
           summary.children[0].display = 'none';
           summary.children[1].textContent = "This thread doesn't exist anymore.";
         }
@@ -2139,11 +2140,11 @@ ThreadUpdater.onload = function() {
     }
   }
   else if (this.status == 304 || this.status == 0) {
-    self.setStatus('Not Modified');
+    self.setStatus('No new posts');
   }
   else if (this.status == 404) {
     self.setIcon(self.icons[Main.type + 'dead']);
-    self.setError('Not Found - Thread has been pruned or deleted');
+    self.setError('This thread has been pruned or deleted');
     if (self.auto) {
       self.stop();
     }

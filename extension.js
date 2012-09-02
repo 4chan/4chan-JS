@@ -1522,7 +1522,7 @@ ThreadWatcher.init = function() {
   var cnt, html;
   
   this.listNode = null;
-  this.charLimit = 40;
+  this.charLimit = 45;
   this.watched = {};
   
   cnt = document.createElement('div');

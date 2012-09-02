@@ -133,6 +133,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     fileClass = '',
     shortFile = '',
     longFile = '',
+    tripcode = '',
     capcodeStart = '',
     capcodeClass = '',
     capcode = '',
@@ -287,6 +288,10 @@ Parser.buildHTMLFromJSON = function(data, board) {
     data.sub = '';
   }
   
+  if (data.trip) {
+    tripcode = ' <span class="postertrip">' + data.trip + '</span>';
+  }
+  
   container.className = 'postContainer replyContainer';
   container.id = 'pc' + data.no;
   
@@ -294,8 +299,8 @@ Parser.buildHTMLFromJSON = function(data, board) {
     '<div class="sideArrows" id="sa' + data.no + '">&gt;&gt;</div>' +
     '<div id="p' + data.no + '" class="post ' + (isOP ? 'op' : 'reply') + highlight + '">' +
       '<div class="postInfoM mobile" id="pim' + data.no + '">' +
-        '<span class="nameBlock' + capcodeClass + '"> ' + emailStart +
-        '<span class="name">' + data.name + '</span>' +
+        '<span class="nameBlock' + capcodeClass + '">' + emailStart +
+        '<span class="name">' + data.name + '</span>' + tripcode +
         emailEnd + capcodeStart + emailEnd + userId + flag +
         '<br><span class="subject">' + data.sub +
         '</span></span><span class="dateTime postNum" data-utc="' + data.time + '">' +
@@ -306,10 +311,10 @@ Parser.buildHTMLFromJSON = function(data, board) {
       '<div class="postInfo desktop" id="pi' + data.no + '">' +
         '<input type="checkbox" name="' + data.no + '" value="delete"> ' +
         '<span class="subject">' + data.sub + '</span> ' +
-        '<span class="nameBlock' + capcodeClass + '"> ' +
-          emailStart + '<span class="name">' + data.name + '</span>' + emailEnd
-          + capcodeStart + emailEnd + userId + flag +
-        '</span> ' +
+        '<span class="nameBlock' + capcodeClass + '">' +
+          emailStart + '<span class="name">' + data.name + '</span>' + tripcode +
+          emailEnd  + capcodeStart + emailEnd + userId + flag +
+        ' </span> ' +
   
         '<span class="dateTime" data-utc="' + data.time + '">' + data.now + '</span> ' +
   
@@ -636,6 +641,7 @@ QuotePreview.init = function() {
   this.cachedKey = null;
   this.cachedNode = null;
   this.highlight = null;
+  this.highlightAnti = null;
 };
 
 QuotePreview.resolve = function(link) {
@@ -658,13 +664,12 @@ QuotePreview.resolve = function(link) {
     if (offset.top > 0
         && offset.bottom < document.documentElement.clientHeight
         && !$.hasClass(post.parentNode, 'post-hidden')) {
-      if (!$.hasClass(post, 'highlight')) {
+      if (!$.hasClass(post, 'highlight') && location.hash.slice(1) != post.id) {
         this.highlight = post;
         $.addClass(post, 'highlight');
       }
       else {
         this.highlightAnti = post;
-        $.removeClass(post, 'highlight');
         $.addClass(post, 'highlight-anti');
       }
       return;
@@ -790,7 +795,6 @@ QuotePreview.remove = function(el) {
     self.highlight = null;
   }
   else if (self.highlightAnti) {
-    $.addClass(self.highlightAnti, 'highlight');
     $.removeClass(self.highlightAnti, 'highlight-anti');
     self.highlightAnti = null
   }
@@ -1883,6 +1887,9 @@ ThreadUpdater.init = function() {
   
   this.enabled = true;
   
+  this.pageTitle = document.title;
+  
+  this.unreadCount = 0;
   this.unread = false;
   this.auto = false;
   
@@ -1995,7 +2002,6 @@ ThreadUpdater.pulse = function() {
 };
 
 ThreadUpdater.resetDelay = function() {
-  //console.log('TU: resetting delay to: ' + this.delayRange[this.delayId]);
   clearTimeout(this.updateInterval);
   clearTimeout(this.pulseInterval);
   this.lastUpdated = Date.now();
@@ -2021,7 +2027,6 @@ ThreadUpdater.adjustDelay = function(postCount, force)
       = setTimeout(this.update, this.delayRange[this.delayId] * 1000);
     this.pulse();
   }
-  //console.log('TU: ' + postCount + ' : ' + this.delayRange[this.delayId]);
 };
 
 ThreadUpdater.onVisibilityChange = function(e) {
@@ -2050,6 +2055,8 @@ ThreadUpdater.onScroll = function(e) {
     if (self.lastReply) {
       $.removeClass(self.lastReply, 'newPostsMarker');
       self.lastReply = null;
+      self.unreadCount = 0;
+      document.title = self.pageTitle;
     }
   }
 };
@@ -2141,6 +2148,11 @@ ThreadUpdater.onload = function() {
       thread.appendChild(frag);
       Parser.parseThread(thread.id.slice(1), -nodes.length);
       window.scrollBy(0, lastrep.offsetTop - lastoffset);
+      
+      if (self.auto) {
+        self.unreadCount += nodes.length;
+        document.title = '(' + self.unreadCount + ') ' + self.pageTitle;
+      }
       
       if (Config.threadWatcher) {
         ThreadWatcher.refreshCurrent();

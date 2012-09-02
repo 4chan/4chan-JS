@@ -668,7 +668,7 @@ QuotePreview.resolve = function(link) {
         this.highlight = post;
         $.addClass(post, 'highlight');
       }
-      else {
+      else if (!$.hasClass(post, 'op')) {
         this.highlightAnti = post;
         $.addClass(post, 'highlight-anti');
       }

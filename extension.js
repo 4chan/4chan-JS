@@ -2749,8 +2749,8 @@ var Draggable = {
     self.bottom = doc.clientHeight - offs.height;
     
     if (getComputedStyle(self.el, null).position != 'fixed') {
-      self.scrollX = window.scrollX;
-      self.scrollY = window.scrollY;
+      self.scrollX = window.scrollX || window.pageXOffset;
+      self.scrollY = window.scrollY || window.pageYOffset;
     }
     else {
       self.scrollX = self.scrollY = 0;

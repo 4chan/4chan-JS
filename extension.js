@@ -462,37 +462,6 @@ Parser.parsePost = function(pid, tid) {
       msg = document.getElementById('m' + pid);
     }
     
-    if (pid != tid) {
-      if (Config.filter) {
-        filtered = Filter.exec(pi.parentNode, pi, pi.children[2], msg);
-      }
-      
-      if (Config.replyHiding && !filtered) {
-        el = document.getElementById('sa' + pid);
-        el.innerHTML = '<img class="extButton"'
-          + 'data-cmd="hide-r" data-id="' + pid + '" src="'
-          + Main.icons.minus + '" title="Hide reply">';
-        if (ReplyHiding.hidden[pid]) {
-          ReplyHiding.hidden[pid] = Main.now;
-          ReplyHiding.hide(pid);
-        }
-      }
-      
-      if (Config.backlinks) {
-        Parser.parseBacklinks(pid, tid);
-      }
-    }
-    
-    if (Main.tid) {
-      if (Config.embedSoundCloud) {
-        Media.parseSoundCloud(msg);
-      }
-      
-      if (Config.embedYouTube) {
-        Media.parseYouTube(msg);
-      }
-    }
-    
     html = '';
     
     if (QR.enabled) {
@@ -524,6 +493,38 @@ Parser.parsePost = function(pid, tid) {
         + Main.icons.iqdb + '" alt="I"></a>';
       file.parentNode.appendChild(el);
     }
+    
+    if (pid != tid) {
+      if (Config.filter) {
+        filtered = Filter.exec(pi.parentNode, pi, pi.children[2], msg);
+      }
+      
+      if (Config.replyHiding && !filtered) {
+        el = document.getElementById('sa' + pid);
+        el.innerHTML = '<img class="extButton"'
+          + 'data-cmd="hide-r" data-id="' + pid + '" src="'
+          + Main.icons.minus + '" title="Hide reply">';
+        if (ReplyHiding.hidden[pid]) {
+          ReplyHiding.hidden[pid] = Main.now;
+          ReplyHiding.hide(pid);
+        }
+      }
+      
+      if (Config.backlinks) {
+        Parser.parseBacklinks(pid, tid);
+      }
+    }
+    
+    if (Main.tid) {
+      if (Config.embedSoundCloud) {
+        Media.parseSoundCloud(msg);
+      }
+      
+      if (Config.embedYouTube) {
+        Media.parseYouTube(msg);
+      }
+    }
+    
   }
   else {
     pi = pid.getElementsByClassName('postInfo')[0];
@@ -3027,7 +3028,7 @@ Main.init = function()
 };
 
 Main.run = function() {
-  //console.profile('4chan JS');
+  console.profile('4chan JS');
   
   document.removeEventListener('DOMContentLoaded', Main.run, false);
   
@@ -3123,7 +3124,7 @@ Main.run = function() {
   $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
   $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
   
-  //console.profileEnd();
+  console.profileEnd();
 };
 
 Main.onFirstRun = function() {

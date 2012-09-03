@@ -2082,8 +2082,7 @@ ThreadUpdater.update = function() {
   $.get('//api.4chan.org/' + Main.board + '/res/' + Main.tid + '.json',
     {
       onload: self.onload,
-      onerror: self.onerror,
-      ontimeout: self.onerror
+      onerror: self.onerror
     },
     {
       'If-Modified-Since': self.lastModified
@@ -2164,7 +2163,14 @@ ThreadUpdater.onload = function() {
 
 ThreadUpdater.onerror = function() {
   var self = ThreadUpdater;
-  self.setError('Connection Error');
+  
+  if (UA.isOpera && !this.statusText && this.status == 0) {
+    self.setStatus('No new posts');
+  }
+  else {
+    self.setError('Connection Error');
+  }
+  
   self.lastUpdated = Date.now();
   self.adjustDelay(0, self.force);
   self.updating = self.force = false;

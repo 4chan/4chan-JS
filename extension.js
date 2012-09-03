@@ -594,7 +594,7 @@ Parser.parseBacklinks = function(pid, tid)
       j.textContent += ' (OP)';
     }
     
-    if (!(target = document.getElementById('m' + ids[1]))) {
+    if (!(target = document.getElementById('pi' + ids[1]))) {
       if (Main.tid && ids[0].charAt(0) != '/') {
         j.textContent += ' →';
       }
@@ -619,7 +619,7 @@ Parser.parseBacklinks = function(pid, tid)
       el.id = 'bl_' + ids[1];
       el.className = 'backlink';
       el.innerHTML = 'Replies: ';
-      target.parentNode.insertBefore(el, target);
+      target.appendChild(el);
     }
     
     el.appendChild(bl);
@@ -2105,7 +2105,6 @@ ThreadUpdater.onload = function() {
     
     lastrep = thread.childNodes[thread.childElementCount - 1];
     lastid = +lastrep.id.slice(2);
-    lastoffset = lastrep.getBoundingClientRect().top;
     
     try {
       newposts = JSON.parse(this.responseText).posts;
@@ -2139,10 +2138,6 @@ ThreadUpdater.onload = function() {
       }
       thread.appendChild(frag);
       Parser.parseThread(thread.id.slice(1), -nodes.length);
-      window.scrollBy(0, lastrep.getBoundingClientRect().top - lastoffset);
-      
-      if (self.auto) {
-      }
       
       if (Config.threadWatcher) {
         ThreadWatcher.refreshCurrent();
@@ -3687,8 +3682,10 @@ div.post div.postInfo {\
   font-weight: bold;\
 }\
 div.backlink {\
-  margin-left: 15px;\
   font-size: 0.8em !important;\
+  display: inline;\
+  padding: 0;\
+  padding-left: 5px;\
 }\
 .backlink span {\
   padding: 0;\

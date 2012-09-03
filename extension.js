@@ -1882,7 +1882,6 @@ ThreadUpdater.init = function() {
   this.pageTitle = document.title;
   
   this.unreadCount = 0;
-  this.unread = false;
   this.auto = false;
   
   this.delayId = 0;
@@ -2043,12 +2042,11 @@ ThreadUpdater.onScroll = function(e) {
     (document.documentElement.clientHeight + window.scrollY)) {
     self = ThreadUpdater;
     self.setIcon(self.defaultIcon);
-    self.unread = false;
+    self.unreadCount = 0;
+    document.title = self.pageTitle;
     if (self.lastReply) {
       $.removeClass(self.lastReply, 'newPostsMarker');
       self.lastReply = null;
-      self.unreadCount = 0;
-      document.title = self.pageTitle;
     }
   }
 };
@@ -2107,7 +2105,7 @@ ThreadUpdater.onload = function() {
     
     lastrep = thread.childNodes[thread.childElementCount - 1];
     lastid = +lastrep.id.slice(2);
-    lastoffset = lastrep.offsetTop;
+    lastoffset = lastrep.getBoundingClientRect().top;
     
     try {
       newposts = JSON.parse(this.responseText).posts;
@@ -2129,9 +2127,11 @@ ThreadUpdater.onload = function() {
         if (!self.lastReply && lastid != Main.tid) {
           (self.lastReply = lastrep.lastChild).className += ' newPostsMarker';
         }
-        if (!self.unread) {
+        if (self.unreadCount == 0) {
           self.setIcon(self.icons[Main.type]);
         }
+        self.unreadCount += nodes.length;
+        document.title = '(' + self.unreadCount + ') ' + self.pageTitle;
       }
       frag = document.createDocumentFragment();
       for (i = nodes.length - 1; i >= 0; i--) {
@@ -2139,11 +2139,9 @@ ThreadUpdater.onload = function() {
       }
       thread.appendChild(frag);
       Parser.parseThread(thread.id.slice(1), -nodes.length);
-      window.scrollBy(0, lastrep.offsetTop - lastoffset);
+      window.scrollBy(0, lastrep.getBoundingClientRect().top - lastoffset);
       
       if (self.auto) {
-        self.unreadCount += nodes.length;
-        document.title = '(' + self.unreadCount + ') ' + self.pageTitle;
       }
       
       if (Config.threadWatcher) {

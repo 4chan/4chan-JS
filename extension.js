@@ -635,19 +635,19 @@ QuotePreview.init = function() {
   var thread;
   
   this.unlink = { rs: true, f: true };
-  this.debounce = 250;
+  this.debounce = 200;
   this.timeout = null;
-  this.xhr = null;
-  this.cachedKey = null;
-  this.cachedNode = null;
+  this.cached = {};
   this.highlight = null;
   this.highlightAnti = null;
+  this.out = true;
 };
 
 QuotePreview.resolve = function(link) {
-  var self, t, post, ids, offset;
+  var self, t, post, ids, offset, cacheKey;
   
   self = QuotePreview;
+  self.out = false;
   
   // [ string, board, tid, pid ]
   t = link.getAttribute('href')
@@ -685,8 +685,8 @@ QuotePreview.resolve = function(link) {
     if (!t[1]) {
       t[1] = Main.board;
     }
-    if (self.cachedKey == [t[1], t[2], t[3]].join('-')) {
-      self.show(link, self.cachedNode, true);
+    if (self.cached[cacheKey = [t[1], t[2], t[3]].join('-')]) {
+      self.show(link, self.cached[cacheKey], true);
     }
     else {
       self.timeout = setTimeout(
@@ -699,7 +699,7 @@ QuotePreview.resolve = function(link) {
 };
 
 QuotePreview.showRemote = function(link, board, tid, pid) {
-  var onload, onerror;
+  var xhr, onload, onerror;
   
   link.style.cursor = 'wait';
   
@@ -709,10 +709,6 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
     link.style.cursor = '';
     
     if (this.status == 200 || this.status == 304 || this.status == 0) {
-      if (!QuotePreview.xhr) {
-        return;
-      }
-      
       posts = JSON.parse(this.responseText).posts;
       
       for (i = 0; j = posts[i]; ++i) {
@@ -724,12 +720,12 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
         el.style.display = 'none';
         el.id = 'quote-preview';
         
-        QuotePreview.cachedKey = [board, tid, pid].join('-');
-        QuotePreview.cachedNode = el;
+        QuotePreview.cached[[board, tid, pid].join('-')] = el;
         
-        document.body.appendChild(el);
-        
-        QuotePreview.show(link, el, true);
+        if (!$.id('quote-preview') && !QuotePreview.out) {
+          document.body.appendChild(el);
+          QuotePreview.show(link, el, true);
+        }
         
         return;
       }
@@ -743,13 +739,12 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
     link.style.cursor = '';
   };
   
-  QuotePreview.xhr =
-    $.get('//api.4chan.org/' + board + '/res/' + tid + '.json',
-      {
-        onload: onload,
-        onerror: onerror
-      }
-    );
+  $.get('//api.4chan.org/' + board + '/res/' + tid + '.json',
+    {
+      onload: onload,
+      onerror: onerror
+    }
+  );
 };
 
 QuotePreview.show = function(link, post, remote) {
@@ -789,6 +784,7 @@ QuotePreview.remove = function(el) {
   var self, cnt;
   
   self = QuotePreview;
+  self.out = true;
   
   if (self.highlight) {
     $.removeClass(self.highlight, 'highlight');
@@ -801,10 +797,6 @@ QuotePreview.remove = function(el) {
   
   clearTimeout(self.timeout);
   el.style.cursor = '';
-  if (self.xhr) {
-    self.xhr.abort();
-    self.xhr = null;
-  }
   
   if (cnt = document.getElementById('quote-preview')) {
     document.body.removeChild(cnt);
@@ -1753,7 +1745,7 @@ ThreadWatcher.fetch = function(key, img) {
   if (img) {
     xhr.onerror = xhr.onload;
   }
-  xhr.open('HEAD', 'https://api.4chan.org/' + tuid[1] + '/res/' + tuid[0] + '.json');
+  xhr.open('HEAD', '//api.4chan.org/' + tuid[1] + '/res/' + tuid[0] + '.json');
   xhr.send(null);
 };
 
@@ -3397,7 +3389,9 @@ Main.onclick = function(e) {
 Main.onThreadMouseOver = function(e) {
   var t = e.target;
   
-  if (Config.quotePreview && $.hasClass(t, 'quotelink')) {
+  if (Config.quotePreview
+    && $.hasClass(t, 'quotelink')
+    && !$.hasClass(t, 'deadlink')) {
     QuotePreview.resolve(e.target);
   }
   else if (Config.filter && t.hasAttribute('data-filtered')) {

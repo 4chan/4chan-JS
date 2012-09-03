@@ -1659,7 +1659,7 @@ ThreadWatcher.toggle = function(tid, board, synced) {
         .replace(/<[^>]*?>/g, '').slice(0, this.charLimit);
     }
     else {
-      label = tid;
+      label = 'No.' + tid;
     }
     
     if (Main.tid && (thread = $.id('t' + tid)).children[1]) {
@@ -3275,7 +3275,7 @@ Main.setTitle = function() {
       title = entities.textContent.slice(0, 50);
     }
     else {
-      title = Main.tid;
+      title = 'No.' + Main.tid;
     }
   }
   
@@ -3689,7 +3689,10 @@ div.backlink {\
 }\
 .backlink span {\
   padding: 0;\
-  margin-left: 2px;\
+}\
+.burichan_new .backlink a,\
+.yotsuba_b_new .backlink a {\
+  color: #34345C !important;\
 }\
 .expbtn {\
   margin-right: 3px;\

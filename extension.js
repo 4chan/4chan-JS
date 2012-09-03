@@ -1718,7 +1718,6 @@ ThreadWatcher.refreshCurrent = function() {
 
 ThreadWatcher.fetch = function(key, img) {
   var tuid, xhr;
-  
   if (ThreadWatcher.watched[key][1] == -1) {
     delete ThreadWatcher.watched[key];
     if (img) {
@@ -1740,6 +1739,7 @@ ThreadWatcher.fetch = function(key, img) {
     if (img) {
       img.src = Main.icons.refresh;
       ThreadWatcher.save();
+      ThreadWatcher.reload();
     }
   };
   if (img) {

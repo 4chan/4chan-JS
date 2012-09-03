@@ -3028,8 +3028,6 @@ Main.init = function()
 };
 
 Main.run = function() {
-  console.profile('4chan JS');
-  
   document.removeEventListener('DOMContentLoaded', Main.run, false);
   
   if (Config.dropDownNav) {
@@ -3123,8 +3121,6 @@ Main.run = function() {
   
   $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
   $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
-  
-  console.profileEnd();
 };
 
 Main.onFirstRun = function() {

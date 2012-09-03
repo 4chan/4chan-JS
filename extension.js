@@ -3657,7 +3657,7 @@ div.post div.postInfo {\
 }\
 .yotsuba_b_new .highlight-anti,\
 .burichan_new .highlight-anti {\
-  border-width: 1px 2px 2px 1px !important;\
+  border-width: 1px !important;\
   background-color: #bfa6ba !important;\
 }\
 .yotsuba_new .highlight-anti,\

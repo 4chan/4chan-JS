@@ -2828,7 +2828,7 @@ var Config = {
   threadWatcher: true,
   threadUpdater: true,
   threadHiding: true,
-  pageTitle: false,
+  pageTitle: true,
 
   imageExpansion: false,
   threadExpansion: false,

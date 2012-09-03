@@ -478,7 +478,7 @@ Parser.parsePost = function(pid, tid) {
         }
       }
       
-      if (Config.backlinks && Main.tid) {
+      if (Config.backlinks) {
         Parser.parseBacklinks(pid, tid);
       }
     }

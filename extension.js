@@ -534,10 +534,10 @@ Parser.parsePost = function(pid, tid) {
       && (file = document.getElementById('f' + pid))
       && (file = file.children[1])
     ) {
-    img = file.firstChild;
-    file.removeChild(img);
-    img.removeAttribute('style');
     if ($.hasClass(file, 'imgspoiler')) {
+      img = file.firstChild;
+      file.removeChild(img);
+      img.removeAttribute('style');
       img.style.maxWidth = img.style.maxHeight
         = $.hasClass(pi.parentNode, 'op') ? '250px' : '125px';
       
@@ -547,8 +547,8 @@ Parser.parsePost = function(pid, tid) {
       filename = file.previousSibling.firstChild;
       filename.lastChild.textContent
         = filename.lastChild.textContent.slice(0, -1) + ', ' + filename.title + ')';
+      file.appendChild(img);
     }
-    file.appendChild(img);
   }
   
   if (Config.localTime) {
@@ -3654,6 +3654,9 @@ div.post div.postInfo {\
   position: absolute;\
   padding: 3px 6px 6px 3px;\
 }\
+#quote-preview .dateTime {\
+  white-space: nowrap;\
+}\
 .yotsuba_new #quote-preview.highlight,\
 .yotsuba_b_new #quote-preview.highlight {\
   border-width: 1px 2px 2px 1px !important;\
@@ -3680,10 +3683,6 @@ div.post div.postInfo {\
 }\
 .photon .highlight-anti {\
   background-color: #bbb !important;\
-}\
-#quote-preview img {\
-  max-width: 125px;\
-  max-height: 125px;\
 }\
 #quote-preview .extButton,\
 #quote-preview .extControls {\

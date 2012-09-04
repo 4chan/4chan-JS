@@ -358,7 +358,8 @@ Parser.parseThread = function(tid, offset, limit) {
           thread,
           pi, 
           thread.getElementsByClassName('nameBlock')[0],
-          document.getElementById('m' + tid)
+          document.getElementById('m' + tid),
+          tid
         );
       }
       
@@ -2128,7 +2129,7 @@ ThreadUpdater.onload = function() {
         document.title = '(' + self.unreadCount + ') ' + self.pageTitle;
       }
       else {
-        self.setStatus(nodes.length + ' new post(s)');
+        self.setStatus(nodes.length + ' new post' + (nodes.length > 1 ? 's' : ''));
       }
       frag = document.createDocumentFragment();
       for (i = nodes.length - 1; i >= 0; i--) {
@@ -2232,7 +2233,7 @@ Filter.onClick = function(e) {
   }
 };
 
-Filter.exec = function(cnt, pi, nb, msg) {
+Filter.exec = function(cnt, pi, nb, msg, tid) {
   var trip, name, com, f, filters = Filter.activeFilters, hit = false;
   
   for (i = 0; f = filters[i]; ++i) {
@@ -2266,8 +2267,14 @@ Filter.exec = function(cnt, pi, nb, msg) {
     if (f.hide) {
       cnt.className += ' post-hidden';
       el = document.createElement('span');
-      el.setAttribute('data-filtered', '1');
-      el.textContent = '[View]';
+      if (!tid) {
+        el.textContent = '[View]';
+        el.setAttribute('data-filtered', '1');
+      }
+      else {
+        console.log(tid);
+        el.innerHTML = '[<a data-filtered="1" href="res/' + tid + '">View</a>]';
+      }
       el.className = 'filter-preview';
       pi.appendChild(el);
       return true;
@@ -3398,7 +3405,8 @@ Main.onThreadMouseOver = function(e) {
     QuotePreview.resolve(e.target);
   }
   else if (Config.filter && t.hasAttribute('data-filtered')) {
-    QuotePreview.show(t, t.parentNode.parentNode);
+    QuotePreview.show(t,
+      t.href ? t.parentNode.parentNode.parentNode : t.parentNode.parentNode);
   }
 }
 
@@ -3429,16 +3437,6 @@ Main.linkToThread = function(tid, board, post) {
 Main.addCSS = function()
 {
   var style, css = '\
-.postHidden blockquote,\
-.postHidden hr,\
-.postHidden > div:not(.postInfo),\
-.postHidden .file,\
-.postHidden .buttons {\
-  display: none !important;\
-}\
-.postHidden {\
-  padding-right: 5px !important;\
-}\
 .extButton.threadHideButton {\
   float: left;\
   margin-right: 5px;\

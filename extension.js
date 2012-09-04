@@ -2274,7 +2274,7 @@ Filter.exec = function(cnt, pi, nb, msg) {
     }
     else {
       cnt.className += ' filter-hl';
-      cnt.style.boxShadow = '10px 0 ' + f.color;
+      cnt.style.boxShadow = '-30px 0 ' + f.color;
     }
   }
   return false;

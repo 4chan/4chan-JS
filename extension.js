@@ -501,7 +501,7 @@ Parser.parsePost = function(pid, tid) {
       
       if (Config.replyHiding && !filtered) {
         el = document.getElementById('sa' + pid);
-        el.innerHTML = '<img class="extButton"'
+        el.innerHTML = '<img class="extButton replyHideButton" '
           + 'data-cmd="hide-r" data-id="' + pid + '" src="'
           + Main.icons.minus + '" title="Hide reply">';
         if (ReplyHiding.hidden[pid]) {
@@ -3436,6 +3436,9 @@ Main.addCSS = function()
   float: left;\
   margin-right: 5px;\
   margin-bottom: -3px;\
+}\
+.extButton.replyHideButton {\
+  margin-bottom: -5px;\
 }\
 div.op > span .postHideButtonCollapsed {\
   margin-right: 1px;\

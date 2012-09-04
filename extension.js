@@ -3432,9 +3432,10 @@ Main.addCSS = function()
 .postHidden {\
   padding-right: 5px !important;\
 }\
-.threadHideButton {\
+.extButton.threadHideButton {\
   float: left;\
   margin-right: 5px;\
+  margin-bottom: -3px;\
 }\
 div.op > span .postHideButtonCollapsed {\
   margin-right: 1px;\

@@ -1888,10 +1888,11 @@ ThreadUpdater.init = function() {
   this.delayId = 0;
   this.delayIdHidden = 4;
   this.delayRange = [ 10, 15, 20, 30, 60, 90, 120, 180, 240, 300 ];
+  this.timeLeft = 0;
+  this.interval = null;
   
   this.lastModified = '0';
   this.lastReply = null;
-  this.lastFocusUpdate = 0;
   
   this.iconNode = document.head.querySelector('link[rel="shortcut icon"]');
   this.iconNode.type = 'image/x-icon';
@@ -1967,13 +1968,12 @@ ThreadUpdater.start = function() {
   }
   document.addEventListener('scroll', this.onScroll, false);
   this.delayId = 0;
-  this.updateInterval = setTimeout(this.update, this.delayRange[0] * 1000);
+  this.timeLeft = this.delayRange[0];
   this.pulse();
 };
 
 ThreadUpdater.stop = function(manual) {
-  clearTimeout(this.updateInterval);
-  clearTimeout(this.pulseInterval);
+  clearTimeout(this.interval);
   this.auto = this.updating = this.force = false;
   this.autoNode.checked = this.autoNodeBot.checked = false;
   if (this.hidden) {
@@ -1988,24 +1988,20 @@ ThreadUpdater.stop = function(manual) {
 
 ThreadUpdater.pulse = function() {
   var self = ThreadUpdater;
-  self.setStatus(self.delayRange[self.delayId]
-    - (0 | (Date.now() - self.lastUpdated) / 1000));
-  self.pulseInterval = setTimeout(self.pulse, 1000);
+  
+  if (self.timeLeft == 0) {
+    self.update();
+  }
+  else {
+    self.setStatus(self.timeLeft--);
+    self.interval = setTimeout(self.pulse, 1000);
+  }
 };
 
-ThreadUpdater.resetDelay = function() {
-  clearTimeout(this.updateInterval);
-  clearTimeout(this.pulseInterval);
-  this.lastUpdated = Date.now();
-  this.updateInterval
-    = setTimeout(this.update, this.delayRange[this.delayId] * 1000);
-  this.pulse();
-};
-
-ThreadUpdater.adjustDelay = function(postCount, force)
+ThreadUpdater.adjustDelay = function(postCount)
 {
   if (postCount == 0) {
-    if (!force) {
+    if (!this.force) {
       if (this.delayId < this.delayRange.length - 1) {
         ++this.delayId;
       }
@@ -2014,9 +2010,8 @@ ThreadUpdater.adjustDelay = function(postCount, force)
   else {
     this.delayId = document[this.hidden] ? this.delayIdHidden : 0;
   }
+  this.timeLeft = this.delayRange[this.delayId];
   if (this.auto) {
-    this.updateInterval
-      = setTimeout(this.update, this.delayRange[this.delayId] * 1000);
     this.pulse();
   }
 };
@@ -2033,7 +2028,10 @@ ThreadUpdater.onVisibilityChange = function(e) {
   else {
     self.delayId = 0;
   }
-  self.resetDelay();
+  self.timeLeft = self.delayRange[0];
+  self.lastUpdated = Date.now();
+  clearTimeout(self.interval);
+  self.pulse();
 };
 
 ThreadUpdater.onScroll = function(e) {
@@ -2070,10 +2068,7 @@ ThreadUpdater.update = function() {
     return;
   }
   
-  if (self.auto) {
-    clearTimeout(self.pulseInterval);
-    clearTimeout(self.updateInterval);  
-  }
+  clearTimeout(self.interval);
   
   self.updating = true;
   
@@ -2091,7 +2086,7 @@ ThreadUpdater.update = function() {
 };
 
 ThreadUpdater.onload = function() {
-  var i, self, nodes, thread, newposts, frag, postcount, lastrep, lastid, lastoffset;
+  var i, self, nodes, thread, newposts, frag, lastrep, lastid;
   
   self = ThreadUpdater;
   nodes = [];
@@ -2132,6 +2127,9 @@ ThreadUpdater.onload = function() {
         self.unreadCount += nodes.length;
         document.title = '(' + self.unreadCount + ') ' + self.pageTitle;
       }
+      else {
+        self.setStatus(nodes.length + ' new post(s)');
+      }
       frag = document.createDocumentFragment();
       for (i = nodes.length - 1; i >= 0; i--) {
         frag.appendChild(Parser.buildHTMLFromJSON(nodes[i], Main.board));
@@ -2150,14 +2148,12 @@ ThreadUpdater.onload = function() {
   else if (this.status == 404) {
     self.setIcon(self.icons[Main.type + 'dead']);
     self.setError('This thread has been pruned or deleted');
-    if (self.auto) {
-      self.stop();
-    }
+    self.stop();
     return;
   }
   
   self.lastUpdated = Date.now();
-  self.adjustDelay(nodes.length, self.force);
+  self.adjustDelay(nodes.length);
   self.updating = self.force = false;
 };
 
@@ -2172,7 +2168,7 @@ ThreadUpdater.onerror = function() {
   }
   
   self.lastUpdated = Date.now();
-  self.adjustDelay(0, self.force);
+  self.adjustDelay(0);
   self.updating = self.force = false;
 };
 
@@ -2271,7 +2267,7 @@ Filter.exec = function(cnt, pi, nb, msg) {
       cnt.className += ' post-hidden';
       el = document.createElement('span');
       el.setAttribute('data-filtered', '1');
-      el.textContent = '+';
+      el.textContent = '[View]';
       el.className = 'filter-preview';
       pi.appendChild(el);
       return true;
@@ -2854,7 +2850,9 @@ var Config = {
 
   customCSS: false,
   dropDownNav: false,
-  fixedThreadWatcher: false
+  fixedThreadWatcher: false,
+  
+  disableAll: false
 };
 
 Config.load = function() {
@@ -2960,7 +2958,12 @@ SettingsMenu.open = function() {
     }
   }
   
-  html += '</ul><span class="right"><button data-cmd="settings-save">Save</button>'
+  html += '</ul><ul><li>'
+    + '<label title="TOOLTIP">'
+    + '<input type="checkbox" class="menuOption" data-option="disableAll"'
+    + (Config.disableAll ? ' checked="checked">' : '>')
+    + 'Disable the extension'
+    + '</label></li></ul><span class="right"><button data-cmd="settings-save">Save</button>'
     + '<button data-cmd="settings-toggle">Close</button></div>';
   
   cnt.innerHTML = html;
@@ -3035,6 +3038,15 @@ Main.init = function()
 
 Main.run = function() {
   document.removeEventListener('DOMContentLoaded', Main.run, false);
+  
+  document.addEventListener('click', Main.onclick, false);
+  
+  $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
+  $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
+  
+  if (Config.disableAll) {
+    return;
+  }
   
   if (Config.dropDownNav) {
     $.id('boardNavDesktop').style.display = 'none';
@@ -3122,11 +3134,6 @@ Main.run = function() {
   if (Config.quotePreview) {
     QuotePreview.init();
   }
-  
-  document.addEventListener('click', Main.onclick, false);
-  
-  $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
-  $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
 };
 
 Main.onFirstRun = function() {
@@ -3190,7 +3197,7 @@ Main.setPageNav = function() {
     cnt.style.left = '10px';
     cnt.style.top = '50px';
   }
-
+  
   el = $.cls('pagelist')[0].cloneNode(true);
   cnt.appendChild(el);
   Draggable.set(el);

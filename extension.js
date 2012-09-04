@@ -2334,7 +2334,7 @@ Filter.load = function() {
               .replace(regexWildcard, replaceWildcard);
             pattern += wordSepS + inner + wordSepE;
           }
-          pattern = new RegExp('^' + pattern, 'i');
+          pattern = new RegExp('^' + pattern, 'im');
         }
         //console.log('Resulting pattern: ' + pattern);
         this.activeFilters.push({

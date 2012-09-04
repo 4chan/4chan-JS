@@ -3674,6 +3674,7 @@ div.post div.postInfo {\
 .photon .highlight-anti {\
   background-color: #bbb !important;\
 }\
+#quote-preview .backlink,\
 #quote-preview .extButton,\
 #quote-preview .extControls {\
   display: none;\

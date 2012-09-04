@@ -2959,7 +2959,7 @@ SettingsMenu.open = function() {
   }
   
   html += '</ul><ul><li>'
-    + '<label title="TOOLTIP">'
+    + '<label title="Completely disable the extension (overrides any checked boxes)">'
     + '<input type="checkbox" class="menuOption" data-option="disableAll"'
     + (Config.disableAll ? ' checked="checked">' : '>')
     + 'Disable the extension'

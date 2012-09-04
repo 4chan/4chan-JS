@@ -93,7 +93,7 @@ var Parser = {};
 Parser.init = function() {
   var o, a, h, m;
   
-  if (Config.filter || Config.embedSoundCloud || Config.embedYoutube) {
+  if (Config.filter || Config.embedSoundCloud || Config.embedYouTube) {
     this.needMsg = true;
   }
   

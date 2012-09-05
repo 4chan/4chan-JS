@@ -152,8 +152,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
   }
   
   var noLink = data.resto + '#p' + data.no;
-  var quoteLink = noLink.replace('p', 'q');
-
+  
   if (!data.capcode && data.id) {
     userId = ' <span class="posteruid id_'
       + data.id + '">(ID: <span class="hand" title="Highlight posts by this ID">'
@@ -321,7 +320,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
   
         '<span class="postNum desktop">' +
           '<a href="' + noLink + '" title="Highlight this post">No.</a><a href="' +
-          quoteLink + '">' + data.no + '</a>' +
+          'javascript:quote(' + data.no + ');" title="Quote this post">' + data.no + '</a>' +
         '</span>' +
       '</div>' +
       (isOP ? '' : fileHtml) +
@@ -3392,7 +3391,8 @@ Main.onclick = function(e) {
         break;
     }
   }
-  else if (Config.imageExpansion && e.which == 1
+  else if (!Config.disableAll
+      && Config.imageExpansion && e.which == 1
       && $.hasClass(t.parentNode, 'fileThumb')) {
     e.preventDefault();
     ImageExpansion.toggle(t);

@@ -3055,6 +3055,8 @@ Main.run = function() {
     return;
   }
   
+  $.id('settingsWindowLinkMobile').addEventListener('click', SettingsMenu.toggle, false);
+  
   if (Config.dropDownNav) {
     $.id('boardNavDesktop').style.display = 'none';
     $.id('boardNavDesktopFoot').style.display = 'none';
@@ -3772,6 +3774,7 @@ div.backlink {\
   width: 100%;\
   height: 100%;\
   background-color: rgba(0, 0, 0, 0.25);\
+  z-index: 9002;\
 }\
 .UIPanel:after {\
   display: inline-block;\

@@ -204,10 +204,10 @@ Parser.buildHTMLFromJSON = function(data, board) {
   }
   
   if (data.country) {
-    flag = '<img src="' + staticPath + '/image/country/'
+    flag = ' <img src="' + staticPath + '/image/country/'
       + (Main.board == 'pol' ? 'troll/' : '')
       + data.country.toLowerCase() + '.gif" alt="'
-      + data.country + '" title="' + data.country_name + '" class="countryFlag"> ';
+      + data.country + '" title="' + data.country_name + '" class="countryFlag">';
   }
   else {
     flag = '';

@@ -369,7 +369,7 @@ Parser.parseThread = function(tid, offset, limit) {
         el.alt = 'H';
         el.innerHTML = '<img class="extButton threadHideButton"'
           + 'data-cmd="hide" data-id="' + tid + '" src="'
-          + Main.icons.minus + '" title="Hide thread">';
+          + Main.icons.minus + '" title="Toggle thread">';
         posts[0].insertBefore(el, posts[0].firstChild);
         if (ThreadHiding.hidden[tid]) {
           ThreadHiding.hidden[tid] = Main.now;
@@ -504,7 +504,7 @@ Parser.parsePost = function(pid, tid) {
         el = document.getElementById('sa' + pid);
         el.innerHTML = '<img class="extButton replyHideButton" '
           + 'data-cmd="hide-r" data-id="' + pid + '" src="'
-          + Main.icons.minus + '" title="Hide reply">';
+          + Main.icons.minus + '" title="Toggle reply">';
         if (ReplyHiding.hidden[pid]) {
           ReplyHiding.hidden[pid] = Main.now;
           ReplyHiding.hide(pid);

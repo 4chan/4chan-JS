@@ -823,11 +823,16 @@ ImageExpansion.expand = function(thumb) {
 };
 
 ImageExpansion.contract = function(img) {
-  var p = img.parentNode;
+  var cnt, p;
   
+  p = img.parentNode;
+  cnt = p.parentNode.parentNode;
   p.parentNode.style.display = '';
   p.firstChild.style.display = '';
   p.removeChild(img);
+  if (cnt.offsetTop < window.pageYOffset) {
+    cnt.scrollIntoView();
+  }
 };
 
 ImageExpansion.toggle = function(t) {

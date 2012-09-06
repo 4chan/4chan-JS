@@ -2539,9 +2539,7 @@ Media.init = function() {
   this.nodesSC = [];
 
   this.testYT = /youtube\.com|youtu\.be/;
-  this.matchYT = /(?:https?:\/\/)?(?:www\.youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\s<]*/g;
-  this.urlYT = "<iframe width=\"640\" height=\"360\" "
-    + "src=\"//www.youtube.com/embed/$1\" frameborder=\"0\" allowfullscreen></iframe>"
+  this.matchYT = /(?:https?:\/\/)?(?:www\.youtube\.com\/watch\?(?:[^\s]*?)v=|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\s<]*/g;
   this.nodesYT = [];
 };
 
@@ -2639,7 +2637,13 @@ Media.parseYouTube = function(msg) {
 };
 
 Media.embedYouTube = function(msg) {
-  msg.innerHTML = msg.innerHTML.replace(this.matchYT, this.urlYT);
+  msg.innerHTML = msg.innerHTML.replace(this.matchYT, Media.embedYouTubeCB);
+};
+
+Media.embedYouTubeCB = function(m, vid) {
+  return '<iframe width=\"640\" height=\"360\" '
+    + 'src=\"//www.youtube.com/embed/' + encodeURIComponent(vid)
+    + '\" frameborder=\"0\" allowfullscreen></iframe>';
 };
 
 /**

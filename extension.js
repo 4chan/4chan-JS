@@ -917,7 +917,7 @@ QR.quotePost = function(pid, qr) {
   
   q = '>>' + pid + '\n';
   if (sel) {
-    q += '>' + sel.replace(/\n/g, '\n>') + '\n';
+    q += '>' + sel.replace(/\s+$/, '').replace(/\n/g, '\n>') + '\n';
   }
   
   if (ta.value) {

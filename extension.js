@@ -1311,7 +1311,7 @@ QR.submit = function(force) {
         QR.resetFile();
       }
       if (Main.tid && ThreadUpdater.enabled) {
-        setTimeout(ThreadUpdater.forceUpdate, 500);
+        setTimeout(ThreadUpdater.forceUpdate, 500, true);
       }
     }
     else {
@@ -1961,7 +1961,7 @@ ThreadUpdater.initControls = function() {
 ThreadUpdater.start = function() {
   this.auto = true;
   this.autoNode.checked = this.autoNodeBot.checked = true;
-  this.force = this.updating = false;
+  this.force = this.updating = this.fromQR = false;
   this.lastUpdated = Date.now();
   if (this.hidden) {
     document.addEventListener(this.visibilitychange,
@@ -1975,7 +1975,7 @@ ThreadUpdater.start = function() {
 
 ThreadUpdater.stop = function(manual) {
   clearTimeout(this.interval);
-  this.auto = this.updating = this.force = false;
+  this.auto = this.updating = this.force = this.fromQR = false;
   this.autoNode.checked = this.autoNodeBot.checked = false;
   if (this.hidden) {
     document.removeEventListener(this.visibilitychange,
@@ -2051,8 +2051,9 @@ ThreadUpdater.onScroll = function(e) {
   }
 };
 
-ThreadUpdater.forceUpdate = function() {
+ThreadUpdater.forceUpdate = function(fromQR) {
   ThreadUpdater.force = true;
+  ThreadUpdater.fromQR = fromQR;
   ThreadUpdater.update();
 };
 
@@ -2128,9 +2129,10 @@ ThreadUpdater.onload = function() {
         self.unreadCount += nodes.length;
         document.title = '(' + self.unreadCount + ') ' + self.pageTitle;
       }
-      else {
+      else if (!self.fromQR) {
         self.setStatus(nodes.length + ' new post' + (nodes.length > 1 ? 's' : ''));
       }
+      self.fromQR = false;
       frag = document.createDocumentFragment();
       for (i = nodes.length - 1; i >= 0; i--) {
         frag.appendChild(Parser.buildHTMLFromJSON(nodes[i], Main.board));

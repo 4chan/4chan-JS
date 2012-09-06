@@ -3700,9 +3700,6 @@ div.post div.postInfo {\
 .deadlink {\
   text-decoration: line-through !important;\
 }\
-.hasNewReplies {\
-  font-weight: bold;\
-}\
 div.backlink {\
   font-size: 0.8em !important;\
   display: inline;\
@@ -3740,7 +3737,7 @@ div.backlink {\
   border-top: 1px solid rgba(255, 255, 255, 0.25);\
   border-left: 1px solid rgba(255, 255, 255, 0.25);\
 }\
-.newPostsMarker {\
+.newPostsMarker:not(#quote-preview) {\
   box-shadow: 0 3px red;\
 }\
 #toggleMsgBtn {\

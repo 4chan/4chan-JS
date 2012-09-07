@@ -141,7 +141,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     emailStart = '',
     emailEnd = '',
     noFilename,
-      
+    
     staticPath = '//static.4chan.org',
     imgDir = '//images.4chan.org/' + board + '/src';
   
@@ -161,40 +161,37 @@ Parser.buildHTMLFromJSON = function(data, board) {
   }
   
   switch (data.capcode) {
+    case 'admin_highlight':
+      highlight = ' highlightPost';
     case 'admin':
       capcodeStart = ' <strong class="capcode hand id_admin"'
         + 'title="Highlight posts by the Administrator">## Admin</strong>';
       capcodeClass = ' capcodeAdmin';
-    
+      
       capcode = ' <img src="' + staticPath + '/image/adminicon.gif" '
         + 'alt="This user is the 4chan Administrator." '
         + 'title="This user is the 4chan Administrator." class="identityIcon"/>';
       break;
-    
     case 'mod':
       capcodeStart = ' <strong class="capcode hand id_mod" '
         + 'title="Highlight posts by Moderators">## Moderator</strong>';
       capcodeClass = ' capcodeMod';
-    
+      
       capcode = ' <img src="' + staticPath + '/image/modicon.gif" '
         + 'alt="This user is a 4chan Moderator." '
         + 'title="This user is a 4chan Moderator." class="identityIcon"/>';
       break;
-    
     case 'developer':
       capcodeStart = ' <strong class="capcode hand id_developer" '
         + 'title="Highlight posts by Developers">## Developer</strong>';
       capcodeClass = ' capcodeDeveloper';
-    
+      
       capcode = ' <img src="' + staticPath + '/image/developericon.gif" '
         + 'alt="This user is a 4chan Developer." '
         + 'title="This user is a 4chan Developer." class="identityIcon"/>';
       break;
-    
-    default:
-      break;
   }
-
+  
   if (data.email) {
     emailStart = '<a href="mailto:' + data.email.replace(/ /g, '%20') + '" class="useremail">';
     emailEnd = '</a>';

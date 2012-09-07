@@ -2042,7 +2042,9 @@ ThreadUpdater.onScroll = function(e) {
   if (document.documentElement.scrollHeight ==
     (document.documentElement.clientHeight + window.scrollY)) {
     self = ThreadUpdater;
-    self.setIcon(self.defaultIcon);
+    if (!self.dead) {
+      self.setIcon(self.defaultIcon);
+    }
     self.unreadCount = 0;
     document.title = self.pageTitle;
     if (self.lastReply) {
@@ -2152,6 +2154,7 @@ ThreadUpdater.onload = function() {
   else if (this.status == 404) {
     self.setIcon(self.icons[Main.type + 'dead']);
     self.setError('This thread has been pruned or deleted');
+    self.dead = true;
     self.stop();
     return;
   }

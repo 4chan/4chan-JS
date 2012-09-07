@@ -111,7 +111,7 @@ Parser.init = function() {
       this.utcOffset = ' UTC';
     }
     
-    this.weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    this.weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   }
 };
 
@@ -128,7 +128,6 @@ Parser.buildHTMLFromJSON = function(data, board) {
     fileInfo = '',
     fileHtml = '',
     fileThumb,
-    shortSubject = '',
     fileSize = '',
     fileClass = '',
     shortFile = '',
@@ -150,7 +149,6 @@ Parser.buildHTMLFromJSON = function(data, board) {
     isOP = true;
     data.resto = data.no;
   }
-  
   var noLink = data.resto + '#p' + data.no;
   
   if (!data.capcode && data.id) {
@@ -214,8 +212,8 @@ Parser.buildHTMLFromJSON = function(data, board) {
 
   if (data.ext) {
     shortFile = longFile = data.filename + data.ext;
-    if (data.filename.length > 40) {
-      shortFile = data.filename.slice(0, 35) + '(...)' + data.ext;
+    if (data.filename.length > (isOP ? 40 : 30)) {
+      shortFile = data.filename.slice(0, isOP ? 35 : 25) + '(...)' + data.ext;
     }
 
     if (!data.tn_w && !data.tn_h && data.ext == '.gif') {
@@ -277,17 +275,6 @@ Parser.buildHTMLFromJSON = function(data, board) {
       + fileBuildStart + fileInfo + fileBuildEnd + imgSrc + '</div>';
   }
   
-  if (shortSubject = data.sub) {
-    if (shortSubject.length > 28) {
-      shortSubject = data.sub.replace('&#44;', ',');
-      shortSubject = '<span title="' + shortSubject + '">'
-        + shortSubject.slice(0, 23) + '(...)</span>';
-    }
-  }
-  else {
-    data.sub = '';
-  }
-  
   if (data.trip) {
     tripcode = ' <span class="postertrip">' + data.trip + '</span>';
   }
@@ -299,9 +286,9 @@ Parser.buildHTMLFromJSON = function(data, board) {
     '<div class="sideArrows" id="sa' + data.no + '">&gt;&gt;</div>' +
     '<div id="p' + data.no + '" class="post ' + (isOP ? 'op' : 'reply') + highlight + '">' +
       '<div class="postInfoM mobile" id="pim' + data.no + '">' +
-        '<span class="nameBlock' + capcodeClass + '">' + emailStart +
+        '<span class="nameBlock' + capcodeClass + '">' +
         '<span class="name">' + data.name + '</span>' + tripcode +
-        emailEnd + capcodeStart + emailEnd + userId + flag +
+        capcodeStart + capcode + userId + flag +
         '<br><span class="subject">' + data.sub +
         '</span></span><span class="dateTime postNum" data-utc="' + data.time + '">' +
         data.now + '<br><em><a href="' + data.no + '#p' + data.no + '">No.</a>' +
@@ -311,13 +298,11 @@ Parser.buildHTMLFromJSON = function(data, board) {
       '<div class="postInfo desktop" id="pi' + data.no + '">' +
         '<input type="checkbox" name="' + data.no + '" value="delete"> ' +
         '<span class="subject">' + data.sub + '</span> ' +
-        '<span class="nameBlock' + capcodeClass + '">' +
-          emailStart + '<span class="name">' + data.name + '</span>' + tripcode +
-          emailEnd  + capcodeStart + emailEnd + userId + flag +
+        '<span class="nameBlock' + capcodeClass + '">' + emailStart +
+          '<span class="name">' + data.name + '</span>' +
+          tripcode + capcodeStart + emailEnd + capcode + userId + flag +
         ' </span> ' +
-  
         '<span class="dateTime" data-utc="' + data.time + '">' + data.now + '</span> ' +
-  
         '<span class="postNum desktop">' +
           '<a href="' + noLink + '" title="Highlight this post">No.</a><a href="' +
           'javascript:quote(' + data.no + ');" title="Quote this post">' + data.no + '</a>' +
@@ -454,7 +439,7 @@ Parser.parseMarkup = function(post) {
 };
 
 Parser.parsePost = function(pid, tid) {
-  var cnt, el, pi, href, img, file, msg, filtered, html;
+  var cnt, el, pi, href, img, file, msg, filtered, html, filename, txt, finfo, isOP;
   
   if (tid) {
     pi = document.getElementById('pi' + pid);
@@ -525,7 +510,6 @@ Parser.parsePost = function(pid, tid) {
         Media.parseYouTube(msg);
       }
     }
-    
   }
   else {
     pi = pid.getElementsByClassName('postInfo')[0];
@@ -540,15 +524,21 @@ Parser.parsePost = function(pid, tid) {
       img = file.firstChild;
       file.removeChild(img);
       img.removeAttribute('style');
-      img.style.maxWidth = img.style.maxHeight
-        = $.hasClass(pi.parentNode, 'op') ? '250px' : '125px';
-      
+      isOP = $.hasClass(pi.parentNode, 'op');
+      img.style.maxWidth = img.style.maxHeight = isOP ? '250px' : '125px';
       img.src = '//thumbs.4chan.org'
         + (file.pathname.replace(/src(\/[0-9]+).+$/, 'thumb$1s.jpg'))
       
       filename = file.previousSibling.firstChild;
+      finfo = filename.title.split('.');
+      if (finfo[0].length > (isOP ? 40 : 30)) {
+        txt = finfo[0].slice(0, isOP ? 35 : 25) + '(...)' + finfo[1];
+      }
+      else {
+        txt = filename.title;
+      }
       filename.lastChild.textContent
-        = filename.lastChild.textContent.slice(0, -1) + ', ' + filename.title + ')';
+        = filename.lastChild.textContent.slice(0, -1) + ', ' + txt + ')';
       file.appendChild(img);
     }
   }
@@ -819,12 +809,12 @@ ImageExpansion.expand = function(thumb) {
   img.setAttribute('src', thumb.parentNode.getAttribute('href'));
   img.style.display = 'none';
   thumb.parentNode.appendChild(img);
-  setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);
+  this.timeout = setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);
 };
 
 ImageExpansion.contract = function(img) {
   var cnt, p;
-  
+  clearTimeout(this.timeout);
   p = img.parentNode;
   cnt = p.parentNode.parentNode;
   p.parentNode.style.display = '';
@@ -845,7 +835,7 @@ ImageExpansion.toggle = function(t) {
 };
 
 ImageExpansion.checkLoadStart = function(img, thumb) {
-  if (!img || img.naturalWidth) {
+  if (img && img.naturalWidth) {
     thumb.parentNode.parentNode.style.display = 'table';
     img.style.display = '';
     thumb.style.display = 'none';
@@ -902,7 +892,7 @@ QR.syncStorage = function(e) {
 };
 
 QR.quotePost = function(pid, qr) {
-  var q, pos, sel, ta;
+  var q, pos, sel, ta, scroll;
   
   if (qr) {
     ta = $.tag('textarea', document.forms.qrPost)[0];
@@ -910,6 +900,8 @@ QR.quotePost = function(pid, qr) {
   else {
     ta = $.tag('textarea', document.forms.post)[0];
   }
+  
+  scroll = ta.value == '';
   
   pos = ta.selectionStart;
   
@@ -940,6 +932,9 @@ QR.quotePost = function(pid, qr) {
   ta.selectionStart = ta.selectionEnd = pos + q.length;
   
   if (qr) {
+    if (scroll) {
+      ta.scrollTop = ta.scrollHeight;
+    }
     ta.focus();
   }
 };
@@ -1041,6 +1036,7 @@ QR.show = function(tid, pid) {
   if (spoiler = tbody.querySelector('input[name="spoiler"]')) {
     spoiler = spoiler.parentNode.parentNode;
     spoiler.parentNode.removeChild(spoiler);
+    spoiler.id = 'qrSpoiler';
     spoiler.innerHTML
       = '<label>[<input type="checkbox" value="on" name="spoiler">Spoiler?]</label>';
     file.parentNode.insertBefore(spoiler, file.nextSibling);
@@ -2850,13 +2846,13 @@ var Config = {
   threadUpdater: true,
   threadHiding: true,
   pageTitle: true,
+  hideGlobalMsg: true,
 
   imageExpansion: false,
   threadExpansion: false,
   imageSearch: false,
   reportButton: false,
   localTime: false,
-  hideGlobalMsg: false,
   topPageNav: false,
   stickyNav: false,
 
@@ -2900,7 +2896,8 @@ SettingsMenu.options = {
       threadWatcher: [ 'Thread watcher', 'Enable thread watcher' ],
       threadUpdater: [ 'Thread updater', 'Enable inline thread updating' ],
       threadHiding: [ 'Thread hiding', 'Enable thread hiding' ],
-      pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ]
+      pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ],
+      hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ]
     },
     'Recommended': {
       imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],
@@ -2908,9 +2905,8 @@ SettingsMenu.options = {
       imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
       reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ],
       localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ],
-      hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ],
-      topPageNav: [ 'Page navigation at the top', 'Show the page switcher at the top of the page' ],
-      stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows' ]
+      topPageNav: [ 'Page navigation at the top', 'Show the page switcher at the top of the page, hold Shift and drag to move' ],
+      stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows, hold Shift and drag to move' ]
     },
     'Advanced': {
       filter: [ 'Filters &amp; Highlights [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
@@ -3559,7 +3555,7 @@ div.post div.postInfo {\
   width: 296px;\
   padding: 0;\
   margin-bottom: 2px;\
-  font-size: 11pt;\
+  font-size: 10pt;\
   display: block;\
   padding: 0 2px;\
 }\
@@ -3570,6 +3566,9 @@ div.post div.postInfo {\
 }\
 #quickReply input.presubmit {\
   width: 208px;\
+}\
+#qrSpoiler {\
+  display: inline;\
 }\
 #qrFile {\
   visibility: hidden;\

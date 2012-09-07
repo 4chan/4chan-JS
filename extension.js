@@ -800,6 +800,7 @@ var ImageExpansion = {};
 ImageExpansion.expand = function(thumb) {
   var img;
   
+  thumb.setAttribute('data-expanding', '1');
   img = document.createElement('img');
   img.alt = 'Image';
   img.className = 'fitToPage';
@@ -824,7 +825,9 @@ ImageExpansion.contract = function(img) {
 
 ImageExpansion.toggle = function(t) {
   if (t.hasAttribute('data-md5')) {
-    ImageExpansion.expand(t);
+    if (!t.hasAttribute('data-expanding')) {
+      ImageExpansion.expand(t);
+    }
   }
   else {
     ImageExpansion.contract(t);
@@ -832,7 +835,8 @@ ImageExpansion.toggle = function(t) {
 };
 
 ImageExpansion.checkLoadStart = function(img, thumb) {
-  if (img && img.naturalWidth) {
+  if (!img || img.naturalWidth) {
+    thumb.removeAttribute('data-expanding');
     thumb.parentNode.parentNode.style.display = 'table';
     img.style.display = '';
     thumb.style.display = 'none';
@@ -1297,20 +1301,28 @@ QR.submit = function(force) {
       
       cd += Date.now();
       localStorage.setItem('4chan-cd-' + Main.board, cd);
-      QR.startCooldown(cd);
       
-      $.byName('com')[1].value = '';
-      $.byName('sub')[1].value = '';
-      if (el = $.byName('spoiler')[3]) {
-        el.checked = false;
-      }
-      QR.reloadCaptcha();
-      if ((file = $.id('qrFile')) && file.value) {
-        QR.resetFile();
-      }
       if (Main.tid && ThreadUpdater.enabled) {
         setTimeout(ThreadUpdater.forceUpdate, 500, true);
       }
+      
+      if (Config.persistentQR) {
+        QR.startCooldown(cd);
+        $.byName('com')[1].value = '';
+        $.byName('sub')[1].value = '';
+        if (el = $.byName('spoiler')[3]) {
+          el.checked = false;
+        }
+        QR.reloadCaptcha();
+        if ((file = $.id('qrFile')) && file.value) {
+          QR.resetFile();
+        }
+      }
+      else {
+        Recaptcha.reload('t');
+        QR.close();
+      }
+      
     }
     else {
       QR.showPostError('Error: ' + this.status + ' ' + this.statusText);
@@ -2865,6 +2877,7 @@ var Config = {
   customCSS: false,
   dropDownNav: false,
   fixedThreadWatcher: false,
+  persistentQR: false,
   
   disableAll: false
 };
@@ -2918,7 +2931,8 @@ SettingsMenu.options = {
     'Customization': {
       customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', 'Embed your own CSS rules' ],
       dropDownNav: [ 'Use drop-down navigation', 'Use persistent drop-down navigation bar instead of traditional links' ],
-      fixedThreadWatcher: [ 'Pin thread watcher', 'Pin the thread watcher to the page' ]
+      fixedThreadWatcher: [ 'Pin thread watcher', 'Pin the thread watcher to the page' ],
+      persistentQR: [ 'Persistent quick reply', 'Keep quick reply window open after posting' ]
     }
 };
 

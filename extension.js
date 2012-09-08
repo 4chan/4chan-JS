@@ -97,7 +97,9 @@ Parser.init = function() {
     this.needMsg = true;
   }
   
-  Parser.prettify = typeof prettyPrint == 'function';
+  this.prettify = typeof prettyPrint == 'function';
+  
+  this.customSpoiler = {};
   
   if (Config.localTime) {
     if (o = (new Date).getTimezoneOffset()) {
@@ -129,6 +131,13 @@ Parser.parseThreadJSON = function(data) {
   return thread;
 };
 
+Parser.setCustomSpoiler = function(board, val) {
+  if (!this.customSpoiler[board] && (val = parseInt(val))) {
+    this.customSpoiler[board] = '-' + board
+      + (Math.floor(Math.random() * val) + 1);
+  }
+};
+
 Parser.buildHTMLFromJSON = function(data, board) {
   var
     container = document.createElement('div'),
@@ -154,6 +163,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     highlight = '',
     emailStart = '',
     emailEnd = '',
+    noLink,
     noFilename,
     
     staticPath = '//static.4chan.org',
@@ -163,7 +173,12 @@ Parser.buildHTMLFromJSON = function(data, board) {
     isOP = true;
     data.resto = data.no;
   }
-  var noLink = data.resto + '#p' + data.no;
+  
+  noLink = data.resto + '#p' + data.no;
+  
+  if (!Main.tid || board != Main.board) {
+    noLink = 'res/' + noLink;
+  }
   
   if (!data.capcode && data.id) {
     userId = ' <span class="posteruid id_'
@@ -213,7 +228,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
   
   if (data.country) {
     flag = ' <img src="' + staticPath + '/image/country/'
-      + (Main.board == 'pol' ? 'troll/' : '')
+      + (board == 'pol' ? 'troll/' : '')
       + data.country.toLowerCase() + '.gif" alt="'
       + data.country + '" title="' + data.country_name + '" class="countryFlag">';
   }
@@ -246,7 +261,8 @@ Parser.buildHTMLFromJSON = function(data, board) {
       if (!Config.revealSpoilers) {
         fileClass = ' imgspoiler';
         
-        fileThumb = '//static.4chan.org/image/spoiler.png';
+        fileThumb = '//static.4chan.org/image/spoiler'
+          + (Parser.customSpoiler[board] || '') + '.png';
         data.tn_w = 100;
         data.tn_h = 100;
         
@@ -718,6 +734,9 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
         if (j.no != pid) {
           continue;
         }
+        if (posts[0].custom_spoiler) {
+          Parser.setCustomSpoiler(board, posts[0].custom_spoiler);
+        }
         el = $.cls('post', Parser.buildHTMLFromJSON(j, board))[0];
         el.className = 'post preview';
         el.style.display = 'none';
@@ -1034,7 +1053,12 @@ QR.show = function(tid, pid) {
       }
       else {
         row.innerHTML = fields[i].children[1].innerHTML;
-        el = row.firstChild;
+        if (row.firstChild.type == 'hidden') {
+          el = row.lastChild.previousSibling;
+        }
+        else {
+          el = row.firstChild;
+        }
         if (el.nodeName == 'INPUT' || el.nodeName == 'TEXTAREA') {
           el.setAttribute('placeholder', placeholder);
         }
@@ -1811,6 +1835,11 @@ ThreadExpansion.fetch = function(tid) {
         if (this.status == 200) {
           tail = +$.cls('reply', thread)[0].id.slice(1);
           posts = Parser.parseThreadJSON(this.responseText);
+          
+          if (posts[0].custom_spoiler) {
+            Parser.setCustomSpoiler(Main.board, posts[0].custom_spoiler);
+          }
+          
           frag = document.createDocumentFragment();
           
           for (i = 1; p = posts[i]; ++i) {
@@ -2090,7 +2119,7 @@ ThreadUpdater.update = function() {
 };
 
 ThreadUpdater.onload = function() {
-  var i, self, nodes, thread, newposts, frag, lastrep, lastid;
+  var i, self, nodes, thread, newposts, frag, lastrep, lastid, spoiler;
   
   self = ThreadUpdater;
   nodes = [];
@@ -2106,6 +2135,10 @@ ThreadUpdater.onload = function() {
     lastid = +lastrep.id.slice(2);
     
     newposts = Parser.parseThreadJSON(this.responseText);
+    
+    if (newposts[0].custom_spoiler) {
+      Parser.setCustomSpoiler(Main.board, newposts[0].custom_spoiler);
+    }
     
     for (i = newposts.length - 1; i >= 0; i--) {
       if (newposts[i].no <= lastid) {

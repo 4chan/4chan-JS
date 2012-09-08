@@ -115,6 +115,20 @@ Parser.init = function() {
   }
 };
 
+Parser.parseThreadJSON = function(data) {
+  var thread;
+  
+  try {
+    thread = JSON.parse(data).posts;
+  }
+  catch (e) {
+    console.log(e);
+    thread = [];
+  }
+  
+  return thread;
+};
+
 Parser.buildHTMLFromJSON = function(data, board) {
   var
     container = document.createElement('div'),
@@ -698,7 +712,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
     link.style.cursor = '';
     
     if (this.status == 200 || this.status == 304 || this.status == 0) {
-      posts = JSON.parse(this.responseText).posts;
+      posts = Parser.parseThreadJSON(this.responseText);
       
       for (i = 0; j = posts[i]; ++i) {
         if (j.no != pid) {
@@ -950,8 +964,8 @@ QR.quotePost = function(pid, qr) {
 };
 
 QR.show = function(tid, pid) {
-  var i, j, cnt, postForm, form, table, fields, tr, tbody, spoiler, file,
-    el, cd, qrError;
+  var i, j, cnt, postForm, form, qrForm, fields, row, spoiler, file,
+    el, placeholder, cd, qrError;
   
   if (QR.currentTid) {
     if (!Main.tid && QR.currentTid != tid) {
@@ -991,69 +1005,57 @@ QR.show = function(tid, pid) {
     + '<input type="hidden" value="regist" name="mode">'
     + '<input id="qrResto" type="hidden" value="' + tid + '" name="resto">';
   
-  table = document.createElement('table');
-  table.className = 'postForm';
-  table.appendChild(tbody = document.createElement('tbody'));
+  qrForm = document.createElement('div');
+  qrForm.id = 'qrForm';
   
   fields = postForm.firstChild.children;
   for (i = 0, j = fields.length - 1; i < j; ++i) {
+    row = document.createElement('div');
     if (fields[i].id == 'captchaFormPart') {
-      tr = document.createElement('tr');
-      tr.innerHTML = '<td class="desktop">Verification</td><td>'
-        + '<img id="qrCaptcha" title="Reload" width="300" height="57" src="'
+      row.innerHTML = '<img id="qrCaptcha" title="Reload" width="300" height="57" src="'
         + $.id('recaptcha_image').firstChild.src + '" alt="reCAPTCHA challenge image">'
         + '<input id="qrCapField" name="recaptcha_response_field" '
-        + 'required="required" type="text" autocomplete="off">'
+        + 'placeholder="reCAPTCHA Challenge (Required)" '
+        + 'type="text" autocomplete="off">'
         + '<input id="qrChallenge" name="recaptcha_challenge_field" type="hidden" value="'
-        + $.id('recaptcha_challenge_field').value + '">'
-        + '</td>';
+        + $.id('recaptcha_challenge_field').value + '">';
     }
     else {
-      tr = fields[i].cloneNode(true);
-      el = tr.firstChild;
-      if (el.textContent == 'File') {
-        file = el.nextSibling.firstChild
-        file.id = 'qrFile';
-        
-        file.parentNode.removeChild(file.nextSibling);
-        
-        el = document.createElement('input');
-        el.id = 'qrDummyFile';
-        el.type = 'text';
-        el.title = 'Shift + Click to remove the file';
-        el.readOnly = true;
-        el.setAttribute('autocomplete', 'off');
-        file.parentNode.insertBefore(el, file);
-        
-        el = document.createElement('button');
-        el.id = 'qrBrowse';
-        el.setAttribute('type', 'button');
-        el.textContent = 'Browse';
-        file.parentNode.insertBefore(el, file);
-        
-        file.addEventListener('change', QR.onFileChanged, false);
+      placeholder = fields[i].firstChild.textContent;
+      if (placeholder == 'Password' || placeholder == 'Spoilers') {
+        continue;
       }
-      else if (el.textContent == 'Password') {
-        el.nextSibling.firstChild.id = 'qrPassword';
+      else if (placeholder == 'File') {
+        file = fields[i].children[1].firstChild.cloneNode(false);
+        file.id = 'qrFile';
+        file.size = '19';
+        file.title = 'Shift + Click to remove the file';
+        row.appendChild(file);
+      }
+      else {
+        row.innerHTML = fields[i].children[1].innerHTML;
+        el = row.firstChild;
+        if (el.nodeName == 'INPUT' || el.nodeName == 'TEXTAREA') {
+          el.setAttribute('placeholder', placeholder);
+        }
       }
     }
-    tbody.appendChild(tr);
+    qrForm.appendChild(row);
   }
   
-  tbody.querySelector('input[type="submit"]')
+  qrForm.querySelector('input[type="submit"]')
     .previousSibling.className = 'presubmit';
   
-  if (spoiler = tbody.querySelector('input[name="spoiler"]')) {
-    spoiler = spoiler.parentNode.parentNode;
-    spoiler.parentNode.removeChild(spoiler);
+  if (spoiler = postForm.querySelector('input[name="spoiler"]')) {
+    spoiler = document.createElement('span');
     spoiler.id = 'qrSpoiler';
     spoiler.innerHTML
       = '<label>[<input type="checkbox" value="on" name="spoiler">Spoiler?]</label>';
     file.parentNode.insertBefore(spoiler, file.nextSibling);
-    $.tag('textarea', tbody)[0].addEventListener('keydown', QR.spoilerText, false);
+    $.tag('textarea', qrForm)[0].addEventListener('keydown', QR.spoilerText, false);
   }
   
-  form.appendChild(table);
+  form.appendChild(qrForm);
   cnt.appendChild(form);
   
   qrError = document.createElement('div');
@@ -1111,14 +1113,9 @@ QR.close = function() {
   
   cnt.removeEventListener('click', QR.onClick, false);
   Draggable.unset($.id('qrHeader'));
-  $.id('qrFile').removeEventListener('change', QR.onFileChanged, false);
   $.tag('textarea', cnt)[0].removeEventListener('keydown', QR.spoilerText, false);
   
   document.body.removeChild(cnt);
-};
-
-QR.onFileChanged = function(e) {
-  $.id('qrDummyFile').value = e.target.files[0].name;
 };
 
 QR.cloneCaptcha = function() {
@@ -1165,13 +1162,10 @@ QR.onClick = function(e) {
   }
   else {
     switch (t.id) {
-      case 'qrBrowse':
-      case 'qrDummyFile':
+      case 'qrFile':
         if (e.shiftKey) {
+          e.preventDefault();
           QR.resetFile();
-        }
-        else {
-          $.id('qrFile').click();
         }
         break;
       case 'qrCaptcha':
@@ -1208,15 +1202,12 @@ QR.resetFile = function() {
   el = document.createElement('input');
   el.id = 'qrFile';
   el.type = 'file';
+  el.size = '19';
   el.name = 'upfile';
-  el.addEventListener('change', QR.onFileChanged, false);
   
   file = $.id('qrFile');
-  file.removeEventListener('change', QR.onFileChanged, false);
   
   file.parentNode.replaceChild(el, file);
-  
-  $.id('qrDummyFile').value = '';
 };
 
 QR.submit = function(force) {
@@ -1251,16 +1242,6 @@ QR.submit = function(force) {
     return;
   }
   
-  if (field = $.byName('name')[1]) {
-    Main.setCookie('4chan_name', field.value);
-  }
-  if (field = $.byName('pwd')[1]) {
-    Main.setCookie('4chan_pass', field.value);
-  }
-  if ((email = $.byName('email')[1]) && email.value != 'sage') {
-    Main.setCookie('4chan_email', email.value);
-  }
-  
   QR.xhr = new XMLHttpRequest();
   QR.xhr.open('POST', document.forms.qrPost.action, true);
   QR.xhr.withCredentials = true;
@@ -1279,7 +1260,7 @@ QR.submit = function(force) {
       + '<a href="https://www.4chan.org/banned">banned</a>?');
   };
   QR.xhr.onload = function() {
-    var resp, file, el;
+    var resp, file, el, email;
     
     QR.xhr = null;
     
@@ -1301,7 +1282,7 @@ QR.submit = function(force) {
         return;
       }
       
-      if (/sage/i.test(email.value)) {
+      if ((email = $.byName('email')[1]) && /sage/i.test(email.value)) {
         cd = Main.tid ? QR.sageDelay : QR.baseDelay;
       }
       else {
@@ -1319,7 +1300,7 @@ QR.submit = function(force) {
         QR.startCooldown(cd);
         $.byName('com')[1].value = '';
         $.byName('sub')[1].value = '';
-        if (el = $.byName('spoiler')[3]) {
+        if (el = $.byName('spoiler')[2]) {
           el.checked = false;
         }
         QR.reloadCaptcha();
@@ -1829,7 +1810,7 @@ ThreadExpansion.fetch = function(tid) {
         
         if (this.status == 200) {
           tail = +$.cls('reply', thread)[0].id.slice(1);
-          posts = JSON.parse(this.responseText).posts;
+          posts = Parser.parseThreadJSON(this.responseText);
           frag = document.createDocumentFragment();
           
           for (i = 1; p = posts[i]; ++i) {
@@ -2124,13 +2105,7 @@ ThreadUpdater.onload = function() {
     lastrep = thread.childNodes[thread.childElementCount - 1];
     lastid = +lastrep.id.slice(2);
     
-    try {
-      newposts = JSON.parse(this.responseText).posts;
-    }
-    catch (e) {
-      console.log(e);
-      newposts = [];
-    }
+    newposts = Parser.parseThreadJSON(this.responseText);
     
     for (i = newposts.length - 1; i >= 0; i--) {
       if (newposts[i].no <= lastid) {
@@ -3334,15 +3309,6 @@ Main.setTitle = function() {
   document.title = '/' + Main.board + '/ - ' + title;
 };
 
-Main.setCookie = function(key, value) {
-  var d = new Date();
-  d.setTime(d.getTime() + 7 * 86400000);
-  document.cookie =
-    encodeURIComponent(key) + '=' + encodeURIComponent(value) + '; ' +
-    'expires=' + d.toUTCString() + '; ' +
-    'path=/; domain=.4chan.org';
-};
-
 Main.getCookie = function(name) {
   var i, c, ca, key;
   
@@ -3538,14 +3504,7 @@ div.post div.postInfo {\
   display: block;\
   position: fixed;\
   padding: 0;\
-  font-size: 14px;\
-}\
-#quickReply tr > td:first-child {\
-  padding: 0 2px;\
-}\
-.futaba_new #quickReply tr > td:first-child,\
-.burichan_new #quickReply tr > td:first-child {\
-  padding: 0 3px;\
+  font-size: 10pt;\
 }\
 #qrHeader {\
   text-align: center;\
@@ -3557,68 +3516,62 @@ div.post div.postInfo {\
 #qrClose {\
   float: right;\
 }\
-#quickReply table {\
-  border-spacing: 1px;\
-}\
-#quickReply input[type="text"],\
-#quickReply textarea {\
-  width: 296px;\
+#qrForm {\
   padding: 2px;\
 }\
+#qrForm > div {\
+  clear: both;\
+}\
 #quickReply input[type="text"],\
-#quickReply textarea {\
+#quickReply textarea,\
+#quickReply #recaptcha_response_field {\
+  border: 1px solid #aaa;\
+  font-family: arial,helvetica,sans-serif;\
+  font-size: 10pt;\
+  outline: medium none;\
   width: 296px;\
-  margin: 0;\
+  padding: 2px;\
+  margin: 0 0 1px 0;\
 }\
 #quickReply textarea {\
   min-width: 296px;\
+  float: left;\
+}\
+#quickReply input:-moz-placeholder,\
+#quickReply textarea:-moz-placeholder {\
+  color: #aaa !important;\
 }\
 #quickReply input[type="submit"] {\
   width: 85px;\
-  margin-left: 3px;\
+  margin: 0;\
+  font-size: 10pt;\
+  float: left;\
 }\
 #quickReply #qrCapField {\
-  width: 296px;\
-  padding: 0;\
-  margin-bottom: 2px;\
-  font-size: 10pt;\
   display: block;\
-  padding: 0 2px;\
+  margin-top: 1px;\
 }\
-#quickReply #qrDummyFile {\
+#qrCaptcha {\
+  width: 300px;\
+  height: 53px;\
   cursor: pointer;\
-  width: 135px;\
-  padding: 1px 2px;\
+  border: 1px solid #aaa;\
+  display: block;\
 }\
 #quickReply input.presubmit {\
-  width: 208px;\
+  margin-right: 1px;\
+  width: 210px;\
+  float: left;\
+}\
+#qrFile {\
+  width: 210px;\
+  margin-right: 5px;\
 }\
 #qrSpoiler {\
   display: inline;\
 }\
-#qrFile {\
-  visibility: hidden;\
-  position: absolute;\
-}\
-#qrBrowse {\
-  margin-left: 3px;\
-  margin-right: 5px;\
-  width: 65px;\
-}\
-#qrPassword {\
-  width: 85px;\
-  padding: 2px;\
-}\
-#qrCaptcha {\
-  width: 300px;\
-  cursor: pointer;\
-  border: 1px solid #DFDFDF;\
-}\
-#qrCapField:invalid {\
-  box-shadow: none;\
-}\
 #qrError {\
-  width: 373px;\
+  width: 296px;\
   display: none;\
   font-family: monospace;\
   background-color: #E62020;\

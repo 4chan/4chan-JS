@@ -2307,7 +2307,6 @@ Filter.exec = function(cnt, pi, nb, msg, tid) {
         el.setAttribute('data-filtered', '1');
       }
       else {
-        console.log(tid);
         el.innerHTML = '[<a data-filtered="1" href="res/' + tid + '">View</a>]';
       }
       el.className = 'filter-preview';

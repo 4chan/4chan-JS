@@ -31,6 +31,21 @@ $.extend = function(destination, source) {
   }
 };
 
+$.inArray = function(array, value) {
+  if (typeof Array.prototype.indexOf == 'undefined') {
+    Array.prototype.indexOf = function(needle) {
+      for (var i = 0; i < this.length; i++) {
+        if (needle === this[i]) {
+          return i;
+        }
+      }
+      return -1
+    };
+  }
+  
+  return array.indexOf(value) != -1;
+}
+
 if (!document.documentElement.classList) {
   $.hasClass = function(el, klass) {
     return (' ' + el.className + ' ').indexOf(' ' + klass + ' ') != -1;
@@ -232,7 +247,11 @@ Parser.buildHTMLFromJSON = function(data, board) {
       if (!Config.revealSpoilers) {
         fileClass = ' imgspoiler';
         
-        fileThumb = '//static.4chan.org/image/spoiler.png';
+        if ($.inArray(['a', 'm', 'v', 'co', 'jp', 'lit', 'mlp', 'tg', 'tv', 'vp'], board)) {
+          fileThumb = '//static.4chan.org/image/spoiler-' + board + '.png';
+        } else {
+          fileThumb = '//static.4chan.org/image/spoiler.png';
+        }
         data.tn_w = 100;
         data.tn_h = 100;
         

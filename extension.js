@@ -171,6 +171,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     emailStart = '',
     emailEnd = '',
     noLink,
+    quoteLink,
     noFilename,
     
     staticPath = '//static.4chan.org',
@@ -185,6 +186,10 @@ Parser.buildHTMLFromJSON = function(data, board) {
   
   if (!Main.tid || board != Main.board) {
     noLink = 'res/' + noLink;
+    quoteLink = 'res/' + data.resto + '#q' + data.no;;
+  }
+  else {
+    quoteLink = 'javascript:quote(\'' + data.no + '\')';
   }
   
   if (!data.capcode && data.id) {
@@ -339,7 +344,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
         '<span class="dateTime" data-utc="' + data.time + '">' + data.now + '</span> ' +
         '<span class="postNum desktop">' +
           '<a href="' + noLink + '" title="Highlight this post">No.</a><a href="' +
-          'javascript:quote(' + data.no + ');" title="Quote this post">' + data.no + '</a>' +
+          quoteLink + '" title="Quote this post">' + data.no + '</a>' +
         '</span>' +
       '</div>' +
       (isOP ? '' : fileHtml) +
@@ -483,11 +488,6 @@ Parser.parsePost = function(pid, tid) {
     }
     
     html = '';
-    
-    if (QR.enabled) {
-      html += '<img class="extButton" alt="QR" data-cmd="qr" data-id="'
-        + tid + '-' + pid + '" src="' + Main.icons.quote + '" title="Quick reply">'
-    }
     
     if (Config.reportButton) {
       html += '<img class="extButton" alt="!" data-cmd="report" data-id="'
@@ -3366,7 +3366,7 @@ Main.getCookie = function(name) {
 };
 
 Main.onclick = function(e) {
-  var t, ids, cmd, tid, attr;
+  var t, cmd, tid, pid;
   
   if ((t = e.target) == document) {
     return;
@@ -3375,12 +3375,6 @@ Main.onclick = function(e) {
   if (cmd = t.getAttribute('data-cmd')) {
     id = t.getAttribute('data-id');
     switch (cmd) {
-      case 'qr':
-        e.preventDefault();
-        ids = id.split('-'); // tid, pid
-        QR.show(ids[0], ids[1]);
-        QR.quotePost(ids[1], true);
-        break;
       case 'update':
         e.preventDefault();
         ThreadUpdater.forceUpdate();
@@ -3429,11 +3423,18 @@ Main.onclick = function(e) {
         break;
     }
   }
-  else if (!Config.disableAll
-      && Config.imageExpansion && e.which == 1
-      && $.hasClass(t.parentNode, 'fileThumb')) {
-    e.preventDefault();
-    ImageExpansion.toggle(t);
+  else if (!Config.disableAll) {
+    if (Config.quickReply && t.title == 'Quote this post') {
+      e.preventDefault();
+      tid = Main.tid || t.parentNode.parentNode.parentNode.parentNode.parentNode.id.slice(1);
+      pid = t.textContent;
+      QR.show(tid, pid);
+      QR.quotePost(pid, true);
+    }
+    else if (Config.imageExpansion && e.which == 1 && $.hasClass(t.parentNode, 'fileThumb')) {
+      e.preventDefault();
+      ImageExpansion.toggle(t);
+    }
   }
 }
 
@@ -3607,7 +3608,7 @@ div.post div.postInfo {\
   display: inline;\
 }\
 #qrError {\
-  width: 296px;\
+  width: 292px;\
   display: none;\
   font-family: monospace;\
   background-color: #E62020;\

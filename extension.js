@@ -132,9 +132,16 @@ Parser.parseThreadJSON = function(data) {
 };
 
 Parser.setCustomSpoiler = function(board, val) {
+  var s;
   if (!this.customSpoiler[board] && (val = parseInt(val))) {
-    this.customSpoiler[board] = '-' + board
-      + (Math.floor(Math.random() * val) + 1);
+    if (board == Main.board && (s = $.cls('imgspoiler')[0])) {
+      this.customSpoiler[board] =
+        s.firstChild.src.match(/spoiler(-[a-z0-9]+)\.png$/)[1];
+    }
+    else {
+      this.customSpoiler[board] = '-' + board
+        + (Math.floor(Math.random() * val) + 1);
+    }
   }
 };
 

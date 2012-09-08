@@ -3535,21 +3535,18 @@ div.post div.postInfo {\
 #quickReply {\
   display: block;\
   position: fixed;\
-  padding: 0;\
+  padding: 2px;\
   font-size: 10pt;\
 }\
 #qrHeader {\
   text-align: center;\
-  margin: 1px 1px 0 1px;\
+  margin-bottom: 1px;\
   padding: 0;\
   height: 18px;\
   line-height: 18px;\
 }\
 #qrClose {\
   float: right;\
-}\
-#qrForm {\
-  padding: 2px;\
 }\
 #qrForm > div {\
   clear: both;\
@@ -3596,7 +3593,7 @@ div.post div.postInfo {\
   float: left;\
 }\
 #qrFile {\
-  width: 210px;\
+  width: 215px;\
   margin-right: 5px;\
 }\
 #qrSpoiler {\

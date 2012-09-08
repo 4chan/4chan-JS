@@ -33,7 +33,7 @@ $.extend = function(destination, source) {
 
 $.inArray = function(array, value) {
   if (typeof Array.prototype.indexOf == 'undefined') {
-    Array.prototype.indexOf = function(value) {
+    Array.prototype.indexOf = function(needle) {
       for (var i = 0; i < this.length; i++) {
         if (needle === this[i]) {
           return i;

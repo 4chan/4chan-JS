@@ -807,7 +807,12 @@ ImageExpansion.expand = function(thumb) {
   img.setAttribute('src', thumb.parentNode.getAttribute('href'));
   img.style.display = 'none';
   thumb.parentNode.appendChild(img);
-  this.timeout = setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);
+  if (UA.hasCORS) {
+    this.timeout = setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);
+  }
+  else {
+    this.onLoadStart(img, thumb);
+  }
 };
 
 ImageExpansion.contract = function(img) {
@@ -834,12 +839,16 @@ ImageExpansion.toggle = function(t) {
   }
 };
 
+ImageExpansion.onLoadStart = function(img, thumb) {
+  thumb.removeAttribute('data-expanding');
+  thumb.parentNode.parentNode.style.display = 'table';
+  img.style.display = '';
+  thumb.style.display = 'none';
+};
+
 ImageExpansion.checkLoadStart = function(img, thumb) {
-  if (!img || img.naturalWidth) {
-    thumb.removeAttribute('data-expanding');
-    thumb.parentNode.parentNode.style.display = 'table';
-    img.style.display = '';
-    thumb.style.display = 'none';
+  if (img.naturalWidth) {
+    ImageExpansion.onLoadStart(img, thumb);
   }
   else {
     setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);

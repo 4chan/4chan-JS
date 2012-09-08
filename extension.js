@@ -2156,6 +2156,9 @@ ThreadUpdater.onload = function() {
         ThreadWatcher.refreshCurrent();
       }
     }
+    else {
+      self.setStatus('No new posts');
+    }
   }
   else if (this.status == 304 || this.status == 0) {
     self.setStatus('No new posts');

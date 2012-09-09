@@ -907,7 +907,7 @@ ImageExpansion.onExpanded = function(e) {
 var QR = {};
 
 QR.init = function() {
-  if (!UA.hasCORS || !document.forms.post) {
+  if (!UA.hasFormData || !document.forms.post) {
     return;
   }
   this.enabled = true;
@@ -2870,6 +2870,8 @@ UA.init = function() {
   
   this.hasCORS = 'withCredentials' in new XMLHttpRequest;
   
+  this.hasFormData = 'FormData' in window;
+  
   this.hasCustomEventCtor = typeof window.CustomEvent == 'function';
 };
 
@@ -3424,7 +3426,7 @@ Main.onclick = function(e) {
     }
   }
   else if (!Config.disableAll) {
-    if (Config.quickReply && t.title == 'Quote this post') {
+    if (QR.enabled && t.title == 'Quote this post') {
       e.preventDefault();
       tid = Main.tid || t.parentNode.parentNode.parentNode.parentNode.parentNode.id.slice(1);
       pid = t.textContent;

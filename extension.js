@@ -840,7 +840,11 @@ QuotePreview.remove = function(el) {
 var ImageExpansion = {};
 
 ImageExpansion.expand = function(thumb) {
-  var img;
+  var img, el;
+  
+  if (Config.imageHover && (el = $.id('image-hover'))) {
+    document.body.removeChild(el);
+  }
   
   thumb.setAttribute('data-expanding', '1');
   img = document.createElement('img');
@@ -850,7 +854,7 @@ ImageExpansion.expand = function(thumb) {
   img.style.display = 'none';
   thumb.parentNode.appendChild(img);
   if (UA.hasCORS) {
-    this.timeout = setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);
+    this.timeout = ImageExpansion.checkLoadStart(img, thumb);
   }
   else {
     this.onLoadStart(img, thumb);
@@ -893,7 +897,7 @@ ImageExpansion.checkLoadStart = function(img, thumb) {
     ImageExpansion.onLoadStart(img, thumb);
   }
   else {
-    setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);
+    return setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);
   }
 };
 
@@ -901,6 +905,59 @@ ImageExpansion.onExpanded = function(e) {
   this.onload = this.onerror = null;
   this.style.opacity = 1;
   $.addClass(this, 'fitToPage');
+};
+
+/**
+ * Image hover
+ */
+var ImageHover = {};
+
+ImageHover.show = function(thumb) {
+  var img;
+  
+  img = document.createElement('img');
+  img.id = 'image-hover';
+  img.alt = 'Image';
+  img.className = 'fitToScreen';
+  img.setAttribute('src', thumb.parentNode.getAttribute('href'));
+  document.body.appendChild(img);
+  if (UA.hasCORS) {
+    img.style.display = 'none';
+    this.timeout = ImageHover.checkLoadStart(img, thumb);
+  }
+  else {
+    img.style.left = thumb.getBoundingClientRect().right + 10 + 'px';
+  }
+};
+
+ImageHover.hide = function() {
+  var img;
+  clearTimeout(this.timeout);
+  if (img = $.id('image-hover')) {
+    document.body.removeChild(img);
+  }
+};
+
+ImageHover.onLoadStart = function(img, thumb) {
+  var bounds, limit;
+  
+  bounds = thumb.getBoundingClientRect();
+  limit = window.innerWidth - bounds.right;
+  
+  if (img.naturalWidth > limit) {
+    img.style.maxWidth = limit - 20 + 'px';
+  }
+  
+  img.style.display = '';
+};
+
+ImageHover.checkLoadStart = function(img, thumb) {
+  if (img.naturalWidth) {
+    ImageHover.onLoadStart(img, thumb);
+  }
+  else {
+    return setTimeout(ImageHover.checkLoadStart, 15, img, thumb);
+  }
 };
 
 /**
@@ -2901,6 +2958,7 @@ var Config = {
   hideGlobalMsg: true,
 
   imageExpansion: false,
+  imageHover: false,
   threadExpansion: false,
   imageSearch: false,
   reportButton: false,
@@ -2954,6 +3012,7 @@ SettingsMenu.options = {
     },
     'Recommended': {
       imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],
+      imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
       threadExpansion: [ 'Thread expansion', 'Enable inline thread expansion' ],
       imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
       reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ],
@@ -3133,7 +3192,7 @@ Main.run = function() {
   $.addClass(document.body, Main.stylesheet);
   $.addClass(document.body, Main.type);
   
-  if (Config.quotePreview || Config.filter) {
+  if (Config.quotePreview || Config.imageHover|| Config.filter) {
     thread = $.id('delform');
     thread.addEventListener('mouseover', Main.onThreadMouseOver, false);
     thread.addEventListener('mouseout', Main.onThreadMouseOut, false);
@@ -3464,6 +3523,9 @@ Main.onThreadMouseOver = function(e) {
     && !$.hasClass(t, 'deadlink')) {
     QuotePreview.resolve(e.target);
   }
+  else if (Config.imageHover && t.hasAttribute('data-md5')) {
+    ImageHover.show(t);
+  }
   else if (Config.filter && t.hasAttribute('data-filtered')) {
     QuotePreview.show(t,
       t.href ? t.parentNode.parentNode.parentNode : t.parentNode.parentNode);
@@ -3475,6 +3537,9 @@ Main.onThreadMouseOut = function(e) {
   
   if (Config.quotePreview && $.hasClass(t, 'quotelink')) {
     QuotePreview.remove(t);
+  }
+  else if (Config.imageHover && t.hasAttribute('data-md5')) {
+    ImageHover.hide();
   }
   else if (Config.filter && t.hasAttribute('data-filtered')) {
     QuotePreview.remove(t);
@@ -4043,6 +4108,13 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
 .photon #first-run:after {\
   border-color: #DDD transparent;\
   border-style: solid;\
+}\
+.fitToScreen {\
+  position: fixed;\
+  max-width: 100%;\
+  max-height: 100%;\
+  top: 0px;\
+  right: 0px;\
 }\
 ';
 

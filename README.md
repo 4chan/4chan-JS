@@ -15,4 +15,6 @@ Bugs and feature requests should be submitted to the repo's [Issues page](https:
 
 The extension is released under a 3-clause BSD license, [available here](https://github.com/4chan/4chan-JS/blob/master/LICENSE).
 
-Many thanks to desuwa of [The Yotsuba Catalog](http://catalog.neet.tv/) for being a total badass.
+Many thanks to desuwa of The Yotsuba Catalog for being a total badass, and almost single-handedly bringing this project to fruition.
+
+Thanks also to DamageInc for creating the original 4chan browser add-on, and to aeosynth and Mayhem, maintainers of 4chan X, for providing inspiration.

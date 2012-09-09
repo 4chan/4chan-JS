@@ -361,10 +361,6 @@ Parser.parseBoard = function()
   for (i = 0; threads[i]; ++i) {
     Parser.parseThread(threads[i].id.slice(1));
   }
-  
-  if (UA.hasCustomEventCtor) {
-    document.dispatchEvent(new CustomEvent('4chanParsingDone'));
-  }
 };
 
 Parser.parseThread = function(tid, offset, limit) {
@@ -462,8 +458,10 @@ Parser.parseThread = function(tid, offset, limit) {
     }
   }
   
-  if (Main.tid && UA.hasCustomEventCtor) {
-    document.dispatchEvent(new CustomEvent('4chanParsingDone', { detail: j }));
+  if (UA.hasCustomEventCtor) {
+    document.dispatchEvent(new CustomEvent('4chanParsingDone',
+      { detail: { threadId: tid, offset: j } }
+    ));
   }
 };
 
@@ -2581,11 +2579,12 @@ var Media = {};
 Media.init = function() {
   this.active = true;
   this.debounce = false;
+  this.limit = 3;
   
   this.matchSC = /(?:http:\/\/)?soundcloud\.com\/[^\s<]+/g;
   this.nodesSC = [];
 
-  this.testYT = /youtube\.com|youtu\.be/;
+  this.testYT = /youtube\.com|youtu\.be/g;
   this.matchYT = /(?:https?:\/\/)?(?:www\.youtube\.com\/watch\?(?:[^\s]*?)v=|youtu\.be\/)([a-zA-Z0-9_-]{11})[^\s<]*/g;
   this.nodesYT = [];
 };
@@ -2647,7 +2646,7 @@ Media.finalize = function() {
 Media.parseSoundCloud = function(msg) {
   var matches;
   
-  if (matches = msg.innerHTML.match(this.matchSC)) {
+  if ((matches = msg.innerHTML.match(this.matchSC)) && matches.length <= this.limit) {
     if (!this.active) {
       this.active = true;
     }
@@ -2675,7 +2674,7 @@ Media.embedSoundCloud = function(msg, url) {
 Media.parseYouTube = function(msg) {
   var matches;
   
-  if (this.testYT.test(msg.innerHTML)) {
+  if ((matches = msg.innerHTML.match(this.testYT)) && matches.length <= this.limit) {
     if (!this.active) {
       this.active = true;
     }

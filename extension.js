@@ -991,7 +991,7 @@ QR.quotePost = function(pid, qr) {
 
 QR.show = function(tid, pid) {
   var i, j, cnt, postForm, form, qrForm, fields, row, spoiler, file,
-    el, placeholder, cd, qrError;
+    el, placeholder, cd, qrError, cookie;
   
   if (QR.currentTid) {
     if (!Main.tid && QR.currentTid != tid) {
@@ -1067,6 +1067,12 @@ QR.show = function(tid, pid) {
           el = row.firstChild;
         }
         if (el.nodeName == 'INPUT' || el.nodeName == 'TEXTAREA') {
+          if (el.name == 'name' && (cookie = Main.getCookie('4chan_name'))) {
+            el.value = cookie;
+          }
+          else if (el.name == 'email' && (cookie = Main.getCookie('4chan_email'))) {
+            el.value = cookie;
+          }
           el.setAttribute('placeholder', placeholder);
         }
       }
@@ -3361,7 +3367,7 @@ Main.getCookie = function(name) {
       c = c.substring(1, c.length);
     }
     if (c.indexOf(key) == 0) {
-      return c.substring(key.length, c.length);
+      return decodeURIComponent(c.substring(key.length, c.length));
     }
   }
   return null;

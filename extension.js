@@ -170,6 +170,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     highlight = '',
     emailStart = '',
     emailEnd = '',
+    subject,
     noLink,
     quoteLink,
     noFilename,
@@ -318,6 +319,8 @@ Parser.buildHTMLFromJSON = function(data, board) {
     tripcode = ' <span class="postertrip">' + data.trip + '</span>';
   }
   
+  subject = data.sub || '';
+  
   container.className = 'postContainer replyContainer';
   container.id = 'pc' + data.no;
   
@@ -328,7 +331,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
         '<span class="nameBlock' + capcodeClass + '">' +
         '<span class="name">' + data.name + '</span>' + tripcode +
         capcodeStart + capcode + userId + flag +
-        '<br><span class="subject">' + data.sub +
+        '<br><span class="subject">' + subject +
         '</span></span><span class="dateTime postNum" data-utc="' + data.time + '">' +
         data.now + '<br><em><a href="' + data.no + '#p' + data.no + '">No.</a>' +
         '<a href="javascript:quote(\'' + data.no + '\');">' + data.no + '</a></em></span>' +
@@ -336,7 +339,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
       (isOP ? fileHtml : '') +
       '<div class="postInfo desktop" id="pi' + data.no + '">' +
         '<input type="checkbox" name="' + data.no + '" value="delete"> ' +
-        '<span class="subject">' + data.sub + '</span> ' +
+        '<span class="subject">' + subject + '</span> ' +
         '<span class="nameBlock' + capcodeClass + '">' + emailStart +
           '<span class="name">' + data.name + '</span>' +
           tripcode + capcodeStart + emailEnd + capcode + userId + flag +
@@ -348,7 +351,8 @@ Parser.buildHTMLFromJSON = function(data, board) {
         '</span>' +
       '</div>' +
       (isOP ? '' : fileHtml) +
-      '<blockquote class="postMessage" id="m' + data.no + '">' + data.com + '</blockquote> ' +
+      '<blockquote class="postMessage" id="m' + data.no + '">'
+      + (data.com || '') + '</blockquote> ' +
     '</div>';
     
   return container;

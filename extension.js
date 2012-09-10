@@ -170,6 +170,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     highlight = '',
     emailStart = '',
     emailEnd = '',
+    name,
     subject,
     noLink,
     quoteLink,
@@ -319,6 +320,8 @@ Parser.buildHTMLFromJSON = function(data, board) {
     tripcode = ' <span class="postertrip">' + data.trip + '</span>';
   }
   
+  name = data.name || '';
+  
   subject = data.sub || '';
   
   container.className = 'postContainer replyContainer';
@@ -329,7 +332,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     '<div id="p' + data.no + '" class="post ' + (isOP ? 'op' : 'reply') + highlight + '">' +
       '<div class="postInfoM mobile" id="pim' + data.no + '">' +
         '<span class="nameBlock' + capcodeClass + '">' +
-        '<span class="name">' + data.name + '</span>' + tripcode +
+        '<span class="name">' + name + '</span>' + tripcode +
         capcodeStart + capcode + userId + flag +
         '<br><span class="subject">' + subject +
         '</span></span><span class="dateTime postNum" data-utc="' + data.time + '">' +
@@ -341,7 +344,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
         '<input type="checkbox" name="' + data.no + '" value="delete"> ' +
         '<span class="subject">' + subject + '</span> ' +
         '<span class="nameBlock' + capcodeClass + '">' + emailStart +
-          '<span class="name">' + data.name + '</span>' +
+          '<span class="name">' + name + '</span>' +
           tripcode + capcodeStart + emailEnd + capcode + userId + flag +
         ' </span> ' +
         '<span class="dateTime" data-utc="' + data.time + '">' + data.now + '</span> ' +

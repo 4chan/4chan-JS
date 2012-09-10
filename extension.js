@@ -2413,7 +2413,9 @@ Filter.openHelp = function() {
   cnt.className = 'UIPanel';
   cnt.setAttribute('data-cmd', 'filters-help-close');
   cnt.innerHTML = '\
-<div class="extPanel reply"><div class="panelHeader">Filters &amp; Highlights Help</div>\
+<div class="extPanel reply"><div class="panelHeader">Filters &amp; Highlights Help\
+<span><img alt="Close" title="Close" class="pointer" data-cmd="filters-help-close" src="'
++ Main.icons.cross + '"></a></span></div>\
 <h4>Tripcode and Name filters:</h4>\
 <ul><li>Those use simple string comparison.</li>\
 <li>Type them exactly as they appear on 4chan, including the exclamation mark for tripcode filters.</li>\
@@ -2435,7 +2437,7 @@ Filter.openHelp = function() {
 <li><code>/^$/</code> &mdash; comments with no text.</li></ul>\
 <h4>Colors:</h4>\
 <ul><li>The color field can accept any valid CSS color:</li>\
-<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etc…</li></ul><button class="right" data-cmd="filters-help-close">Close</button>';
+<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etc…</li></ul>';
 
   document.body.appendChild(cnt);
   cnt.addEventListener('click', this.onClick, false);
@@ -2464,7 +2466,10 @@ Filter.open = function() {
   cnt.setAttribute('data-cmd', 'filters-close');
   cnt.innerHTML = '\
 <div class="extPanel reply"><div class="panelHeader">Filters &amp; Highlights\
-<span>[<a data-cmd="filters-help-open" href="javascript:;">Help</a>]</span></div>\
+<span><img alt="Help" class="pointer" title="Help" data-cmd="filters-help-open" src="'
++ Main.icons.help
++ '"><img alt="Close" title="Close" class="pointer" data-cmd="filters-close" src="'
++ Main.icons.cross + '"></a></span></div>\
 <table><thead><tr>\
 <th>On</th>\
 <th>Pattern</th>\
@@ -2474,10 +2479,8 @@ Filter.open = function() {
 <th>Del</th>\
 </tr></thead><tbody id="filter-list"></tbody><tfoot><tr><td colspan="6">\
 <button data-cmd="filters-add">Add</button>\
-<span class="right">\
-<button data-cmd="filters-save">Save</button>\
-<button data-cmd="filters-close">Close</button>\
-</span></td></tr></tfoot></table></div>';
+<button class="right" data-cmd="filters-save">Save</button>\
+</td></tr></tfoot></table></div>';
   
   document.body.appendChild(cnt);
   cnt.addEventListener('click', this.onClick, false);
@@ -2724,13 +2727,13 @@ CustomCSS.open = function() {
   cnt.className = 'UIPanel';
   cnt.setAttribute('data-cmd', 'css-close');
   cnt.innerHTML = '\
-<div class="extPanel reply"><div class="panelHeader">Custom CSS</div>\
+<div class="extPanel reply"><div class="panelHeader">Custom CSS\
+<span><img alt="Close" title="Close" class="pointer" data-cmd="css-close" src="'
++ Main.icons.cross + '"></a></span></div>\
 <textarea id="customCSSBox">'
 + (localStorage.getItem('4chan-css') || '') + '</textarea>\
-<span class="right">\
-<button data-cmd="css-save">Save</button>\
-<button data-cmd="css-close">Close</button>\
-</span></td></tr></tfoot></table></div>';
+<button class="right" data-cmd="css-save">Save</button>\
+</td></tr></tfoot></table></div>';
   
   document.body.appendChild(cnt);
   cnt.addEventListener('click', this.onClick, false);
@@ -3009,7 +3012,11 @@ SettingsMenu.open = function() {
   cnt.className = 'UIPanel';
   
   html = '<div class="extPanel reply"><div class="panelHeader">Settings'
-    + '<span>[<a target="_blank" href="//www.4chan.org/tools">Help</a>]</span></div><ul>';
+    + '<span><a target="_blank" href="//www.4chan.org/tools">'
+      + '<img alt="Help" title="Help" src="' + Main.icons.help + '"></a>'
+    + '<img alt="Close" title="Close" class="pointer" data-cmd="settings-toggle" src="'
+    + Main.icons.cross + '"></a>'
+    + '</span></div><ul>';
   
   for (cat in SettingsMenu.options) {
     opts = SettingsMenu.options[cat];
@@ -3027,9 +3034,8 @@ SettingsMenu.open = function() {
     + '<label title="Completely disable the extension (overrides any checked boxes)">'
     + '<input type="checkbox" class="menuOption" data-option="disableAll"'
     + (Config.disableAll ? ' checked="checked">' : '>')
-    + 'Disable the extension'
-    + '</label></li></ul><span class="right"><button data-cmd="settings-save">Save</button>'
-    + '<button data-cmd="settings-toggle">Close</button></div>';
+    + 'Disable the extension</label></li></ul>'
+    + '<button class="right" data-cmd="settings-save">Save Settings</button>';
   
   cnt.innerHTML = html;
   cnt.addEventListener('click', SettingsMenu.onClick, false);
@@ -3227,7 +3233,8 @@ Main.icons = {
   quote: 'quote.png',
   report: 'report.png',
   notwatched: 'watch_thread_off.png',
-  watched: 'watch_thread_on.png'
+  watched: 'watch_thread_on.png',
+  help: 'question.png'
 };
 
 Main.initIcons = function() {
@@ -3794,11 +3801,9 @@ div.backlink {\
   border-bottom: 1px solid #111;\
 }\
 .panelHeader span {\
-  text-decoration: none;\
-  font-size: 14px;\
-  font-weight: none;\
   position: absolute;\
-  right: 10px;\
+  right: 5px;\
+  top: 5px;\
 }\
 .UIPanel {\
   position: fixed;\

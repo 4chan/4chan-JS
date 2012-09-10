@@ -2961,7 +2961,6 @@ var Config = {
   hideGlobalMsg: true,
 
   imageExpansion: false,
-  imageHover: false,
   threadExpansion: false,
   imageSearch: false,
   reportButton: false,
@@ -2972,6 +2971,7 @@ var Config = {
   filter: false,
   revealSpoilers: false,
   replyHiding: false,
+  imageHover: false,
   embedYouTube: false,
   embedSoundCloud: false,
 
@@ -3015,7 +3015,6 @@ SettingsMenu.options = {
     },
     'Recommended': {
       imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],
-      imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
       threadExpansion: [ 'Thread expansion', 'Enable inline thread expansion' ],
       imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
       reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ],
@@ -3027,6 +3026,7 @@ SettingsMenu.options = {
       filter: [ 'Filters &amp; Highlights [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
       revealSpoilers: [ "Don't spoiler images", 'Don\'t replace spoiler images with a placeholder and show filenames' ],
       replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
+      imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
     },

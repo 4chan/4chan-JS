@@ -746,7 +746,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
         if (j.no != pid) {
           continue;
         }
-        if (posts[0].custom_spoiler) {
+        if (!Config.revealSpoilers && posts[0].custom_spoiler) {
           Parser.setCustomSpoiler(board, posts[0].custom_spoiler);
         }
         el = $.cls('post', Parser.buildHTMLFromJSON(j, board))[0];
@@ -1911,7 +1911,7 @@ ThreadExpansion.fetch = function(tid) {
           tail = +$.cls('reply', thread)[0].id.slice(1);
           posts = Parser.parseThreadJSON(this.responseText);
           
-          if (posts[0].custom_spoiler) {
+          if (!Config.revealSpoilers && posts[0].custom_spoiler) {
             Parser.setCustomSpoiler(Main.board, posts[0].custom_spoiler);
           }
           
@@ -2211,7 +2211,7 @@ ThreadUpdater.onload = function() {
     
     newposts = Parser.parseThreadJSON(this.responseText);
     
-    if (newposts[0].custom_spoiler) {
+    if (!Config.revealSpoilers && newposts[0].custom_spoiler) {
       Parser.setCustomSpoiler(Main.board, newposts[0].custom_spoiler);
     }
     

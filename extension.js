@@ -3665,7 +3665,7 @@ div.post div.postInfo {\
   color: #aaa !important;\
 }\
 #quickReply input[type="submit"] {\
-  width: 85px;\
+  width: 83px;\
   margin: 0;\
   font-size: 10pt;\
   float: left;\
@@ -3683,7 +3683,7 @@ div.post div.postInfo {\
 }\
 #quickReply input.presubmit {\
   margin-right: 1px;\
-  width: 210px;\
+  width: 212px;\
   float: left;\
 }\
 #qrFile {\

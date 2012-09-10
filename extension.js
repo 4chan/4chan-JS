@@ -2792,7 +2792,7 @@ CustomCSS.open = function() {
 + Main.icons.cross + '"></a></span></div>\
 <textarea id="customCSSBox">'
 + (localStorage.getItem('4chan-css') || '') + '</textarea>\
-<button class="right" data-cmd="css-save">Save</button>\
+<button class="center" data-cmd="css-save">Save CSS</button>\
 </td></tr></tfoot></table></div>';
   
   document.body.appendChild(cnt);
@@ -3097,7 +3097,7 @@ SettingsMenu.open = function() {
     + '<input type="checkbox" class="menuOption" data-option="disableAll"'
     + (Config.disableAll ? ' checked="checked">' : '>')
     + 'Disable the extension</label></li></ul>'
-    + '<button class="right" data-cmd="settings-save">Save Settings</button>';
+    + '<button class="center" data-cmd="settings-save">Save Settings</button>';
   
   cnt.innerHTML = html;
   cnt.addEventListener('click', SettingsMenu.onClick, false);
@@ -3617,6 +3617,10 @@ div.post div.postInfo {\
 .right {\
   float: right;\
 }\
+.center {\
+  display: block;\
+  margin: auto;\
+}\
 .pointer {\
   cursor: pointer;\
 }\
@@ -3909,6 +3913,9 @@ div.backlink {\
   border: 1px solid #AAA;\
   outline: none;\
 }\
+.UIPanel .center {\
+  margin-bottom: 5px;\
+}\
 #settingsMenu ul {\
   list-style: none;\
   padding: 0 0 10px 0;\
@@ -3932,7 +3939,7 @@ div.backlink {\
   -moz-box-sizing: border-box;\
   box-sizing: border-box;\
   height: 200px;\
-  margin: 0;\
+  margin: 0 0 5px;\
 }\
 #customCSSMenu .right,\
 #settingsMenu .right {\

@@ -3550,7 +3550,7 @@ Main.reportPost = function(pid) {
   window.open('https://sys.4chan.org/'
     + Main.board + '/imgboard.php?mode=report&no=' + pid
     , Date.now(),
-    "toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,width=680,height=200");
+    "toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,width=600,height=170");
 };
 
 Main.linkToThread = function(tid, board, post) {

@@ -2247,6 +2247,10 @@ ThreadUpdater.onload = function() {
       if (Config.threadWatcher) {
         ThreadWatcher.refreshCurrent();
       }
+      
+      if (Config.threadStats) {
+        ThreadStats.update();
+      }
     }
     else {
       self.setStatus('No new posts');
@@ -2290,7 +2294,7 @@ ThreadUpdater.setStatus = function(msg) {
 ThreadUpdater.setError = function(msg) {
   this.statusNode.innerHTML
     = this.statusNodeBot.innerHTML
-    = '<span class="tw-error">' + msg + '</span>';
+    = '<span class="tu-error">' + msg + '</span>';
 };
 
 ThreadUpdater.setIcon = function(data) {
@@ -2303,6 +2307,37 @@ ThreadUpdater.icons = {
   nws: '//static.4chan.org/image/favicon-nws-newposts.ico',
   wsdead: '//static.4chan.org/image/favicon-ws-deadthread.ico',
   nwsdead: '//static.4chan.org/image/favicon-nws-deadthread.ico'
+};
+
+/**
+ * Thread stats
+ */
+var ThreadStats = {};
+
+ThreadStats.init = function() {
+  var i, cnt;
+  
+  
+  this.nodeTop = document.createElement('div');
+  this.nodeTop.className = 'thread-stats';
+  this.nodeBot = this.nodeTop.cloneNode(false);
+  
+  cnt = $.cls('navLinks');
+  cnt[0] && cnt[0].appendChild(this.nodeTop);
+  cnt[1] && cnt[1].appendChild(this.nodeBot);
+  
+  this.update();
+};
+
+ThreadStats.update = function() {
+  var posts, img;
+  
+  posts = $.cls('postContainer').length;
+  img = $.cls('fileThumb').length;
+  
+  this.nodeTop.textContent = this.nodeBot.textContent
+    = '[' + posts + ' post' + (posts > 1 ? 's] ' : '] ')
+    + '[' + img + ' image' + ((img > 1 || !img) ? 's] ' : ']');
 };
 
 /**
@@ -2972,6 +3007,7 @@ var Config = {
   revealSpoilers: false,
   replyHiding: false,
   imageHover: false,
+  threadStats: false,
   embedYouTube: false,
   embedSoundCloud: false,
 
@@ -3027,6 +3063,7 @@ SettingsMenu.options = {
       revealSpoilers: [ "Don't spoiler images", 'Don\'t replace spoiler images with a placeholder and show filenames' ],
       replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
       imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
+      threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
     },
@@ -3130,7 +3167,7 @@ Main.init = function()
 {
   var params;
   
-  if (window.screen.width <= 480 || window.screen.height <= 480) {
+  if (/Mobile|Android|Dolfin|Opera Mobi/.test(navigator.userAgent)) {
     return;
   }
   
@@ -3231,6 +3268,10 @@ Main.run = function() {
   
   if (Config.replyHiding) {
     ReplyHiding.init();
+  }
+  
+  if (Config.threadStats && Main.tid) {
+    ThreadStats.init();
   }
   
   Parser.init();
@@ -3837,7 +3878,7 @@ div.backlink {\
 #stickyNav img {\
   vertical-align: middle;\
 }\
-.tw-error {\
+.tu-error {\
   color: red;\
 }\
 .topPageNav {\
@@ -4125,6 +4166,9 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   max-height: 100%;\
   top: 0px;\
   right: 0px;\
+}\
+.thread-stats {\
+  float: right;\
 }\
 ';
 

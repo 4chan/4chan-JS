@@ -217,7 +217,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
       break;
     case 'mod':
       capcodeStart = ' <strong class="capcode hand id_mod" '
-        + 'title="Highlight posts by Moderators">## Moderator</strong>';
+        + 'title="Highlight posts by Moderators">## Mod</strong>';
       capcodeClass = ' capcodeMod';
       
       capcode = ' <img src="' + staticPath + '/image/modicon.gif" '

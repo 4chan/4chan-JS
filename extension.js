@@ -467,7 +467,7 @@ Parser.parseThread = function(tid, offset, limit) {
   
   if (UA.hasCustomEventCtor) {
     document.dispatchEvent(new CustomEvent('4chanParsingDone',
-      { detail: { threadId: tid, offset: j } }
+      { detail: { threadId: tid, offset: j, limit: limit } }
     ));
   }
 };

@@ -790,6 +790,9 @@ QuotePreview.show = function(link, post, remote) {
     }
     else {
       post = post.cloneNode(true);
+      if (location.hash && location.hash == ('#' + post.id)) {
+        post.className += ' highlight';
+      }
       post.id = 'quote-preview';
       post.className += ' preview';
     }

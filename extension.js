@@ -1006,15 +1006,10 @@ QR.syncStorage = function(e) {
   }
 };
 
-QR.quotePost = function(pid, qr) {
+QR.quotePost = function(pid) {
   var q, pos, sel, ta;
   
-  if (qr) {
-    ta = $.tag('textarea', document.forms.qrPost)[0];
-  }
-  else {
-    ta = $.tag('textarea', document.forms.post)[0];
-  }
+  ta = $.tag('textarea', document.forms.qrPost)[0];
   
   pos = ta.selectionStart;
   
@@ -1025,7 +1020,13 @@ QR.quotePost = function(pid, qr) {
     sel = window.getSelection().toString()
   }
   
-  q = '>>' + pid + '\n';
+  if (pid) {
+    q = '>>' + pid + '\n';
+  }
+  else {
+    q = '';
+  }
+  
   if (sel) {
     q += '>' + sel.replace(/\s+$/, '').replace(/[\r\n]+/g, '\n>') + '\n';
   }
@@ -1043,12 +1044,10 @@ QR.quotePost = function(pid, qr) {
   
   ta.selectionStart = ta.selectionEnd = pos + q.length;
   
-  if (qr) {
-    if (ta.selectionStart == ta.value.length) {
-      ta.scrollTop = ta.scrollHeight;
-    }
-    ta.focus();
+  if (ta.selectionStart == ta.value.length) {
+    ta.scrollTop = ta.scrollHeight;
   }
+  ta.focus();
 };
 
 QR.show = function(tid, pid) {
@@ -3556,7 +3555,7 @@ Main.onclick = function(e) {
       tid = Main.tid || t.parentNode.parentNode.parentNode.parentNode.parentNode.id.slice(1);
       pid = t.textContent;
       QR.show(tid, pid);
-      QR.quotePost(pid, true);
+      QR.quotePost(!e.ctrlKey && pid);
     }
     else if (Config.imageExpansion && e.which == 1 && $.hasClass(t.parentNode, 'fileThumb')) {
       e.preventDefault();

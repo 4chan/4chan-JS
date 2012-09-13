@@ -3012,6 +3012,7 @@ var Config = {
   embedSoundCloud: false,
 
   customCSS: false,
+  compactThreads: false,
   dropDownNav: false,
   fixedThreadWatcher: false,
   persistentQR: false,
@@ -3069,6 +3070,7 @@ SettingsMenu.options = {
     },
     'Customization': {
       customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', 'Embed your own CSS rules' ],
+      compactThreads: [ 'Force long posts to wrap', 'Long posts will wrap at 75% screen width' ],
       dropDownNav: [ 'Use drop-down navigation', 'Use persistent drop-down navigation bar instead of traditional links' ],
       fixedThreadWatcher: [ 'Pin thread watcher', 'Pin the thread watcher to the page' ],
       persistentQR: [ 'Persistent quick reply', 'Keep quick reply window open after posting' ]
@@ -3231,6 +3233,10 @@ Main.run = function() {
   
   $.addClass(document.body, Main.stylesheet);
   $.addClass(document.body, Main.type);
+  
+  if (Config.compactThreads) {
+    $.addClass(document.body, 'compact');
+  }
   
   if (Config.quotePreview || Config.imageHover|| Config.filter) {
     thread = $.id('delform');
@@ -4169,6 +4175,9 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
 }\
 .thread-stats {\
   float: right;\
+}\
+.compact .thread {\
+  max-width: 75%;\
 }\
 ';
 

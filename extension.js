@@ -1007,7 +1007,7 @@ QR.syncStorage = function(e) {
 };
 
 QR.quotePost = function(pid, qr) {
-  var q, pos, sel, ta, scroll;
+  var q, pos, sel, ta;
   
   if (qr) {
     ta = $.tag('textarea', document.forms.qrPost)[0];
@@ -1015,8 +1015,6 @@ QR.quotePost = function(pid, qr) {
   else {
     ta = $.tag('textarea', document.forms.post)[0];
   }
-  
-  scroll = ta.value == '';
   
   pos = ta.selectionStart;
   
@@ -1029,7 +1027,7 @@ QR.quotePost = function(pid, qr) {
   
   q = '>>' + pid + '\n';
   if (sel) {
-    q += '>' + sel.replace(/\s+$/, '').replace(/\n/g, '\n>') + '\n';
+    q += '>' + sel.replace(/\s+$/, '').replace(/[\r\n]+/g, '\n>') + '\n';
   }
   
   if (ta.value) {
@@ -1039,7 +1037,6 @@ QR.quotePost = function(pid, qr) {
   else {
     ta.value = q;
   }
-  
   if (UA.isOpera) {
     pos += q.split('\n').length;
   }
@@ -1047,7 +1044,7 @@ QR.quotePost = function(pid, qr) {
   ta.selectionStart = ta.selectionEnd = pos + q.length;
   
   if (qr) {
-    if (scroll) {
+    if (ta.selectionStart == ta.value.length) {
       ta.scrollTop = ta.scrollHeight;
     }
     ta.focus();

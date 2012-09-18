@@ -1339,7 +1339,7 @@ QR.submit = function(force) {
   
   QR.auto = false;
   
-  if (!QR.noCaptcha && !force && (field = $.id('qrCapField')) && field.value == '') {
+  if (!force && (field = $.id('qrCapField')) && field.value == '') {
     QR.showPostError('You forgot to type in the CAPTCHA.');
     field.focus();
     return;

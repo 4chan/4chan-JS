@@ -860,6 +860,7 @@ ImageExpansion.expand = function(thumb) {
   img.style.display = 'none';
   thumb.parentNode.appendChild(img);
   if (UA.hasCORS) {
+    thumb.style.opacity = '0.5';
     this.timeout = ImageExpansion.checkLoadStart(img, thumb);
   }
   else {
@@ -901,6 +902,7 @@ ImageExpansion.onLoadStart = function(img, thumb) {
 ImageExpansion.checkLoadStart = function(img, thumb) {
   if (img.naturalWidth) {
     ImageExpansion.onLoadStart(img, thumb);
+    thumb.style.opacity = '';
   }
   else {
     return setTimeout(ImageExpansion.checkLoadStart, 15, img, thumb);
@@ -1099,6 +1101,9 @@ QR.show = function(tid, pid) {
   for (i = 0, j = fields.length - 1; i < j; ++i) {
     row = document.createElement('div');
     if (fields[i].id == 'captchaFormPart') {
+      if (QR.noCaptcha) {
+        continue;
+      }
       row.innerHTML = '<img id="qrCaptcha" title="Reload" width="300" height="57" src="'
         + $.id('recaptcha_image').firstChild.src + '" alt="reCAPTCHA challenge image">'
         + '<input id="qrCapField" name="recaptcha_response_field" '
@@ -1334,7 +1339,7 @@ QR.submit = function(force) {
   
   QR.auto = false;
   
-  if (!force && (field = $.id('qrCapField')) && field.value == '') {
+  if (!QR.noCaptcha && !force && (field = $.id('qrCapField')) && field.value == '') {
     QR.showPostError('You forgot to type in the CAPTCHA.');
     field.focus();
     return;
@@ -1424,7 +1429,7 @@ QR.submit = function(force) {
 QR.startCooldown = function(ms) {
   var btn, interval;
   
-  if (!(btn = $.id('quickReply')) || QR.xhr) {
+  if (QR.noCooldown || !(btn = $.id('quickReply')) || QR.xhr) {
     return;
   }
   
@@ -3168,10 +3173,6 @@ Main.init = function()
 {
   var params;
   
-  if (/Mobile|Android|Dolfin|Opera Mobi/.test(navigator.userAgent)) {
-    return;
-  }
-  
   document.addEventListener('DOMContentLoaded', Main.run, false);
   
   Main.now = Date.now();
@@ -3180,6 +3181,10 @@ Main.init = function()
   
   Config.load();
   
+  if (Main.firstRun && /Mobile|Android|Dolfin|Opera Mobi/.test(navigator.userAgent)) {
+    Config.disableAll = true;
+  }
+  
   if (Main.stylesheet = Main.getCookie(style_group)) {
     Main.stylesheet = Main.stylesheet.toLowerCase().replace(/ /g, '_');
   }
@@ -3187,6 +3192,9 @@ Main.init = function()
     Main.stylesheet =
       style_group == 'nws_style' ? 'yotsuba_new' : 'yotsuba_b_new';
   }
+  
+  Main.passEnabled = Main.getCookie('pass_enabled');
+  QR.noCaptcha = QR.noCaptcha || Main.passEnabled;
   
   Main.initIcons();
   
@@ -3214,12 +3222,11 @@ Main.run = function() {
   
   $.id('settingsWindowLink').addEventListener('click', SettingsMenu.toggle, false);
   $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
+  $.id('settingsWindowLinkMobile').addEventListener('click', SettingsMenu.toggle, false);
   
   if (Config.disableAll) {
     return;
   }
-  
-  $.id('settingsWindowLinkMobile').addEventListener('click', SettingsMenu.toggle, false);
   
   if (Config.dropDownNav) {
     $.id('boardNavDesktop').style.display = 'none';

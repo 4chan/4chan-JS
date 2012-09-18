@@ -1230,7 +1230,7 @@ QR.cloneCaptcha = function() {
 QR.reloadCaptcha = function(focus) {
   var pulse, func, el;
   
-  if (!(el = $.id('recaptcha_image'))) {
+  if (QR.noCaptcha || !(el = $.id('recaptcha_image'))) {
     return;
   }
   

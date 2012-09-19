@@ -176,6 +176,8 @@ Parser.buildHTMLFromJSON = function(data, board) {
     quoteLink,
     noFilename,
     
+    i, q, href, quotes,
+    
     staticPath = '//static.4chan.org',
     imgDir = '//images.4chan.org/' + board + '/src';
   
@@ -357,7 +359,17 @@ Parser.buildHTMLFromJSON = function(data, board) {
       '<blockquote class="postMessage" id="m' + data.no + '">'
       + (data.com || '') + '</blockquote> ' +
     '</div>';
-    
+  
+  if (!Main.tid || board != Main.board) {
+    quotes = container.getElementsByClassName('quotelink');
+    for (i = 0; q = quotes[i]; ++i) {
+      href = q.getAttribute('href');
+      if (href.charAt(0) != '/') {
+        q.href = '/' + board + '/res/' + href;
+      }
+    }
+  }
+  
   return container;
 };
 

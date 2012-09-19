@@ -1040,7 +1040,7 @@ QR.quotePost = function(pid) {
   }
   
   if (sel) {
-    q += '>' + sel.replace(/\s+$/, '').replace(/[\r\n]+/g, '\n>') + '\n';
+    q += '>' + sel.trim().replace(/[\r\n]+/g, '\n>') + '\n';
   }
   
   if (ta.value) {

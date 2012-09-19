@@ -1027,11 +1027,9 @@ QR.quotePost = function(pid) {
   
   pos = ta.selectionStart;
   
-  if (UA.isOpera) {
-    sel = document.getSelection();
-  }
+  if (UA.isOpera && typeof (sel = document.getSelection()) == 'string') {}
   else {
-    sel = window.getSelection().toString()
+    sel = window.getSelection().toString();
   }
   
   if (pid) {

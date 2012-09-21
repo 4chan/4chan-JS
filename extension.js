@@ -2527,7 +2527,7 @@ Filter.openHelp = function() {
   cnt.innerHTML = '\
 <div class="extPanel reply"><div class="panelHeader">Filters &amp; Highlights Help\
 <span><img alt="Close" title="Close" class="pointer" data-cmd="filters-help-close" src="'
-+ Main.icons.cross + '"></a></span></div>\
++ Main.icons.cross + '"></span></div>\
 <h4>Tripcode and Name filters:</h4>\
 <ul><li>Those use simple string comparison.</li>\
 <li>Type them exactly as they appear on 4chan, including the exclamation mark for tripcode filters.</li>\
@@ -2581,7 +2581,7 @@ Filter.open = function() {
 <span><img alt="Help" class="pointer" title="Help" data-cmd="filters-help-open" src="'
 + Main.icons.help
 + '"><img alt="Close" title="Close" class="pointer" data-cmd="filters-close" src="'
-+ Main.icons.cross + '"></a></span></div>\
++ Main.icons.cross + '"></span></div>\
 <table><thead><tr>\
 <th>On</th>\
 <th>Pattern</th>\
@@ -2841,7 +2841,7 @@ CustomCSS.open = function() {
   cnt.innerHTML = '\
 <div class="extPanel reply"><div class="panelHeader">Custom CSS\
 <span><img alt="Close" title="Close" class="pointer" data-cmd="css-close" src="'
-+ Main.icons.cross + '"></a></span></div>\
++ Main.icons.cross + '"></span></div>\
 <textarea id="customCSSBox">'
 + (localStorage.getItem('4chan-css') || '') + '</textarea>\
 <button class="center" data-cmd="css-save">Save CSS</button>\

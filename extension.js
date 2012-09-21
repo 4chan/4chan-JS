@@ -2899,16 +2899,31 @@ Keybinds.init = function() {
     65: function() {
       if (ThreadUpdater.enabled) ThreadUpdater.toggleAuto();
     },
-    
     // Q
     81: function() {
-      if (QR.enabled && Main.tid) QR.show(Main.tid);
+      if (QR.enabled && Main.tid) {
+        QR.show(Main.tid);
+        QR.quotePost();
+      }
     },
-    
     // R
     82: function() {
       if (ThreadUpdater.enabled) ThreadUpdater.forceUpdate();
     },
+    // Z
+    90: function() {
+      var el;
+      (el = $.cls('prev')[0]) && (el = $.tag('form', el)[0]) && el.submit();
+    },
+    // X
+    88: function() {
+      var el;
+      (el = $.cls('next')[0]) && (el = $.tag('form', el)[0]) && el.submit();
+    },
+    // C
+    67: function() {
+      location.href = '/' + Main.board + '/';
+    }
   };
   
   document.addEventListener('keyup', this.resolve, false);
@@ -2923,7 +2938,7 @@ Keybinds.resolve = function(e) {
     if (bind[1] || e[bind[1]]) {
       bind[0]();
     }
-    else {
+    else if (!e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
       bind();
     }
   }
@@ -2942,12 +2957,20 @@ Keybinds.open = function() {
   cnt.setAttribute('data-cmd', 'keybinds-close');
   cnt.innerHTML = '\
 <div class="extPanel reply"><div class="panelHeader">Keyboard Shortcuts\
-<span><a href="javascript:Keybinds.close()"><img alt="Close" title="Close" src="'
-+ Main.icons.cross + '"></a></span></div>\
+<span><img data-cmd="keybinds-close" class="pointer" alt="Close" title="Close" src="'
++ Main.icons.cross + '"></span></div>\
 <ul>\
+<li><strong>Gobal</strong></li>\
 <li><code>A</code> &mdash; Toggle auto-updater</li>\
 <li><code>Q</code> &mdash; Open Quick Reply</li>\
 <li><code>R</code> &mdash; Update thread</li>\
+<li><code>Z</code> &mdash; Previous page</li>\
+<li><code>X</code> &mdash; Next page</li>\
+<li><code>C</code> &mdash; Return to page 0</li>\
+</ul><ul>\
+<li><strong>Quick Reply (always enabled)</strong></li>\
+<li><code>Ctrl + Click the post number</code> &mdash; Quote without linking</li>\
+<li><code>Ctrl + S</code> &mdash; Spoiler tags</li>\
 </ul>';
 
   document.body.appendChild(cnt);
@@ -2955,10 +2978,19 @@ Keybinds.open = function() {
 };
 
 Keybinds.close = function() {
-  var el;
+  var cnt;
   
-  if (el = $.id('keybindsHelp')) {
-    document.body.removeChild(el);
+  if (cnt = $.id('keybindsHelp')) {
+    cnt.removeEventListener('click', this.onClick, false);
+    document.body.removeChild(cnt);
+  }
+};
+
+Keybinds.onClick = function(e) {
+  var cmd;
+  
+  if ((cmd = e.target.getAttribute('data-cmd')) && cmd == 'keybinds-close') {
+    Keybinds.close();
   }
 };
 
@@ -3093,13 +3125,13 @@ var Config = {
   localTime: false,
   topPageNav: false,
   stickyNav: false,
+  keyBinds: false,
 
   filter: false,
   revealSpoilers: false,
   replyHiding: false,
   imageHover: false,
   threadStats: false,
-  keyBinds: false,
   embedYouTube: false,
   embedSoundCloud: false,
 
@@ -3149,7 +3181,8 @@ SettingsMenu.options = {
       reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ],
       localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ],
       topPageNav: [ 'Page navigation at the top', 'Show the page switcher at the top of the page, hold Shift and drag to move' ],
-      stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows, hold Shift and drag to move' ]
+      stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows, hold Shift and drag to move' ],
+      keyBinds: [ 'Use keyboard shortcuts [<a href="javascript:;" data-cmd="keybinds-open">Show</a>]' ]
     },
     'Advanced': {
       filter: [ 'Filters &amp; Highlights [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
@@ -3157,7 +3190,6 @@ SettingsMenu.options = {
       replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
       imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
       threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
-      keyBinds: [ 'Use <a href="javascript:;" data-cmd="keybinds-open">keybinds</a>', 'Enable keyboard shortcuts' ],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
     },

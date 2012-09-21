@@ -3003,12 +3003,12 @@ var Config = {
   quotePreview: true,
   backlinks: true,
   quickReply: true,
-  threadWatcher: true,
   threadUpdater: true,
   threadHiding: true,
   pageTitle: true,
   hideGlobalMsg: true,
 
+  threadWatcher: false,
   imageExpansion: false,
   threadExpansion: false,
   imageSearch: false,
@@ -3058,13 +3058,13 @@ SettingsMenu.options = {
       quotePreview: [ 'Quote preview', 'Enable inline quote previews' ],
       backlinks: [ 'Backlinks', 'Show who has replied to a post' ],
       quickReply: [ 'Quick reply', 'Enable inline reply box' ],
-      threadWatcher: [ 'Thread watcher', 'Enable thread watcher' ],
       threadUpdater: [ 'Thread updater', 'Enable inline thread updating' ],
       threadHiding: [ 'Thread hiding', 'Enable thread hiding' ],
       pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ],
       hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ]
     },
     'Recommended': {
+      threadWatcher: [ 'Thread watcher', 'Enable thread watcher' ],
       imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],
       threadExpansion: [ 'Thread expansion', 'Enable inline thread expansion' ],
       imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],

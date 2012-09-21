@@ -1062,7 +1062,7 @@ QR.quotePost = function(pid) {
   ta.focus();
 };
 
-QR.show = function(tid, pid) {
+QR.show = function(tid) {
   var i, j, cnt, postForm, form, qrForm, fields, row, spoiler, file,
     el, placeholder, cd, qrError, cookie;
   
@@ -2178,6 +2178,9 @@ ThreadUpdater.forceUpdate = function(fromQR) {
 };
 
 ThreadUpdater.toggleAuto = function() {
+  if (this.updating) {
+    return;
+  }
   this.auto ? this.stop(true) : this.start();
 };
 
@@ -2886,6 +2889,80 @@ CustomCSS.onClick = function(e) {
 };
 
 /**
+ * Keyboard shortcuts
+ */
+var Keybinds = {};
+
+Keybinds.init = function() {
+  this.map = {
+    // A
+    65: function() {
+      if (ThreadUpdater.enabled) ThreadUpdater.toggleAuto();
+    },
+    
+    // Q
+    81: function() {
+      if (QR.enabled && Main.tid) QR.show(Main.tid);
+    },
+    
+    // R
+    82: function() {
+      if (ThreadUpdater.enabled) ThreadUpdater.forceUpdate();
+    },
+  };
+  
+  document.addEventListener('keyup', this.resolve, false);
+};
+
+Keybinds.resolve = function(e) {
+  var bind, el = e.target;
+  if (el.nodeName == 'TEXTAREA' || el.nodeName == 'INPUT') {
+    return;
+  }
+  if (bind = Keybinds.map[e.keyCode]) {
+    if (bind[1] || e[bind[1]]) {
+      bind[0]();
+    }
+    else {
+      bind();
+    }
+  }
+};
+
+Keybinds.open = function() {
+  var cnt;
+  
+  if ($.id('keybindsHelp')) {
+    return;
+  }
+  
+  cnt = document.createElement('div');
+  cnt.id = 'keybindsHelp';
+  cnt.className = 'UIPanel';
+  cnt.setAttribute('data-cmd', 'keybinds-close');
+  cnt.innerHTML = '\
+<div class="extPanel reply"><div class="panelHeader">Keyboard Shortcuts\
+<span><a href="javascript:Keybinds.close()"><img alt="Close" title="Close" src="'
++ Main.icons.cross + '"></a></span></div>\
+<ul>\
+<li><code>A</code> &mdash; Toggle auto-updater</li>\
+<li><code>Q</code> &mdash; Open Quick Reply</li>\
+<li><code>R</code> &mdash; Update thread</li>\
+</ul>';
+
+  document.body.appendChild(cnt);
+  cnt.addEventListener('click', this.onClick, false);
+};
+
+Keybinds.close = function() {
+  var el;
+  
+  if (el = $.id('keybindsHelp')) {
+    document.body.removeChild(el);
+  }
+};
+
+/**
  * Draggable helper
  */
 var Draggable = {
@@ -3022,6 +3099,7 @@ var Config = {
   replyHiding: false,
   imageHover: false,
   threadStats: false,
+  keyBinds: false,
   embedYouTube: false,
   embedSoundCloud: false,
 
@@ -3079,6 +3157,7 @@ SettingsMenu.options = {
       replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
       imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
       threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
+      keyBinds: [ 'Use <a href="javascript:;" data-cmd="keybinds-open">keybinds</a>', 'Enable keyboard shortcuts' ],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
     },
@@ -3219,6 +3298,10 @@ Main.init = function()
   params = location.pathname.split(/\//);
   Main.board = params[1];
   Main.tid = params[3];
+  
+  if (Config.keyBinds) {
+    Keybinds.init();
+  }
   
   if (UA.hasCustomEventCtor) {
     document.dispatchEvent(new CustomEvent('4chanMainInit'));
@@ -3509,7 +3592,7 @@ Main.getCookie = function(name) {
 };
 
 Main.onclick = function(e) {
-  var t, cmd, tid, pid;
+  var t, cmd, tid;
   
   if ((t = e.target) == document) {
     return;
@@ -3558,6 +3641,9 @@ Main.onclick = function(e) {
       case 'settings-save':
         SettingsMenu.save();
         break;
+      case 'keybinds-open':
+        Keybinds.open();
+        break;
       case 'filters-open':
         Filter.open();
         break;
@@ -3570,9 +3656,8 @@ Main.onclick = function(e) {
     if (QR.enabled && t.title == 'Quote this post') {
       e.preventDefault();
       tid = Main.tid || t.parentNode.parentNode.parentNode.parentNode.parentNode.id.slice(1);
-      pid = t.textContent;
-      QR.show(tid, pid);
-      QR.quotePost(!e.ctrlKey && pid);
+      QR.show(tid);
+      QR.quotePost(!e.ctrlKey && t.textContent);
     }
     else if (Config.imageExpansion && e.which == 1 && $.hasClass(t.parentNode, 'fileThumb')) {
       e.preventDefault();
@@ -3979,7 +4064,13 @@ div.backlink {\
 .UIPanel .center {\
   margin-bottom: 5px;\
 }\
-#settingsMenu ul {\
+.UIPanel code {\
+  background-color: #eee;\
+  color: #000000;\
+  padding: 1px 4px;\
+  font-size: 12px;\
+}\
+.UIPanel ul {\
   list-style: none;\
   padding: 0 0 10px 0;\
   margin: 0;\
@@ -4035,12 +4126,6 @@ div.backlink {\
   padding: 3px 0;\
   list-style: none;\
 }\
-#filtersHelp code {\
-  background-color: #eee;\
-  color: #000000;\
-  padding: 1px 4px;\
-  font-size: 12px;\
-}\
 #filtersMenu table {\
   width: 100%;\
 }\
@@ -4061,6 +4146,9 @@ div.backlink {\
 }\
 #filtersMenu tfoot td {\
   padding-top: 10px;\
+}\
+#keybindsHelp li {\
+  padding: 3px 5px;\
 }\
 .fPattern {\
   width: 150px;\

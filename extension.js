@@ -118,7 +118,7 @@ Parser.init = function() {
 };
 
 Parser.inlineQuote = function(link, e) {
-  var pfx, now, src, dest, id, el, tblcnt, blcnt, isBl, i, j;
+  var pfx, now, src, dest, id, el, tblcnt, blcnt, isBl, i, j, inner;
   
   if (pfx = link.getAttribute('data-pfx')) {
     link.removeAttribute('data-pfx');
@@ -160,6 +160,17 @@ Parser.inlineQuote = function(link, e) {
   $.addClass(el, 'inlined');
   $.removeClass(el, 'highlight');
   $.removeClass(el, 'highlight-anti');
+  
+  if ((inner = $.cls('inlined', el))[0]) {
+    while (j = inner[0]) {
+      j.parentNode.removeChild(j);
+    }
+    inner = $.cls('quotelink', el);
+    for (i = 0; j = inner[i]; ++i) {
+      j.removeAttribute('data-pfx');
+      j.style.opacity = '';
+    }
+  }
   
   for (i = 0; j = el.children[i]; ++i) {
     j.id = now + j.id;
@@ -879,7 +890,6 @@ QuotePreview.show = function(link, post, remote) {
       if (quotes[1]) {
         qid = '>>' + link.parentNode.parentNode.id.split('_')[1];
         for (i = 0; j = quotes[i]; ++i) {
-          console.log(j.textContent + 'vs' + qid);
           if (j.textContent == qid) {
             $.addClass(j, 'dotted');
             break;

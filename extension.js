@@ -859,7 +859,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
 };
 
 QuotePreview.show = function(link, post, remote) {
-    var rect, docWidth, style, pos;
+    var rect, docWidth, style, pos, quotes, i, j, qid;
     
     if (remote) {
       Parser.parsePost(post);
@@ -872,6 +872,20 @@ QuotePreview.show = function(link, post, remote) {
       }
       post.id = 'quote-preview';
       post.className += ' preview';
+    }
+    
+    if (!link.parentNode.className) {
+      quotes = $.cls('quotelink', $.cls('postMessage', post)[0]);
+      if (quotes[1]) {
+        qid = '>>' + link.parentNode.parentNode.id.split('_')[1];
+        for (i = 0; j = quotes[i]; ++i) {
+          console.log(j.textContent + 'vs' + qid);
+          if (j.textContent == qid) {
+            $.addClass(j, 'dotted');
+            break;
+          }
+        }
+      }
     }
     
     rect = link.getBoundingClientRect();
@@ -4414,6 +4428,10 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
 }\
 .tomorrow .post .post {\
   border: 1px solid #1D1F21;\
+}\
+.dotted {\
+  text-decoration: none;\
+  border-bottom: 1px dashed;\
 }\
 ';
 

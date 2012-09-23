@@ -117,6 +117,71 @@ Parser.init = function() {
   }
 };
 
+Parser.inlineQuote = function(link, e) {
+  var pfx, now, src, dest, id, el, tblcnt, blcnt, isBl, i, j;
+  
+  if (pfx = link.getAttribute('data-pfx')) {
+    link.removeAttribute('data-pfx');
+    link.style.opacity = '';
+    el = $.id(pfx + 'p' + link.textContent.slice(2));
+    el.parentNode.removeChild(el);
+    e && e.preventDefault();
+    return;
+  }
+  
+  now = Date.now();
+  
+  id = link.textContent.slice(2)
+  src = $.id('p' + id);
+  
+  if (!src) {
+    return;
+  }
+  else {
+    if ((blcnt = link.parentNode.parentNode).className == 'backlink') {
+      el = blcnt.parentNode.parentNode.parentNode;
+      isBl = true;
+    }
+    else {
+      el = blcnt.parentNode.parentNode;
+    }
+    if (el.id.split('m')[1] == id) {
+      e && e.preventDefault();
+      return;
+    }
+  }
+  
+  link.style.opacity = '0.5';
+  link.setAttribute('data-pfx', now);
+  
+  el = src.cloneNode(true);
+  el.id = now + el.id;
+  el.setAttribute('data-pfx', now);
+  $.addClass(el, 'inlined');
+  $.removeClass(el, 'highlight');
+  $.removeClass(el, 'highlight-anti');
+  
+  for (i = 0; j = el.children[i]; ++i) {
+    j.id = now + j.id;
+  }
+  
+  if (tblcnt = $.cls('backlink', el)[0]) {
+    tblcnt.id = now + tblcnt.id;
+  }
+  
+  if (isBl) {
+    pfx = blcnt.parentNode.parentNode.getAttribute('data-pfx') || '';
+    dest = $.id(pfx + 'm' + blcnt.id.split('_')[1]);
+    dest.insertBefore(el, dest.firstChild);
+  }
+  else {
+    dest = link.parentNode;
+    dest.parentNode.insertBefore(el, dest.nextSibling);
+  }
+  
+  e && e.preventDefault();
+};
+
 Parser.parseThreadJSON = function(data) {
   var thread;
   
@@ -858,17 +923,23 @@ QuotePreview.remove = function(el) {
 var ImageExpansion = {};
 
 ImageExpansion.expand = function(thumb) {
-  var img, el;
+  var img, el, href;
   
   if (Config.imageHover && (el = $.id('image-hover'))) {
     document.body.removeChild(el);
+  }
+  
+  href = thumb.parentNode.getAttribute('href');
+  
+  if (href.slice(-3) == 'pdf') {
+    return;
   }
   
   thumb.setAttribute('data-expanding', '1');
   img = document.createElement('img');
   img.alt = 'Image';
   img.className = 'fitToPage';
-  img.setAttribute('src', thumb.parentNode.getAttribute('href'));
+  img.setAttribute('src', href);
   img.style.display = 'none';
   thumb.parentNode.appendChild(img);
   if (UA.hasCORS) {
@@ -933,13 +1004,19 @@ ImageExpansion.onExpanded = function(e) {
 var ImageHover = {};
 
 ImageHover.show = function(thumb) {
-  var img;
+  var img, href;
+  
+  href = thumb.parentNode.getAttribute('href');
+  
+  if (href.slice(-3) == 'pdf') {
+    return;
+  }
   
   img = document.createElement('img');
   img.id = 'image-hover';
   img.alt = 'Image';
   img.className = 'fitToScreen';
-  img.setAttribute('src', thumb.parentNode.getAttribute('href'));
+  img.setAttribute('src', href);
   document.body.appendChild(img);
   if (UA.hasCORS) {
     img.style.display = 'none';
@@ -3131,6 +3208,7 @@ var Config = {
   revealSpoilers: false,
   replyHiding: false,
   imageHover: false,
+  inlineQuotelinks: false,
   threadStats: false,
   embedYouTube: false,
   embedSoundCloud: false,
@@ -3189,6 +3267,7 @@ SettingsMenu.options = {
       revealSpoilers: [ "Don't spoiler images", 'Don\'t replace spoiler images with a placeholder and show filenames' ],
       replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
       imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
+      inlineQuotelinks: [ 'Inline quotes', 'Clicking quote links will display the quoted posts inline' ],
       threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
@@ -3695,6 +3774,9 @@ Main.onclick = function(e) {
       e.preventDefault();
       ImageExpansion.toggle(t);
     }
+    else if (Config.inlineQuotelinks && t.className == 'quotelink') {
+      Parser.inlineQuote(t, e);
+    }
   }
 }
 
@@ -3982,6 +4064,7 @@ div.post div.postInfo {\
 .photon .highlight-anti {\
   background-color: #bbb !important;\
 }\
+#quote-preview .inlined,\
 #quote-preview .backlink,\
 #quote-preview .extButton,\
 #quote-preview .extControls {\
@@ -4313,6 +4396,20 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
 }\
 .compact .thread {\
   max-width: 75%;\
+}\
+.burichan_new .post .post,\
+.yotsuba_b_new .post .post {\
+  border: 1px solid #EEF2FF;\
+}\
+.futaba_new .post .post,\
+.yotsuba_new .post .post {\
+  border: 1px solid #FFFFEE;\
+}\
+.photon .post .post {\
+  border: 1px solid #eee;\
+}\
+.tomorrow .post .post {\
+  border: 1px solid #1D1F21;\
 }\
 ';
 

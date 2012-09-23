@@ -3346,7 +3346,7 @@ SettingsMenu.open = function() {
   
   html = '<div class="extPanel reply"><div class="panelHeader">Settings'
     + '<span><a target="_blank" href="//www.4chan.org/tools">'
-      + '<img alt="Help" title="Help" src="' + Main.icons.help + '"></a>'
+      + '<img class="pointer" alt="Help" title="Help" src="' + Main.icons.help + '"></a>'
     + '<img alt="Close" title="Close" class="pointer" data-cmd="settings-toggle" src="'
     + Main.icons.cross + '"></a>'
     + '</span></div><ul>';
@@ -3881,6 +3881,11 @@ div.op > span .postHideButtonCollapsed {\
 }\
 .tomorrow .extPanel {\
   border: 1px solid #111;\
+}\
+.extButton,\
+img.pointer {\
+  width: 18px;\
+  height: 18px;\
 }\
 .extControls {\
   display: inline;\

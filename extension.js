@@ -4,10 +4,12 @@
  *                              *
  ********************************/
 
+(function(){
+
 /**
  * Helpers
  */
-$ = {};
+var $ = {};
 
 $.id = function(id) {
   return document.getElementById(id);
@@ -4205,3 +4207,5 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
 };
 
 Main.init();
+
+})();

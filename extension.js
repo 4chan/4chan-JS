@@ -1242,8 +1242,8 @@ QR.show = function(tid) {
     spoiler.innerHTML
       = '<label>[<input type="checkbox" value="on" name="spoiler">Spoiler?]</label>';
     file.parentNode.insertBefore(spoiler, file.nextSibling);
-    $.tag('textarea', qrForm)[0].addEventListener('keydown', QR.spoilerText, false);
   }
+  $.tag('textarea', qrForm)[0].addEventListener('keydown', QR.onKeyDown, false);
   
   form.appendChild(qrForm);
   cnt.appendChild(form);
@@ -1265,7 +1265,7 @@ QR.show = function(tid) {
   Draggable.set($.id('qrHeader'));
 };
 
-QR.spoilerText = function(e) {
+QR.onKeyDown = function(e) {
   if (e.ctrlKey && e.keyCode == 83) {
     var ta, start, end, spoiler;
     
@@ -1286,6 +1286,9 @@ QR.spoilerText = function(e) {
       ta.setSelectionRange(9, 9);
     }
   }
+  else if (e.keyCode == 27 && !e.ctrlkey && !e.altkey && !e.shiftkey && !e.metakey) {
+    QR.close();
+  }
 };
 
 QR.close = function() {
@@ -1303,7 +1306,7 @@ QR.close = function() {
   
   cnt.removeEventListener('click', QR.onClick, false);
   Draggable.unset($.id('qrHeader'));
-  $.tag('textarea', cnt)[0].removeEventListener('keydown', QR.spoilerText, false);
+  $.tag('textarea', cnt)[0].removeEventListener('keydown', QR.onKeyDown, false);
   
   document.body.removeChild(cnt);
 };
@@ -3048,6 +3051,7 @@ Keybinds.open = function() {
 <li><strong>Quick Reply (always enabled)</strong></li>\
 <li><code>Ctrl + Click the post number</code> &mdash; Quote without linking</li>\
 <li><code>Ctrl + S</code> &mdash; Spoiler tags</li>\
+<li><code>Esc</code> &mdash; Close the Quick Reply</li>\
 </ul>';
 
   document.body.appendChild(cnt);

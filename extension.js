@@ -3577,6 +3577,7 @@ Main.icons = {
 Main.initIcons = function() {
   var key, paths, url;
   
+  
   paths = {
     yotsuba_new: 'futaba/',
     futaba_new: 'futaba/',
@@ -3587,6 +3588,12 @@ Main.initIcons = function() {
   };
   
   url = '//static.4chan.org/image/buttons/' + paths[Main.stylesheet];
+  
+  if (window.devicePixelRatio >= 2) {
+    for (key in Main.icons) {
+      Main.icons[key] = Main.icons[key].replace('.', '@2x.');
+    }
+  }
   
   for (key in Main.icons) {
     Main.icons[key] = url + Main.icons[key];

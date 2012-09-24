@@ -42,7 +42,7 @@ if (!document.documentElement.classList) {
   
   $.removeClass = function(el, klass) {
     el.className = (' ' + el.className + ' ').replace(' ' + klass + ' ', '');
-  }
+  };
 }
 else {
   $.hasClass = function(el, klass) {
@@ -55,7 +55,7 @@ else {
   
   $.removeClass = function(el, klass) {
     el.classList.remove(klass);
-  }
+  };
 }
 
 $.get = function(url, callbacks, headers) {
@@ -91,11 +91,22 @@ $.hash = function(str) {
 var Parser = {};
 
 Parser.init = function() {
-  var o, a, h, m;
+  var o, a, h, m, tail, staticPath;
   
   if (Config.filter || Config.embedSoundCloud || Config.embedYouTube) {
     this.needMsg = true;
   }
+  
+  staticPath = '//static.4chan.org/image/';
+  
+  tail = window.devicePixelRatio >= 2 ? '@2x.gif' : '.gif';
+  
+  this.icons = {
+    admin: staticPath + 'adminicon' + tail,
+    mod: staticPath + 'modicon' + tail,
+    dev: staticPath + 'developericon' + tail,
+    del: staticPath + 'filedeleted-res' + tail
+  };
   
   this.prettify = typeof prettyPrint == 'function';
   
@@ -120,24 +131,26 @@ Parser.init = function() {
 Parser.inlineQuote = function(link, e) {
   var pfx, now, src, dest, id, el, tblcnt, blcnt, isBl, i, j, inner;
   
+  
   if (pfx = link.getAttribute('data-pfx')) {
     link.removeAttribute('data-pfx');
     link.style.opacity = '';
     el = $.id(pfx + 'p' + link.textContent.slice(2));
     el.parentNode.removeChild(el);
-    e && e.preventDefault();
-    return;
+    return e && e.preventDefault();
   }
   
   now = Date.now();
   
-  id = link.textContent.slice(2)
+  id = link.textContent.slice(2);
   src = $.id('p' + id);
   
-  if (!src) {
+  if (!src || $.hasClass(src, 'op')) {
     return;
   }
   else {
+    e && e.preventDefault();
+    
     if ((blcnt = link.parentNode.parentNode).className == 'backlink') {
       el = blcnt.parentNode.parentNode.parentNode;
       isBl = true;
@@ -145,8 +158,8 @@ Parser.inlineQuote = function(link, e) {
     else {
       el = blcnt.parentNode.parentNode;
     }
+    
     if (el.id.split('m')[1] == id) {
-      e && e.preventDefault();
       return;
     }
   }
@@ -157,7 +170,7 @@ Parser.inlineQuote = function(link, e) {
   el = src.cloneNode(true);
   el.id = now + el.id;
   el.setAttribute('data-pfx', now);
-  $.addClass(el, 'inlined');
+  el.className += ' preview inlined';
   $.removeClass(el, 'highlight');
   $.removeClass(el, 'highlight-anti');
   
@@ -189,8 +202,6 @@ Parser.inlineQuote = function(link, e) {
     dest = link.parentNode;
     dest.parentNode.insertBefore(el, dest.nextSibling);
   }
-  
-  e && e.preventDefault();
 };
 
 Parser.parseThreadJSON = function(data) {
@@ -254,7 +265,6 @@ Parser.buildHTMLFromJSON = function(data, board) {
     
     i, q, href, quotes,
     
-    staticPath = '//static.4chan.org',
     imgDir = '//images.4chan.org/' + board + '/src';
   
   if (data.resto == 0) {
@@ -289,27 +299,27 @@ Parser.buildHTMLFromJSON = function(data, board) {
         + 'title="Highlight posts by the Administrator">## Admin</strong>';
       capcodeClass = ' capcodeAdmin';
       
-      capcode = ' <img src="' + staticPath + '/image/adminicon.gif" '
+      capcode = ' <img src="' + Parser.icons.admin + '" '
         + 'alt="This user is the 4chan Administrator." '
-        + 'title="This user is the 4chan Administrator." class="identityIcon"/>';
+        + 'title="This user is the 4chan Administrator." class="identityIcon">';
       break;
     case 'mod':
       capcodeStart = ' <strong class="capcode hand id_mod" '
         + 'title="Highlight posts by Moderators">## Mod</strong>';
       capcodeClass = ' capcodeMod';
       
-      capcode = ' <img src="' + staticPath + '/image/modicon.gif" '
+      capcode = ' <img src="' + Parser.icons.mod + '" '
         + 'alt="This user is a 4chan Moderator." '
-        + 'title="This user is a 4chan Moderator." class="identityIcon"/>';
+        + 'title="This user is a 4chan Moderator." class="identityIcon">';
       break;
     case 'developer':
       capcodeStart = ' <strong class="capcode hand id_developer" '
         + 'title="Highlight posts by Developers">## Developer</strong>';
       capcodeClass = ' capcodeDeveloper';
       
-      capcode = ' <img src="' + staticPath + '/image/developericon.gif" '
+      capcode = ' <img src="' + Parser.icons.dev + '" '
         + 'alt="This user is a 4chan Developer." '
-        + 'title="This user is a 4chan Developer." class="identityIcon"/>';
+        + 'title="This user is a 4chan Developer." class="identityIcon">';
       break;
   }
   
@@ -319,7 +329,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
   }
   
   if (data.country) {
-    flag = ' <img src="' + staticPath + '/image/country/'
+    flag = ' <img src="//static.4chan.org/image/country/'
       + (board == 'pol' ? 'troll/' : '')
       + data.country.toLowerCase() + '.gif" alt="'
       + data.country + '" title="' + data.country_name + '" class="countryFlag">';
@@ -373,8 +383,8 @@ Parser.buildHTMLFromJSON = function(data, board) {
       + data.tn_w + 'px;"></a>';
     
     if (data.filedeleted) {
-      imgSrc = '<span class="fileThumb"><img src="' + staticPath
-      + '/image/filedeleted-res.gif" alt="File deleted."></span>';
+      imgSrc = '<span class="fileThumb"><img src="' + Parser.icons.del
+        + '" class="fileDeletedRes" alt="File deleted."></span>';
       fileInfo = '';
     }
     else {
@@ -3231,12 +3241,12 @@ var Config = {
   topPageNav: false,
   stickyNav: false,
   keyBinds: false,
+  inlineQuotes: false,
 
   filter: false,
   revealSpoilers: false,
   replyHiding: false,
   imageHover: false,
-  inlineQuotelinks: false,
   threadStats: false,
   embedYouTube: false,
   embedSoundCloud: false,
@@ -3288,14 +3298,14 @@ SettingsMenu.options = {
       localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ],
       topPageNav: [ 'Page navigation at the top', 'Show the page switcher at the top of the page, hold Shift and drag to move' ],
       stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows, hold Shift and drag to move' ],
-      keyBinds: [ 'Use keyboard shortcuts [<a href="javascript:;" data-cmd="keybinds-open">Show</a>]' ]
+      keyBinds: [ 'Use keyboard shortcuts [<a href="javascript:;" data-cmd="keybinds-open">Show</a>]', 'Enable handy keyboard shortcuts for common actions' ],
     },
     'Advanced': {
       filter: [ 'Filters &amp; Highlights [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
       revealSpoilers: [ "Don't spoiler images", 'Don\'t replace spoiler images with a placeholder and show filenames' ],
       replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
+      inlineQuotes: [ 'Inline quote links', 'Clicking quote links will inline expand the quoted post, shift-clicking bypasses the inlining' ],
       imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
-      inlineQuotelinks: [ 'Inline quotes', 'Clicking quote links will display the quoted posts inline' ],
       threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
@@ -3809,8 +3819,14 @@ Main.onclick = function(e) {
       e.preventDefault();
       ImageExpansion.toggle(t);
     }
-    else if (Config.inlineQuotelinks && t.className == 'quotelink') {
-      Parser.inlineQuote(t, e);
+    else if (Config.inlineQuotes && e.which == 1 && t.className == 'quotelink') {
+      if (!e.shiftKey) {
+        Parser.inlineQuote(t, e);
+      }
+      else {
+        e.preventDefault();
+        location = t.href;
+      }
     }
   }
 }
@@ -4437,23 +4453,12 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
 .compact .thread {\
   max-width: 75%;\
 }\
-.burichan_new .post .post,\
-.yotsuba_b_new .post .post {\
-  border: 1px solid #EEF2FF;\
-}\
-.futaba_new .post .post,\
-.yotsuba_new .post .post {\
-  border: 1px solid #FFFFEE;\
-}\
-.photon .post .post {\
-  border: 1px solid #eee;\
-}\
-.tomorrow .post .post {\
-  border: 1px solid #1D1F21;\
-}\
 .dotted {\
   text-decoration: none;\
   border-bottom: 1px dashed;\
+}\
+.inlined .extControls {\
+  display: none;\
 }\
 ';
 

@@ -4121,7 +4121,6 @@ div.post div.postInfo {\
   background-color: #bbb !important;\
 }\
 #quote-preview .inlined,\
-#quote-preview .backlink,\
 #quote-preview .extButton,\
 #quote-preview .extControls {\
   display: none;\

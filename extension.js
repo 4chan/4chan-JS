@@ -1510,7 +1510,7 @@ QR.submit = function(force) {
       }
       
       if ((email = $.byName('email')[1]) && /sage/i.test(email.value)) {
-        cd = Main.tid ? QR.sageDelay : QR.baseDelay;
+        cd = QR.sageDelay;
       }
       else {
         cd = QR.baseDelay;

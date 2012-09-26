@@ -134,7 +134,7 @@ Parser.inlineQuote = function(link, e) {
   
   if (pfx = link.getAttribute('data-pfx')) {
     link.removeAttribute('data-pfx');
-    link.style.opacity = '';
+    $.removeClass(link, 'linkfade');
     el = $.id(pfx + 'p' + link.textContent.slice(2));
     el.parentNode.removeChild(el);
     return e && e.preventDefault();
@@ -164,7 +164,7 @@ Parser.inlineQuote = function(link, e) {
     }
   }
   
-  link.style.opacity = '0.5';
+  link.className += ' linkfade';
   link.setAttribute('data-pfx', now);
   
   el = src.cloneNode(true);
@@ -181,7 +181,7 @@ Parser.inlineQuote = function(link, e) {
     inner = $.cls('quotelink', el);
     for (i = 0; j = inner[i]; ++i) {
       j.removeAttribute('data-pfx');
-      j.style.opacity = '';
+      $.removeClass(j, 'linkfade');
     }
   }
   
@@ -3080,7 +3080,7 @@ Keybinds.open = function() {
 <li><code>R</code> &mdash; Update thread</li>\
 <li><code>Z</code> &mdash; Previous page</li>\
 <li><code>X</code> &mdash; Next page</li>\
-<li><code>C</code> &mdash; Return to page 0</li>\
+<li><code>C</code> &mdash; Return to index</li>\
 </ul><ul>\
 <li><strong>Quick Reply (always enabled)</strong></li>\
 <li><code>Ctrl + Click the post number</code> &mdash; Quote without linking</li>\
@@ -3819,7 +3819,7 @@ Main.onclick = function(e) {
       e.preventDefault();
       ImageExpansion.toggle(t);
     }
-    else if (Config.inlineQuotes && e.which == 1 && t.className == 'quotelink') {
+    else if (Config.inlineQuotes && e.which == 1 && $.hasClass(t, 'quotelink')) {
       if (!e.shiftKey) {
         Parser.inlineQuote(t, e);
       }
@@ -4458,6 +4458,12 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
 }\
 .inlined .extControls {\
   display: none;\
+}\
+.linkfade {\
+  opacity: 0.5;\
+}\
+#quote-preview .linkfade {\
+  opacity: 1.0;\
 }\
 ';
 

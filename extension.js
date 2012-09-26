@@ -1104,8 +1104,15 @@ QR.init = function() {
   this.currentTid = null;
   this.cooldown = null;
   this.auto = false;
-  this.baseDelay = 30500;
-  this.sageDelay = 60500;
+  if (Main.board == 'q') {
+    this.baseDelay = 60500;
+    this.fileDelay = 300500;
+    this.sageDelay = 600500;
+  }
+  else {
+    this.baseDelay = 30500;
+    this.sageDelay = 60500;
+  }
   this.captchaDelay = 240500;
   this.captchaInterval = null;
   this.pulse = null;
@@ -1487,7 +1494,7 @@ QR.submit = function(force) {
       + '<a href="https://www.4chan.org/banned">banned</a>?');
   };
   QR.xhr.onload = function() {
-    var resp, file, el, email;
+    var resp, file, el, email, hasFile;
     
     QR.xhr = null;
     
@@ -1509,7 +1516,12 @@ QR.submit = function(force) {
         return;
       }
       
-      if ((email = $.byName('email')[1]) && /sage/i.test(email.value)) {
+      hasFile = (file = $.id('qrFile')) && file.value;
+      
+      if (QR.fileDelay && hasFile) {
+        cd = QR.fileDelay;
+      }
+      else if ((email = $.byName('email')[1]) && /sage/i.test(email.value)) {
         cd = QR.sageDelay;
       }
       else {
@@ -1531,7 +1543,7 @@ QR.submit = function(force) {
           el.checked = false;
         }
         QR.reloadCaptcha();
-        if ((file = $.id('qrFile')) && file.value) {
+        if (hasFile) {
           QR.resetFile();
         }
       }

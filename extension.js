@@ -3166,7 +3166,7 @@ Keybinds.open = function() {
 <span><img data-cmd="keybinds-close" class="pointer" alt="Close" title="Close" src="'
 + Main.icons.cross + '"></span></div>\
 <ul>\
-<li><strong>Gobal</strong></li>\
+<li><strong>Global</strong></li>\
 <li><code>A</code> &mdash; Toggle auto-updater</li>\
 <li><code>Q</code> &mdash; Open Quick Reply</li>\
 <li><code>R</code> &mdash; Update thread</li>\

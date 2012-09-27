@@ -896,7 +896,9 @@ QuotePreview.show = function(link, post, remote) {
     }
     
     if (!link.parentNode.className) {
-      quotes = $.cls('quotelink', $.cls('postMessage', post)[0]);
+      quotes = post.querySelectorAll(
+        '#' + $.cls('postMessage', post)[0].id + ' > .quote .quotelink'
+      );
       if (quotes[1]) {
         qid = '>>' + link.parentNode.parentNode.id.split('_')[1];
         for (i = 0; j = quotes[i]; ++i) {
@@ -1104,6 +1106,13 @@ QR.init = function() {
   this.currentTid = null;
   this.cooldown = null;
   this.auto = false;
+  
+  this.sagePost = 2;
+  this.filePost = 4;
+  
+  this.cdElapsed = 0;
+  this.cdType = 0;
+  this.activeDelay = 0;
   if (Main.board == 'q') {
     this.baseDelay = 60500;
     this.fileDelay = 300500;
@@ -1111,12 +1120,16 @@ QR.init = function() {
   }
   else {
     this.baseDelay = 30500;
+    this.fileDelay = 30500;
     this.sageDelay = 60500;
   }
+  
   this.captchaDelay = 240500;
   this.captchaInterval = null;
   this.pulse = null;
   this.xhr = null;
+  
+  QR.purgeCooldown();
   
   window.addEventListener('storage', this.syncStorage, false);
 };
@@ -1250,6 +1263,7 @@ QR.show = function(tid) {
         file.id = 'qrFile';
         file.size = '19';
         file.title = 'Shift + Click to remove the file';
+        file.addEventListener('change', QR.checkCDType, false);
         row.appendChild(file);
       }
       else {
@@ -1264,8 +1278,12 @@ QR.show = function(tid) {
           if (el.name == 'name' && (cookie = Main.getCookie('4chan_name'))) {
             el.value = cookie;
           }
-          else if (el.name == 'email' && (cookie = Main.getCookie('4chan_email'))) {
-            el.value = cookie;
+          else if (el.name == 'email') {
+            el.id = 'qrEmail';
+            el.addEventListener('change', QR.checkCDType, false);
+            if (cookie = Main.getCookie('4chan_email')) {
+              el.value = cookie;
+            }
           }
           el.setAttribute('placeholder', placeholder);
         }
@@ -1333,7 +1351,7 @@ QR.onKeyDown = function(e) {
 };
 
 QR.close = function() {
-  var cnt = $.id('quickReply');
+  var el, cnt = $.id('quickReply');
   
   QR.currentTid = null;
   
@@ -1346,6 +1364,8 @@ QR.close = function() {
   }
   
   cnt.removeEventListener('click', QR.onClick, false);
+  (el = $.id('qrFile')) && el.removeEventListener('change', QR.checkCDType, false);
+  (el = $.id('qrEmail')) && el.removeEventListener('change', QR.checkCDType, false);
   Draggable.unset($.id('qrHeader'));
   $.tag('textarea', cnt)[0].removeEventListener('keydown', QR.onKeyDown, false);
   
@@ -1385,6 +1405,23 @@ QR.reloadCaptcha = function(focus) {
   clearInterval(QR.captchaInterval);
   Recaptcha.reload('t');
   pulse = setTimeout(poll, 100);
+};
+
+QR.checkCDType = function(e) {
+  var cd, el;
+  
+  if ((QR.cdType & QR.sagePost) && (el = $.id('qrEmail')) && /sage/i.test(el.value)) {
+    QR.activeDelay = QR.sageDelay;
+  }
+  else if ((QR.cdType & QR.filePost) && (el = $.id('qrFile')) && el.value) {
+    QR.activeDelay = QR.fileDelay;
+  }
+  else {
+    QR.activeDelay = QR.baseDelay;
+  }
+  if (!QR.cooldown && (cd = QR.purgeCooldown())) {
+    QR.startCooldown(cd);
+  }
 };
 
 QR.onClick = function(e) {
@@ -1438,14 +1475,18 @@ QR.resetFile = function() {
   el.type = 'file';
   el.size = '19';
   el.name = 'upfile';
+  el.addEventListener('change', QR.checkCDType, false);
   
   file = $.id('qrFile');
+  file.removeEventListener('change', QR.checkCDType, false);
   
   file.parentNode.replaceChild(el, file);
+  
+  QR.checkCDType();
 };
 
 QR.submit = function(force) {
-  var i, btn, cd, email, field;
+  var i, btn, email, field;
   
   QR.hidePostError();
   btn = $.id('quickReply').querySelector('input[type="submit"]');
@@ -1494,7 +1535,7 @@ QR.submit = function(force) {
       + '<a href="https://www.4chan.org/banned">banned</a>?');
   };
   QR.xhr.onload = function() {
-    var resp, file, el, email, hasFile;
+    var resp, el, hasFile, cd;
     
     QR.xhr = null;
     
@@ -1516,19 +1557,17 @@ QR.submit = function(force) {
         return;
       }
       
-      hasFile = (file = $.id('qrFile')) && file.value;
+      hasFile = (el = $.id('qrFile')) && el.value;
       
-      if (QR.fileDelay && hasFile) {
-        cd = QR.fileDelay;
+      cd = 1;
+      if ((el = $.id('qrEmail')) && /sage/i.test(el.value)) {
+        cd |= QR.sagePost;
       }
-      else if ((email = $.byName('email')[1]) && /sage/i.test(email.value)) {
-        cd = QR.sageDelay;
-      }
-      else {
-        cd = QR.baseDelay;
+      if (hasFile) {
+        cd |= QR.filePost;
       }
       
-      cd += Date.now();
+      cd = Date.now() + '-' + cd;
       localStorage.setItem('4chan-cd-' + Main.board, cd);
       
       if (Main.tid && ThreadUpdater.enabled) {
@@ -1562,8 +1601,33 @@ QR.submit = function(force) {
   QR.xhr.send(new FormData(document.forms.qrPost));
 };
 
-QR.startCooldown = function(ms) {
-  var btn, interval;
+QR.purgeCooldown = function() {
+  var data, cd, type, time, thres;
+  
+  if (data = localStorage.getItem('4chan-cd-' + Main.board)) {
+    cd = data.split('-');
+    time = parseInt(cd[0], 10);
+    type = +cd[1];
+    if (type & QR.sagePost) {
+      thres = QR.sageDelay;
+    }
+    else if (type & QR.filePost) {
+      thres = QR.fileDelay;
+    }
+    else {
+      thres = QR.baseDelay;
+    }
+    if ((Date.now() - time) >= thres) {
+      localStorage.removeItem('4chan-cd-' + Main.board);
+    }
+    else {
+      return data;
+    }
+  }
+};
+
+QR.startCooldown = function(cd) {
+  var ms, btn, el;
   
   if (QR.noCooldown || !(btn = $.id('quickReply')) || QR.xhr) {
     return;
@@ -1573,20 +1637,36 @@ QR.startCooldown = function(ms) {
   
   btn = btn.querySelector('input[type="submit"]');
   
-  ms = parseInt(ms, 10);
+  cd = cd.split('-');
+  ms = parseInt(cd[0], 10);
+  QR.cdType = +cd[1];
+  if ((QR.cdType & QR.sagePost) && (el = $.id('qrEmail')) && /sage/i.test(el.value)) {
+    QR.activeDelay = QR.sageDelay;
+  }
+  else if ((QR.cdType & QR.filePost) && (el = $.id('qrFile')) && el.value) {
+    QR.activeDelay = QR.fileDelay;
+  }
+  else {
+    QR.activeDelay = QR.baseDelay;
+  }
   
-  if ((QR.cooldown = 0 | ((ms - Date.now()) / 1000)) <= 0) {
+  QR.cdElapsed = Date.now() - ms;
+  QR.cooldown = Math.floor((QR.activeDelay - QR.cdElapsed) / 1000);
+  
+  if (QR.cooldown <= 0) {
     QR.cooldown = false;
-    localStorage.removeItem('4chan-cd-' + Main.board);
     return;
   }
+  
   btn.value = QR.cooldown + 's';
+  
   QR.pulse = setInterval(function() {
-    if ((QR.cooldown = 0 | ((ms - Date.now()) / 1000)) <= 0) {
+    QR.cdElapsed = Date.now() - ms;
+    QR.cooldown = Math.floor((QR.activeDelay - QR.cdElapsed) / 1000);
+    if (QR.cooldown <= 0) {
       clearInterval(QR.pulse);
       btn.value = 'Submit';
       QR.cooldown = false;
-      localStorage.removeItem('4chan-cd-' + Main.board);
       if (QR.auto) {
         QR.submit();
       }
@@ -3827,7 +3907,7 @@ Main.onclick = function(e) {
       QR.show(tid);
       QR.quotePost(!e.ctrlKey && t.textContent);
     }
-    else if (Config.imageExpansion && e.which == 1 && $.hasClass(t.parentNode, 'fileThumb')) {
+    else if (Config.imageExpansion && e.which == 1 && t.parentNode && $.hasClass(t.parentNode, 'fileThumb')) {
       e.preventDefault();
       ImageExpansion.toggle(t);
     }

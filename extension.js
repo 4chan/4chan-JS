@@ -382,26 +382,23 @@ Parser.buildHTMLFromJSON = function(data, board) {
       + '" style="height: ' + data.tn_h + 'px; width: '
       + data.tn_w + 'px;"></a>';
     
-    if (data.filedeleted) {
-      imgSrc = '<span class="fileThumb"><img src="' + Parser.icons.del
-        + '" class="fileDeletedRes" alt="File deleted."></span>';
-      fileInfo = '';
-    }
-    else {
-      fileDims = data.ext == '.pdf' ? 'PDF' : data.w + 'x' + data.h;
-      fileInfo = '<span class="fileText" id="fT' + data.no
-        + '">File: <a href="' + imgDir + '/' + data.tim + data.ext
-        + '" target="_blank">' + data.tim + data.ext + '</a>-(' + fileSize
-        + 'B, ' + fileDims
-        + (noFilename ? '' : (', <span title="' + longFile + '">'
-        + shortFile + '</span>')) + ')</span>';
-    }
+    fileDims = data.ext == '.pdf' ? 'PDF' : data.w + 'x' + data.h;
+    fileInfo = '<span class="fileText" id="fT' + data.no
+      + '">File: <a href="' + imgDir + '/' + data.tim + data.ext
+      + '" target="_blank">' + data.tim + data.ext + '</a>-(' + fileSize
+      + 'B, ' + fileDims
+      + (noFilename ? '' : (', <span title="' + longFile + '">'
+      + shortFile + '</span>')) + ')</span>';
     
     fileBuildStart = fileInfo ? '<div class="fileInfo">' : '';
     fileBuildEnd = fileInfo ? '</div>' : '';
     
     fileHtml = '<div id="f' + data.no + '" class="file">'
       + fileBuildStart + fileInfo + fileBuildEnd + imgSrc + '</div>';
+  }
+  else if (data.filedeleted) {
+    fileHtml = '<div id="f' + data.no + '" class="file"><span class="fileThumb"><img src="'
+      + Parser.icons.del + '" class="fileDeletedRes" alt="File deleted."></span></div>';
   }
   
   if (data.trip) {
@@ -3907,7 +3904,8 @@ Main.onclick = function(e) {
       QR.show(tid);
       QR.quotePost(!e.ctrlKey && t.textContent);
     }
-    else if (Config.imageExpansion && e.which == 1 && t.parentNode && $.hasClass(t.parentNode, 'fileThumb')) {
+    else if (Config.imageExpansion && e.which == 1 && t.parentNode
+      && $.hasClass(t.parentNode, 'fileThumb') && t.parentNode.nodeName == 'A') {
       e.preventDefault();
       ImageExpansion.toggle(t);
     }

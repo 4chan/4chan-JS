@@ -992,7 +992,7 @@ ImageExpansion.contract = function(img) {
   clearTimeout(this.timeout);
   p = img.parentNode;
   cnt = p.parentNode.parentNode;
-  p.parentNode.style.display = '';
+  $.removeClass(p.parentNode, 'image-expanded');
   p.firstChild.style.display = '';
   p.removeChild(img);
   if (cnt.offsetTop < window.pageYOffset) {
@@ -1013,7 +1013,7 @@ ImageExpansion.toggle = function(t) {
 
 ImageExpansion.onLoadStart = function(img, thumb) {
   thumb.removeAttribute('data-expanding');
-  thumb.parentNode.parentNode.style.display = 'table';
+  $.addClass(thumb.parentNode.parentNode, 'image-expanded');
   img.style.display = '';
   thumb.style.display = 'none';
 };
@@ -4176,6 +4176,11 @@ div.post div.postInfo {\
 .fitToPage {\
   width: 100%;\
   max-width: 100%;\
+}\
+div.post div.image-expanded:after {\
+  clear: left;\
+  content: "";\
+  display: block;\
 }\
 #quote-preview {\
   display: block;\

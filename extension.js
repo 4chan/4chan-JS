@@ -3306,7 +3306,9 @@ UA.init = function() {
   
   this.hasFormData = 'FormData' in window;
   
-  this.hasCustomEventCtor = typeof window.CustomEvent == 'function';
+  this.hasCustomEventCtor = (function() {
+    try { new window.CustomEvent('e'); return true; } catch (e) { return false; }
+  })();
 };
 
 /**

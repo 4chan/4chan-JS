@@ -3113,18 +3113,18 @@ Keybinds.init = function() {
     82: function() {
       if (ThreadUpdater.enabled) ThreadUpdater.forceUpdate();
     },
-    // Z
-    90: function() {
+    // B
+    66: function() {
       var el;
       (el = $.cls('prev')[0]) && (el = $.tag('form', el)[0]) && el.submit();
     },
-    // X
-    88: function() {
+    // N
+    78: function() {
       var el;
       (el = $.cls('next')[0]) && (el = $.tag('form', el)[0]) && el.submit();
     },
-    // C
-    67: function() {
+    // I
+    73: function() {
       location.href = '/' + Main.board + '/';
     }
   };
@@ -3167,9 +3167,9 @@ Keybinds.open = function() {
 <li><code>A</code> &mdash; Toggle auto-updater</li>\
 <li><code>Q</code> &mdash; Open Quick Reply</li>\
 <li><code>R</code> &mdash; Update thread</li>\
-<li><code>Z</code> &mdash; Previous page</li>\
-<li><code>X</code> &mdash; Next page</li>\
-<li><code>C</code> &mdash; Return to index</li>\
+<li><code>B</code> &mdash; Previous page</li>\
+<li><code>N</code> &mdash; Next page</li>\
+<li><code>I</code> &mdash; Return to index</li>\
 </ul><ul>\
 <li><strong>Quick Reply (always enabled)</strong></li>\
 <li><code>Ctrl + Click the post number</code> &mdash; Quote without linking</li>\

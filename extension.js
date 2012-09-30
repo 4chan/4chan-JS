@@ -4177,10 +4177,11 @@ div.post div.postInfo {\
   width: 100%;\
   max-width: 100%;\
 }\
-div.post div.image-expanded:after {\
-  clear: left;\
-  content: "";\
-  display: block;\
+div.post div.image-expanded {\
+  display: table;\
+}\
+div.post div.image-expanded .fileThumb {\
+  margin-left: 0;\
 }\
 #quote-preview {\
   display: block;\

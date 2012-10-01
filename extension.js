@@ -990,6 +990,9 @@ ImageExpansion.contract = function(img) {
   p = img.parentNode;
   cnt = p.parentNode.parentNode;
   $.removeClass(p.parentNode, 'image-expanded');
+  if (!Main.tid && Config.threadHiding) {
+    $.removeClass(p, 'image-expanded-anti');
+  }
   p.firstChild.style.display = '';
   p.removeChild(img);
   if (cnt.offsetTop < window.pageYOffset) {
@@ -1011,6 +1014,9 @@ ImageExpansion.toggle = function(t) {
 ImageExpansion.onLoadStart = function(img, thumb) {
   thumb.removeAttribute('data-expanding');
   $.addClass(thumb.parentNode.parentNode, 'image-expanded');
+  if (!Main.tid && Config.threadHiding) {
+    $.addClass(thumb.parentNode, 'image-expanded-anti');
+  }
   img.style.display = '';
   thumb.style.display = 'none';
 };
@@ -4180,8 +4186,8 @@ div.post div.postInfo {\
 div.post div.image-expanded {\
   display: table;\
 }\
-div.post div.image-expanded .fileThumb {\
-  margin-left: 0;\
+div.op div.file .image-expanded-anti {\
+  margin-left: -3px;\
 }\
 #quote-preview {\
   display: block;\

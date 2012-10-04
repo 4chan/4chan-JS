@@ -500,8 +500,7 @@ Parser.parseThread = function(tid, offset, limit) {
       }
       
       if (ThreadExpansion.enabled
-          && (summary = thread.children[1])
-          && $.hasClass(summary, 'summary')) {
+          && (summary = $.cls('summary', thread)[0])) {
         frag = document.createDocumentFragment();
         
         omitted = summary.cloneNode(true);

@@ -662,7 +662,7 @@ Parser.parsePost = function(pid, tid) {
       img.src = '//thumbs.4chan.org'
         + (file.pathname.replace(/src(\/[0-9]+).+$/, 'thumb$1s.jpg'))
       
-      filename = file.previousSibling.firstChild;
+      filename = file.previousElementSibling.firstElementChild;
       finfo = filename.title.split('.');
       if (finfo[0].length > (isOP ? 40 : 30)) {
         txt = finfo[0].slice(0, isOP ? 35 : 25) + '(...)' + finfo[1];
@@ -1240,7 +1240,7 @@ QR.show = function(tid) {
   qrForm = document.createElement('div');
   qrForm.id = 'qrForm';
   
-  fields = postForm.firstChild.children;
+  fields = postForm.firstElementChild.children;
   for (i = 0, j = fields.length - 1; i < j; ++i) {
     row = document.createElement('div');
     if (fields[i].id == 'captchaFormPart') {
@@ -1256,7 +1256,7 @@ QR.show = function(tid) {
         + $.id('recaptcha_challenge_field').value + '">';
     }
     else {
-      placeholder = fields[i].firstChild.textContent;
+      placeholder = fields[i].firstElementChild.textContent;
       if (placeholder == 'Password' || placeholder == 'Spoilers') {
         continue;
       }
@@ -2026,7 +2026,7 @@ ThreadWatcher.refreshCurrent = function() {
   
   key = Main.tid + '-' + Main.board;
   if ((thread = $.id('t' + Main.tid)).children[1]) {
-    lastReply = thread.lastChild.id.slice(2);
+    lastReply = thread.lastElementChild.id.slice(2);
   }
   else {
     lastReply = 0;
@@ -2431,7 +2431,7 @@ ThreadUpdater.onload = function() {
     
     thread = $.id('t' + Main.tid);
     
-    lastrep = thread.childNodes[thread.childElementCount - 1];
+    lastrep = thread.children[thread.childElementCount - 1];
     lastid = +lastrep.id.slice(2);
     
     newposts = Parser.parseThreadJSON(this.responseText);
@@ -3742,7 +3742,7 @@ Main.initGlobalMessage = function() {
   var msg, btn, oldHash;
   
   if ((msg = $.id('globalMessage')) && msg.textContent) {
-    msg.nextSibling.style.clear = 'both';
+    msg.nextElementSibling.style.clear = 'both';
     btn = document.createElement('img');
     btn.id = 'toggleMsgBtn';
     btn.className = 'extButton';

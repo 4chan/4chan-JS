@@ -97,6 +97,10 @@ Parser.init = function() {
     this.needMsg = true;
   }
   
+  if (Config.imageSearch || Config.downloadFile) {
+    this.needFile = true;
+  }
+  
   staticPath = '//static.4chan.org/image/';
   
   tail = window.devicePixelRatio >= 2 ? '@2x.gif' : '.gif';
@@ -601,17 +605,33 @@ Parser.parsePost = function(pid, tid) {
       pi.appendChild(cnt);
     }
     
-    if (Config.imageSearch && (file = document.getElementById('fT' + pid))) {
-      href = file.firstElementChild.href;
-      el = document.createElement('div');
-      el.className = 'extControls';
-      el.innerHTML =
-        '<a href="//www.google.com/searchbyimage?image_url=' + href
-        + '" target="_blank" title="Google Image Search"><img class="extButton" src="'
-        + Main.icons.gis + '" alt="G"></a><a href="http://iqdb.org/?url='
-        + href + '" target="_blank" title="iqdb"><img class="extButton" src="'
-        + Main.icons.iqdb + '" alt="I"></a>';
-      file.parentNode.appendChild(el);
+    if (Parser.needFile && (file = document.getElementById('fT' + pid))) {
+      html = '';
+      
+      if (Config.downloadFile) {
+        txt = ((el = file.children[1]) ? el : file).getAttribute('title');
+        html +=
+          '<a href="' + file.firstElementChild.href
+          + '" download="' + txt + '" title="Download file"><img class="extButton" src="'
+          + Main.icons.download + '" alt="D"></a>';
+      }
+      
+      if (Config.imageSearch) {
+        href = file.firstElementChild.href;
+        html +=
+          '<a href="//www.google.com/searchbyimage?image_url=' + href
+          + '" target="_blank" title="Google Image Search"><img class="extButton" src="'
+          + Main.icons.gis + '" alt="G"></a><a href="http://iqdb.org/?url='
+          + href + '" target="_blank" title="iqdb"><img class="extButton" src="'
+          + Main.icons.iqdb + '" alt="I"></a>';
+      }
+      
+      if (html) {
+        cnt = document.createElement('div');
+        cnt.className = 'extControls';
+        cnt.innerHTML = html;
+        file.parentNode.appendChild(cnt);
+      }
     }
     
     if (pid != tid) {
@@ -3419,6 +3439,7 @@ var Config = {
   imageHover: false,
   threadStats: false,
   IDColor: false,
+  downloadFile: false,
   embedYouTube: false,
   embedSoundCloud: false,
 
@@ -3479,6 +3500,7 @@ SettingsMenu.options = {
       imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
       threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
       IDColor: [ 'Color user IDs', 'Assign colors to user IDs.' ],
+      downloadFile: [ 'Download link', 'Download files using the original filename (Chrome only).'],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
     },
@@ -3756,6 +3778,7 @@ Main.onFirstRun = function() {
 Main.icons = {
   up: 'arrow_up.png',
   down: 'arrow_down.png',
+  download: 'arrow_down2.png',
   refresh: 'refresh.png',
   cross: 'cross.png',
   gis: 'gis.png',

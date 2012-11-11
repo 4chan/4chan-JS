@@ -2937,7 +2937,7 @@ var IDColor = {};
 IDColor.init = function() {
   var style;
   
-  if (Main.tid && (Main.board == 'q' || Main.board == 'b' || Main.board == 'soc')) {
+  if (Main.board == 'q' || Main.board == 'b' || Main.board == 'soc') {
     this.enabled = true;
     this.ids = {};
     

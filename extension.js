@@ -3462,6 +3462,27 @@ Config.load = function() {
   }
 };
 
+Config.loadFromURL = function() {
+  var cmd, data;
+  
+  cmd = location.hash.split('=', 2);
+  
+  if (cmd[0] == '#cfg') {
+    try {
+      data = JSON.parse(decodeURIComponent(cmd[1]));
+      history.replaceState(null, '', location.href.split('#', 1)[0]);
+      $.extend(Config, data);
+      Config.save();
+      return true;
+    }
+    catch (e) {
+      console.log(e);
+    }
+  }
+  
+  return false;
+};
+
 Config.save = function() {
   localStorage.setItem('4chan-settings', JSON.stringify(Config));
 };
@@ -3572,6 +3593,10 @@ SettingsMenu.open = function() {
     + '<input type="checkbox" class="menuOption" data-option="disableAll"'
     + (Config.disableAll ? ' checked="checked">' : '>')
     + 'Disable the extension</label></li></ul>'
+    + '<ul><li>'
+    + '<span class="center">[<a href="#cfg=' + encodeURIComponent(localStorage.getItem('4chan-settings')) + '" '
+    + 'title="This link will restore the current settings from URL." '
+    + '>Export Settings</a>]</span></li></ul>'
     + '<button class="center" data-cmd="settings-save">Save Settings</button>';
   
   cnt.innerHTML = html;
@@ -3612,6 +3637,10 @@ Main.init = function()
   UA.init();
   
   Config.load();
+  
+  if (Main.firstRun && Config.loadFromURL()) {
+    Main.firstRun = false;
+  }
   
   if (Main.firstRun && /Mobile|Android|Dolfin|Opera Mobi/.test(navigator.userAgent)) {
     Config.disableAll = true;

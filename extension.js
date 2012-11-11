@@ -4516,6 +4516,7 @@ div.backlink {\
   cursor: default;\
   margin-left: 3px;\
 }\
+#quote-preview iframe,\
 #quote-preview .filter-preview {\
   display: none;\
 }\

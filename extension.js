@@ -577,7 +577,8 @@ Parser.parseMarkup = function(post) {
 };
 
 Parser.parsePost = function(pid, tid) {
-  var cnt, el, pi, href, img, file, msg, filtered, html, filename, txt, finfo, isOP;
+  var cnt, el, pi, href, img, file, msg, filtered, html, filename, txt, finfo, isOP,
+    rgb, uid;
   
   if (tid) {
     pi = document.getElementById('pi' + pid);
@@ -634,7 +635,17 @@ Parser.parsePost = function(pid, tid) {
       }
     }
     
-    if (Main.tid) {
+    if (IDColor.enabled) {
+      if (uid = $.cls('posteruid', pi)[0]) {
+        uid = uid.firstElementChild;
+        rgb = IDColor.ids[uid.textContent] || IDColor.compute(uid.textContent);
+        uid.style.cssText = '\
+          background-color: rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ');\
+          color: ' + (rgb[3] ? 'black;' : 'white;');
+      }
+    }
+    
+    if (Main.tid) { 
       if (Config.embedSoundCloud) {
         Media.parseSoundCloud(msg);
       }
@@ -2899,6 +2910,46 @@ Filter.buildEntry = function(filter) {
 }
 
 /**
+ * ID colors
+ */
+var IDColor = {};
+
+IDColor.init = function() {
+  var style;
+  
+  if (Main.tid && (Main.board == 'q' || Main.board == 'b' || Main.board == 'soc')) {
+    this.enabled = true;
+    this.ids = {};
+    
+    style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    style.textContent = '\
+.posteruid .hand {\
+  padding: 0 5px;\
+  border-radius: 6px;\
+  font-size: 0.8em;\
+}';
+    document.head.appendChild(style);
+  }
+};
+
+IDColor.compute = function(str) {
+  var rgb, hash;
+  
+  rgb = [];
+  hash = $.hash(str);
+  
+  rgb[0] = (hash >> 24) & 0xFF;
+  rgb[1] = (hash >> 16) & 0xFF;
+  rgb[2] = (hash >> 8) & 0xFF;
+  rgb[3] = ((rgb[0] * 0.299) + (rgb[1] * 0.587) + (rgb[2] * 0.114)) > 125;
+  
+  this.ids[str] = rgb;
+  
+  return rgb;
+};
+
+/**
  * Media
  */
 var Media = {};
@@ -2907,6 +2958,8 @@ Media.init = function() {
   this.active = true;
   this.debounce = false;
   this.limit = 3;
+  
+  this.embeds = {};
   
   this.matchSC = /(?:http:\/\/)?soundcloud\.com\/[^\s<]+/g;
   this.nodesSC = [];
@@ -2947,7 +3000,9 @@ Media.checkEmbeds = function(e) {
     nodes = Media.nodesYT;
     i = nodes.length - 1;
     while ((n = nodes[i]) && (n[0] + dHeight) < limit) {
-      Media.embedYouTube(n[1]);
+      for (j = 0; n[2][j]; ++j) {
+        Media.embedYouTube(n[1], n[2][j]);
+      }
       nodes.length--;
       i--;
     }
@@ -2984,6 +3039,12 @@ Media.parseSoundCloud = function(msg) {
 Media.embedSoundCloud = function(msg, url) {
   var xhr;
   
+  if (Media.embeds[url]) {
+    return;
+  }
+  
+  Media.embeds[url] = true;
+  
   xhr = new XMLHttpRequest();
   xhr.open('GET', 'http://soundcloud.com/oembed?show_artwork=false&'
     + '&maxwidth=500px&show_comments=false&format=json&url='
@@ -2999,24 +3060,37 @@ Media.embedSoundCloud = function(msg, url) {
 
 
 Media.parseYouTube = function(msg) {
-  var matches;
+  var matches, m;
   
   if ((matches = msg.innerHTML.match(this.testYT)) && matches.length <= this.limit) {
     if (!this.active) {
       this.active = true;
     }
-    this.nodesYT.push([ msg.getBoundingClientRect().top, msg ]);
+    matches = [];
+    while (m = this.matchYT.exec(msg.innerHTML)) {
+      matches.push(m);
+    }
+    this.nodesYT.push([ msg.getBoundingClientRect().top, msg, matches ]);
   }
 };
 
-Media.embedYouTube = function(msg) {
-  msg.innerHTML = msg.innerHTML.replace(this.matchYT, Media.embedYouTubeCB);
-};
-
-Media.embedYouTubeCB = function(m, vid) {
-  return '<iframe width=\"640\" height=\"360\" '
+Media.embedYouTube = function(msg, matches) {
+  var url, vid;
+  
+  url = matches[0];
+  vid = matches[1];
+  
+  if (Media.embeds[vid]) {
+    return;
+  }
+  
+  Media.embeds[vid] = true;
+  
+  msg.innerHTML = msg.innerHTML.replace(url,
+    '<iframe width=\"640\" height=\"360\" '
     + 'src=\"//www.youtube.com/embed/' + encodeURIComponent(vid)
-    + '\" frameborder=\"0\" allowfullscreen></iframe>';
+    + '\" frameborder=\"0\" allowfullscreen></iframe>'
+  );
 };
 
 /**
@@ -3344,6 +3418,7 @@ var Config = {
   replyHiding: false,
   imageHover: false,
   threadStats: false,
+  IDColor: false,
   embedYouTube: false,
   embedSoundCloud: false,
 
@@ -3403,6 +3478,7 @@ SettingsMenu.options = {
       inlineQuotes: [ 'Inline quote links', 'Clicking quote links will inline expand the quoted post, shift-clicking bypasses the inlining' ],
       imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
       threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
+      IDColor: [ 'Color user IDs', 'Assign colors to user IDs.' ],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
     },
@@ -3534,15 +3610,19 @@ Main.init = function()
   
   Main.addCSS();
   
-  if (Config.customCSS) {
-    CustomCSS.init();
-  }
-  
   Main.type = style_group.split('_')[0];
   
   params = location.pathname.split(/\//);
   Main.board = params[1];
   Main.tid = params[3];
+  
+  if (Config.IDColor) {
+    IDColor.init();
+  }
+  
+  if (Config.customCSS) {
+    CustomCSS.init();
+  }
   
   if (Config.keyBinds) {
     Keybinds.init();
@@ -4569,7 +4649,7 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   opacity: 1.0;\
 }\
 ';
-
+  
   style = document.createElement('style');
   style.setAttribute('type', 'text/css');
   style.textContent = css;

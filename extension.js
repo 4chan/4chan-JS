@@ -3146,7 +3146,7 @@ CustomCSS.open = function() {
 + Main.icons.cross + '"></span></div>\
 <textarea id="customCSSBox">'
 + (localStorage.getItem('4chan-css') || '') + '</textarea>\
-<button class="center" data-cmd="css-save">Save CSS</button>\
+<div class="center"><button data-cmd="css-save">Save CSS</button></div>\
 </td></tr></tfoot></table></div>';
   
   document.body.appendChild(cnt);
@@ -3471,8 +3471,14 @@ Config.loadFromURL = function() {
     try {
       data = JSON.parse(decodeURIComponent(cmd[1]));
       history.replaceState(null, '', location.href.split('#', 1)[0]);
-      $.extend(Config, data);
+      $.extend(Config, JSON.parse(data.settings));
       Config.save();
+      if (data.filters) {
+        localStorage.setItem('4chan-filters', data.filters);
+      }
+      if (data.css) {
+        localStorage.setItem('4chan-css', data.css);
+      }
       return true;
     }
     catch (e) {
@@ -3481,6 +3487,22 @@ Config.loadFromURL = function() {
   }
   
   return false;
+};
+
+Config.toURL = function() {
+  var data, cfg = {};
+  
+  cfg.settings = localStorage.getItem('4chan-settings');
+  
+  if (data = localStorage.getItem('4chan-filters')) {
+    cfg.filters = data;
+  }
+  
+  if (data = localStorage.getItem('4chan-css')) {
+    cfg.css = data;
+  }
+  
+  return encodeURIComponent(JSON.stringify(cfg));
 };
 
 Config.save = function() {
@@ -3520,8 +3542,8 @@ SettingsMenu.options = {
       inlineQuotes: [ 'Inline quote links', 'Clicking quote links will inline expand the quoted post, shift-clicking bypasses the inlining' ],
       imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
       threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
-      IDColor: [ 'Color user IDs', 'Assign colors to user IDs.' ],
-      downloadFile: [ 'Download link', 'Download files using the original filename (Chrome only).'],
+      IDColor: [ 'Color user IDs', 'Assign unique colors to user IDs on boards that use them' ],
+      downloadFile: [ 'Download original', 'Adds a button to download image with original filename (Chrome only)'],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
     },
@@ -3593,15 +3615,61 @@ SettingsMenu.open = function() {
     + '<input type="checkbox" class="menuOption" data-option="disableAll"'
     + (Config.disableAll ? ' checked="checked">' : '>')
     + 'Disable the extension</label></li></ul>'
-    + '<ul><li>'
-    + '<span class="center">[<a href="#cfg=' + encodeURIComponent(localStorage.getItem('4chan-settings')) + '" '
-    + 'title="This link will restore the current settings from URL." '
-    + '>Export Settings</a>]</span></li></ul>'
-    + '<button class="center" data-cmd="settings-save">Save Settings</button>';
+    + '<div class="center"><button data-cmd="settings-export">Export</button>'
+    + '<button data-cmd="settings-save">Save</button></div>';
   
   cnt.innerHTML = html;
   cnt.addEventListener('click', SettingsMenu.onClick, false);
   document.body.appendChild(cnt);
+};
+
+SettingsMenu.showExport = function() {
+  var cnt, str;
+  
+  if ($.id('exportSettings')) {
+    return;
+  }
+  
+  str = location.href.replace(location.hash, '') + '#cfg=' + Config.toURL();
+  
+  cnt = document.createElement('div');
+  cnt.id = 'exportSettings';
+  cnt.className = 'UIPanel';
+  cnt.setAttribute('data-cmd', 'export-close');
+  cnt.innerHTML = '\
+<div class="extPanel reply"><div class="panelHeader">Export Settings\
+<span><img data-cmd="export-close" class="pointer" alt="Close" title="Close" src="'
++ Main.icons.cross + '"></span></div>\
+<p class="center">Copy and save the URL below, and visit it from another \
+browser or computer to restore your settings.</p>\
+<p class="center">\
+<input class="export-field" type="text" readonly="readonly" value="' + str + '"></p>\
+<p style="margin-top:15px" class="center">Alternatively, you can drag the link below into your \
+bookmarks bar and click it to restore.</p>\
+<p class="center">[<a target="_blank" href="'
++ str + '">Restore 4chan Settings</a>]</p>';
+
+  document.body.appendChild(cnt);
+  cnt.addEventListener('click', this.onExportClick, false);
+};
+
+SettingsMenu.closeExport = function() {
+  var cnt;
+  
+  if (cnt = $.id('exportSettings')) {
+    cnt.removeEventListener('click', this.onExportClick, false);
+    document.body.removeChild(cnt);
+  }
+};
+
+SettingsMenu.onExportClick = function(e) {
+  var el;
+  
+  if (e.target.id == 'exportSettings') {
+    e.preventDefault();
+    e.stopPropagation();
+    SettingsMenu.closeExport();
+  }
 };
 
 SettingsMenu.onClick = function(e) {
@@ -4033,6 +4101,12 @@ Main.onclick = function(e) {
         break;
       case 'css-open':
         CustomCSS.open();
+        break;
+      case 'settings-export':
+        SettingsMenu.showExport();
+        break;
+      case 'export-close':
+        SettingsMenu.closeExport();
         break;
     }
   }
@@ -4469,6 +4543,10 @@ div.backlink {\
 .UIPanel .center {\
   margin-bottom: 5px;\
 }\
+.UIPanel button {\
+  display: inline-block;\
+  margin-right: 5px;\
+}\
 .UIPanel code {\
   background-color: #eee;\
   color: #000000;\
@@ -4479,6 +4557,9 @@ div.backlink {\
   list-style: none;\
   padding: 0 0 10px 0;\
   margin: 0;\
+}\
+.UIPanel .export-field {\
+  width: 385px;\
 }\
 #settingsMenu label input {\
   margin-right: 5px;\
@@ -4541,8 +4622,8 @@ div.backlink {\
   text-align: center;\
 }\
 #filtersMenu select,\
-.fPattern,\
-.fColor {\
+#filtersMenu .fPattern,\
+#filtersMenu .fColor {\
   padding: 1px;\
   font-size: 11px;\
 }\

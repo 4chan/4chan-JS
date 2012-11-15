@@ -3365,27 +3365,27 @@ var Draggable = {
     top = e.clientY - Draggable.dy + Draggable.scrollY;
     style = Draggable.el.style;
     if (left < 1) {
-      style.left = '0px';
+      style.left = '0';
       style.right = '';
     }
     else if (Draggable.right < left) {
       style.left = '';
-      style.right = '0px';
+      style.right = '0';
     }
     else {
-      style.left = left + 'px';
+      style.left = (left / document.documentElement.clientWidth * 100) + '%';
       style.right = '';
     }
     if (top < 1) {
-      style.top = '0px';
+      style.top = '0';
       style.bottom = '';
     }
     else if (Draggable.bottom < top) {
-      style.bottom = '0px';
+      style.bottom = '0';
       style.top = '';
     }
     else {
-      style.top = top + 'px';
+      style.top = (top / document.documentElement.clientHeight * 100) + '%';
       style.bottom = '';
     }
   }

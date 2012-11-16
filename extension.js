@@ -581,8 +581,7 @@ Parser.parseMarkup = function(post) {
 };
 
 Parser.parsePost = function(pid, tid) {
-  var cnt, el, pi, href, img, file, msg, filtered, html, filename, txt, finfo, isOP,
-    rgb, uid;
+  var cnt, el, pi, href, img, file, msg, filtered, html, filename, txt, finfo, isOP, uid;
   
   if (tid) {
     pi = document.getElementById('pi' + pid);
@@ -655,14 +654,8 @@ Parser.parsePost = function(pid, tid) {
       }
     }
     
-    if (IDColor.enabled) {
-      if (uid = $.cls('posteruid', pi)[0]) {
-        uid = uid.firstElementChild;
-        rgb = IDColor.ids[uid.textContent] || IDColor.compute(uid.textContent);
-        uid.style.cssText = '\
-          background-color: rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ');\
-          color: ' + (rgb[3] ? 'black;' : 'white;');
-      }
+    if (IDColor.enabled && (uid = $.cls('posteruid', pi)[0])) {
+      IDColor.apply(uid.firstElementChild);
     }
     
     if (Main.tid) { 
@@ -860,7 +853,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
   link.style.cursor = 'wait';
   
   onload = function() {
-    var i, j, el, posts;
+    var i, j, el, posts, uid;
     
     link.style.cursor = '';
     
@@ -882,6 +875,10 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
         QuotePreview.cached[[board, tid, pid].join('-')] = el;
         
         if (!$.id('quote-preview') && !QuotePreview.out) {
+          if (Config.IDColor && IDColor.boards[board]
+            && (uid = $.cls('posteruid', el)[1])) {
+            IDColor.applyRemote(uid.firstElementChild);
+          }
           document.body.appendChild(el);
           QuotePreview.show(link, el, true);
         }
@@ -2932,23 +2929,21 @@ Filter.buildEntry = function(filter) {
 /**
  * ID colors
  */
-var IDColor = {};
+var IDColor = {
+  css: 'padding: 0 5px; border-radius: 6px; font-size: 0.8em;',
+  boards: { q: true, b: true, soc: true },
+  ids: {}
+};
 
 IDColor.init = function() {
   var style;
   
-  if (Main.board == 'q' || Main.board == 'b' || Main.board == 'soc') {
+  if (this.boards[Main.board]) {
     this.enabled = true;
-    this.ids = {};
     
     style = document.createElement('style');
     style.setAttribute('type', 'text/css');
-    style.textContent = '\
-.posteruid .hand {\
-  padding: 0 5px;\
-  border-radius: 6px;\
-  font-size: 0.8em;\
-}';
+    style.textContent = '.posteruid .hand {' + this.css + '}';
     document.head.appendChild(style);
   }
 };
@@ -2967,6 +2962,20 @@ IDColor.compute = function(str) {
   this.ids[str] = rgb;
   
   return rgb;
+};
+
+IDColor.apply = function(uid) {
+  var rgb;
+  
+  rgb = IDColor.ids[uid.textContent] || IDColor.compute(uid.textContent);
+  uid.style.cssText = '\
+    background-color: rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ');\
+    color: ' + (rgb[3] ? 'black;' : 'white;');
+};
+
+IDColor.applyRemote = function(uid) {
+  this.apply(uid);
+  uid.style.cssText += this.css;
 };
 
 /**

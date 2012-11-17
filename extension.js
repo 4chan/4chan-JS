@@ -2269,6 +2269,10 @@ ThreadUpdater.init = function() {
   }
   
   this.initControls();
+  
+  if (sessionStorage.getItem('4chan-auto-' + Main.tid)) {
+    this.start();
+  }
 };
 
 ThreadUpdater.initControls = function() {
@@ -2313,6 +2317,7 @@ ThreadUpdater.initControls = function() {
 };
 
 ThreadUpdater.start = function() {
+  sessionStorage.setItem('4chan-auto-' + Main.tid, 1);
   this.auto = true;
   this.autoNode.checked = this.autoNodeBot.checked = true;
   this.force = this.updating = this.fromQR = false;
@@ -2328,6 +2333,7 @@ ThreadUpdater.start = function() {
 };
 
 ThreadUpdater.stop = function(manual) {
+  sessionStorage.removeItem('4chan-auto-' + Main.tid);
   clearTimeout(this.interval);
   this.auto = this.updating = this.force = this.fromQR = false;
   this.autoNode.checked = this.autoNodeBot.checked = false;
@@ -3272,17 +3278,17 @@ Keybinds.open = function() {
 + Main.icons.cross + '"></span></div>\
 <ul>\
 <li><strong>Global</strong></li>\
-<li><code>A</code> &mdash; Toggle auto-updater</li>\
-<li><code>Q</code> &mdash; Open Quick Reply</li>\
-<li><code>R</code> &mdash; Update thread</li>\
-<li><code>B</code> &mdash; Previous page</li>\
-<li><code>N</code> &mdash; Next page</li>\
-<li><code>I</code> &mdash; Return to index</li>\
+<li><kbd>A</kbd> &mdash; Toggle auto-updater</li>\
+<li><kbd>Q</kbd> &mdash; Open Quick Reply</li>\
+<li><kbd>R</kbd> &mdash; Update thread</li>\
+<li><kbd>B</kbd> &mdash; Previous page</li>\
+<li><kbd>N</kbd> &mdash; Next page</li>\
+<li><kbd>I</kbd> &mdash; Return to index</li>\
 </ul><ul>\
 <li><strong>Quick Reply (always enabled)</strong></li>\
-<li><code>Ctrl + Click the post number</code> &mdash; Quote without linking</li>\
-<li><code>Ctrl + S</code> &mdash; Spoiler tags</li>\
-<li><code>Esc</code> &mdash; Close the Quick Reply</li>\
+<li><kbd>Ctrl + Click</kbd> the post number &mdash; Quote without linking</li>\
+<li><kbd>Ctrl + S</kbd> &mdash; Spoiler tags</li>\
+<li><kbd>Esc</kbd> &mdash; Close the Quick Reply</li>\
 </ul>';
 
   document.body.appendChild(cnt);
@@ -4790,6 +4796,17 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
 }\
 #quote-preview .linkfade {\
   opacity: 1.0;\
+}\
+kbd {\
+  background-color: #f7f7f7;\
+  color: black;\
+  border: 1px solid #ccc;\
+  border-radius: 3px 3px 3px 3px;\
+  box-shadow: 0 1px 0 #ccc, 0 0 0 2px #fff inset;\
+  font-family: monospace;\
+  font-size: 11px;\
+  line-height: 1.4;\
+  padding: 0 5px;\
 }\
 ';
   

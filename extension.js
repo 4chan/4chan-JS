@@ -1262,6 +1262,7 @@ QR.show = function(tid) {
   form.innerHTML =
     '<input type="hidden" value="'
     + $.byName('MAX_FILE_SIZE')[0].value + '" name="MAX_FILE_SIZE">'
+  + '<input type="hidden" value="yes" name="hasjs">'
     + '<input type="hidden" value="regist" name="mode">'
     + '<input id="qrResto" type="hidden" value="' + tid + '" name="resto">';
   

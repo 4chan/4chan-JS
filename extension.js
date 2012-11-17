@@ -2325,7 +2325,6 @@ ThreadUpdater.initControls = function() {
 };
 
 ThreadUpdater.start = function() {
-  sessionStorage.setItem('4chan-auto-' + Main.tid, 1);
   this.auto = true;
   this.autoNode.checked = this.autoNodeBot.checked = true;
   this.force = this.updating = this.fromQR = false;
@@ -2338,10 +2337,10 @@ ThreadUpdater.start = function() {
   this.delayId = 0;
   this.timeLeft = this.delayRange[0];
   this.pulse();
+  sessionStorage.setItem('4chan-auto-' + Main.tid, 1);
 };
 
 ThreadUpdater.stop = function(manual) {
-  sessionStorage.removeItem('4chan-auto-' + Main.tid);
   clearTimeout(this.interval);
   this.auto = this.updating = this.force = this.fromQR = false;
   this.autoNode.checked = this.autoNodeBot.checked = false;
@@ -2353,6 +2352,7 @@ ThreadUpdater.stop = function(manual) {
     this.setStatus('');
     this.setIcon(this.defaultIcon);
   }
+  sessionStorage.removeItem('4chan-auto-' + Main.tid);
 };
 
 ThreadUpdater.pulse = function() {

@@ -1129,7 +1129,7 @@ ImageHover.checkLoadStart = function(img, thumb) {
 var QR = {};
 
 QR.init = function() {
-  if (!UA.hasFormData || !document.forms.post) {
+  if (!UA.hasFormData || Main.threadClosed) {
     return;
   }
   this.enabled = true;
@@ -1162,6 +1162,10 @@ QR.init = function() {
   QR.purgeCooldown();
   
   window.addEventListener('storage', this.syncStorage, false);
+};
+
+QR.lock = function() {
+  QR.showPostError('This thread is closed.', true);
 };
 
 QR.syncStorage = function(e) {
@@ -1262,7 +1266,6 @@ QR.show = function(tid) {
   form.innerHTML =
     '<input type="hidden" value="'
     + $.byName('MAX_FILE_SIZE')[0].value + '" name="MAX_FILE_SIZE">'
-  + '<input type="hidden" value="yes" name="hasjs">'
     + '<input type="hidden" value="regist" name="mode">'
     + '<input id="qrResto" type="hidden" value="' + tid + '" name="resto">';
   
@@ -1348,6 +1351,10 @@ QR.show = function(tid) {
   
   if (cd = localStorage.getItem('4chan-cd-' + Main.board)) {
     QR.startCooldown(cd);
+  }
+  
+  if (Main.threadClosed) {
+    QR.lock();
   }
   
   QR.reloadCaptcha();
@@ -1480,16 +1487,16 @@ QR.onClick = function(e) {
   }
 };
 
-QR.showPostError = function(msg) {
+QR.showPostError = function(msg, silent) {
   var qrError;
   
   qrError = $.id('qrError');
   qrError.innerHTML = msg;
   qrError.style.display = 'block';
-  if (document.hidden
+  if (!silent && (document.hidden
     || document.mozHidden
     || document.webkitHidden
-    || document.msHidden) {
+    || document.msHidden)) {
     alert('Posting Error');
   }
 };
@@ -2470,6 +2477,15 @@ ThreadUpdater.onload = function() {
     lastid = +lastrep.id.slice(2);
     
     newposts = Parser.parseThreadJSON(this.responseText);
+    
+    if (newposts[0].closed != Main.threadClosed && $.id('quickReply')) {
+      if ((Main.threadClosed = newposts[0].closed) == 1) {
+        QR.lock();
+      }
+      else {
+        QR.hidePostError();
+      }
+    }
     
     if (!Config.revealSpoilers && newposts[0].custom_spoiler) {
       Parser.setCustomSpoiler(Main.board, newposts[0].custom_spoiler);
@@ -3793,6 +3809,8 @@ Main.run = function() {
   $.addClass(document.body, Main.stylesheet);
   $.addClass(document.body, Main.type);
   
+  Main.threadClosed = document.forms.post ? 0 : 1;
+  
   if (Config.compactThreads) {
     $.addClass(document.body, 'compact');
   }
@@ -3908,7 +3926,6 @@ Main.icons = {
 
 Main.initIcons = function() {
   var key, paths, url;
-  
   
   paths = {
     yotsuba_new: 'futaba/',

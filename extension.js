@@ -1003,7 +1003,7 @@ ImageExpansion.expand = function(thumb) {
   img.style.display = 'none';
   thumb.parentNode.appendChild(img);
   if (UA.hasCORS) {
-    thumb.style.opacity = '0.5';
+    thumb.style.opacity = '0.75';
     this.timeout = ImageExpansion.checkLoadStart(img, thumb);
   }
   else {

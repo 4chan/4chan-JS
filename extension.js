@@ -2021,11 +2021,11 @@ ThreadWatcher.toggle = function(tid, board, synced) {
       label = 'No.' + tid;
     }
     
-    if (Main.tid && (thread = $.id('t' + tid)).children[1]) {
-      lastReply = thread.lastChild.id.slice(2);
+    if ((thread = $.id('t' + tid)).children[1]) {
+      lastReply = thread.lastElementChild.id.slice(2);
     }
     else {
-      lastReply = 0;
+      lastReply = tid;
     }
     
     this.watched[key] = [ label, lastReply ];
@@ -2046,7 +2046,7 @@ ThreadWatcher.save = function() {
 ThreadWatcher.refresh = function() {
   var i, to, key, total, img;
   
-  if (total = $.id('watchList').childElementCount) {
+  if (total = $.id('watchList').children.length) {
     i = to = 0;
     img = $.id('twPrune');
     img.src = Main.icons.rotate;
@@ -2071,7 +2071,6 @@ ThreadWatcher.refreshCurrent = function() {
   if (this.watched[key] && this.watched[key][1] != lastReply) {
     this.watched[key][1] = lastReply;
     this.save();
-    this.reload();
   }
 };
 
@@ -2091,20 +2090,32 @@ ThreadWatcher.fetch = function(key, img) {
   
   xhr = new XMLHttpRequest();
   xhr.onload = function() {
-    if (this.status == 404) {
-      $.addClass($.id('watch-' + key).lastChild, 'deadlink');
+    var lastReply, el;
+    if (this.status == 200) {
+      lastReply = Parser.parseThreadJSON(this.responseText);
+      lastReply = lastReply[lastReply.length - 1].no;
+      el = $.id('watch-' + key).lastElementChild;
+      if (lastReply > ThreadWatcher.watched[key][1]) {
+        ThreadWatcher.watched[key][1] = lastReply;
+        $.addClass(el, 'hasNewReplies');
+      }
+      else {
+        $.removeClass(el, 'hasNewReplies');
+      }
+    }
+    else if (this.status == 404) {
+      $.addClass($.id('watch-' + key).lastElementChild, 'deadlink');
       ThreadWatcher.watched[key][1] = -1;
     }
     if (img) {
       img.src = Main.icons.refresh;
       ThreadWatcher.save();
-      ThreadWatcher.reload();
     }
   };
   if (img) {
     xhr.onerror = xhr.onload;
   }
-  xhr.open('HEAD', '//api.4chan.org/' + tuid[1] + '/res/' + tuid[0] + '.json');
+  xhr.open('GET', '//api.4chan.org/' + tuid[1] + '/res/' + tuid[0] + '.json');
   xhr.send(null);
 };
 
@@ -2461,7 +2472,8 @@ ThreadUpdater.update = function() {
 };
 
 ThreadUpdater.onload = function() {
-  var i, self, nodes, thread, newposts, frag, lastrep, lastid, spoiler;
+  var i, j, self, nodes, thread, newposts, frag, lastrep, lastid, spoiler,
+    posthash, oldposts, oldimgs;
   
   self = ThreadUpdater;
   nodes = [];
@@ -2489,6 +2501,28 @@ ThreadUpdater.onload = function() {
     
     if (!Config.revealSpoilers && newposts[0].custom_spoiler) {
       Parser.setCustomSpoiler(Main.board, newposts[0].custom_spoiler);
+    }
+    
+    posthash = {};
+    for (i = 0; j = ts[i]; ++i) {
+      posthash['p' + j.no] = 1;
+      if (j.filedeleted) {
+        posthash['f' + j.no] = 1;
+      }
+    }
+    
+    oldposts = $.cls('post');
+    for (i = 0; j = oldposts[i]; ++i) {
+      if (!posthash[j.id]) {
+        $.addClass(j, 'deleted');
+      }
+    }
+    
+    oldimgs = $.cls('fileInfo');
+    for (i = 0; j = oldimgs[i]; ++i) {
+      if (posthash[j.parentNode.id]) {
+        $.addClass(j.nextElementSibling, 'deleted');
+      }
     }
     
     for (i = newposts.length - 1; i >= 0; i--) {
@@ -4151,7 +4185,8 @@ Main.onclick = function(e) {
       QR.quotePost(!e.ctrlKey && t.textContent);
     }
     else if (Config.imageExpansion && e.which == 1 && t.parentNode
-      && $.hasClass(t.parentNode, 'fileThumb') && t.parentNode.nodeName == 'A') {
+      && $.hasClass(t.parentNode, 'fileThumb') && t.parentNode.nodeName == 'A'
+      && !$.hasClass(t.parentNode, 'deleted')) {
       e.preventDefault();
       ImageExpansion.toggle(t);
     }
@@ -4175,7 +4210,8 @@ Main.onThreadMouseOver = function(e) {
     && !$.hasClass(t, 'deadlink')) {
     QuotePreview.resolve(e.target);
   }
-  else if (Config.imageHover && t.hasAttribute('data-md5')) {
+  else if (Config.imageHover && t.hasAttribute('data-md5')
+    && !$.hasClass(t.parentNode, 'deleted')) {
     ImageHover.show(t);
   }
   else if (Config.filter && t.hasAttribute('data-filtered')) {
@@ -4466,6 +4502,9 @@ div.op div.file .image-expanded-anti {\
 #quote-preview .extButton,\
 #quote-preview .extControls {\
   display: none;\
+}\
+.hasNewReplies {\
+  font-weight: bold;\
 }\
 .deadlink {\
   text-decoration: line-through !important;\
@@ -4825,6 +4864,9 @@ kbd {\
   font-size: 11px;\
   line-height: 1.4;\
   padding: 0 5px;\
+}\
+.deleted {\
+  opacity: 0.5;\
 }\
 ';
   

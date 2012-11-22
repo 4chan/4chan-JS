@@ -1159,6 +1159,8 @@ QR.init = function() {
   this.pulse = null;
   this.xhr = null;
   
+  this.fileDisabled = false;
+  
   QR.purgeCooldown();
   
   window.addEventListener('storage', this.syncStorage, false);
@@ -1167,6 +1169,25 @@ QR.init = function() {
 QR.lock = function() {
   QR.showPostError('This thread is closed.', true);
 };
+
+QR.toggleFileInput = function(mode) {
+  var el;
+  
+  if (mode) {
+    this.fileDisabled = true;
+    if (el = $.id('qrFile')) {
+      el.setAttribute('disabled', 'disabled');
+      el.title = 'Image limit reached';
+    }
+  }
+  else {
+    this.fileDisabled = false;
+    if (el = $.id('qrFile')) {
+      el.removeAttribute('disabled');
+      el.title = 'Shift + Click to remove the file';
+    }
+  }
+}
 
 QR.syncStorage = function(e) {
   var key;
@@ -1296,7 +1317,13 @@ QR.show = function(tid) {
         file = fields[i].children[1].firstChild.cloneNode(false);
         file.id = 'qrFile';
         file.size = '19';
-        file.title = 'Shift + Click to remove the file';
+        if (QR.fileDisabled) {
+          file.title = 'Image limit reached';
+          file.setAttribute('disabled', 'disabled');
+        }
+        else {
+          file.title = 'Shift + Click to remove the file';
+        }
         file.addEventListener('change', QR.checkCDType, false);
         row.appendChild(file);
       }
@@ -1881,6 +1908,7 @@ ThreadWatcher.init = function() {
   this.listNode = null;
   this.charLimit = 45;
   this.watched = {};
+  this.isRefreshing = false;
   
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
@@ -1904,18 +1932,16 @@ ThreadWatcher.init = function() {
   
   cnt.innerHTML = '<div class="drag" id="twHeader">Thread Watcher'
     + (UA.hasCORS ? ('<img id="twPrune" class="pointer right" src="'
-    + Main.icons.refresh + '" alt="R" title="Prune"></div>') : '</div>');
+    + Main.icons.refresh + '" alt="R" title="Refresh"></div>') : '</div>');
   
   this.listNode = document.createElement('ul');
   this.listNode.id = 'watchList';
-  this.reload();
+  this.load();
+  this.refreshCurrent();
+  this.build();
   cnt.appendChild(this.listNode);
   
   document.body.appendChild(cnt);
-  
-  if (Main.tid) {
-    this.refreshCurrent();
-  }
   
   cnt.addEventListener('mouseup', this.onClick, false);
   Draggable.set($.id('twHeader'));
@@ -1933,54 +1959,62 @@ ThreadWatcher.syncStorage = function(e) {
   key = e.key.split('-');
   
   if (key[0] == '4chan' && key[1] == 'watch' && e.newValue != e.oldValue) {
-    ThreadWatcher.reload(true);
+    ThreadWatcher.load();
+    ThreadWatcher.build(true);
   }
 };
 
-ThreadWatcher.reload = function(rebuildButtons) {
-  var i, storage, html, tuid, key, buttons, btn, nodes;
-  
+ThreadWatcher.load = function() {
   if (storage = localStorage.getItem('4chan-watch')) {
-    html = '';
-    
     this.watched = JSON.parse(storage);
+  }
+};
+
+ThreadWatcher.build = function(rebuildButtons) {
+  var i, html, tuid, key, buttons, btn, nodes;
+  
+  html = '';
+  
+  for (key in this.watched) {
+    tuid = key.split('-');
+    html += '<li id="watch-' + key
+      + '"><span class="pointer" data-cmd="unwatch" data-id="'
+      + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
+      + Main.linkToThread(tuid[0], tuid[1], this.watched[key][1]) + '"';
     
-    for (key in this.watched) {
-      tuid = key.split('-');
-      html += '<li id="watch-' + key
-        + '"><span class="pointer" data-cmd="unwatch" data-id="'
-        + tuid[0] + '" data-board="' + tuid[1] + '">&times;</span> <a href="'
-        + Main.linkToThread(tuid[0], tuid[1], this.watched[key][1]) + '"';
-      
-      if (this.watched[key][1] == -1) {
-        html += ' class="deadlink"';
-      }
-      
-      html += '>/' + tuid[1] + '/ - ' + this.watched[key][0] + '</a></li>';
+    if (this.watched[key][1] == -1) {
+      html += ' class="deadlink">';
+    }
+    else if (this.watched[key][2]) {
+      html += ' class="hasNewReplies">(' + this.watched[key][2] + ') ';
+    }
+    else {
+      html += '>';
     }
     
-    if (rebuildButtons) {
-      buttons = $.cls('wbtn', $.id('delform'));
-      for (i = 0; btn = buttons[i]; ++i) {
-        key = btn.getAttribute('data-id') + '-' + Main.board;
-        if (ThreadWatcher.watched[key]) {
-          if (!btn.hasAttribute('data-active')) {
-            btn.src = Main.icons.watched;
-            btn.setAttribute('data-active', '1')
-          }
-        }
-        else {
-          if (btn.hasAttribute('data-active')) {
-            btn.src = Main.icons.notwatched;
-            btn.removeAttribute('data-active')
-          }
-        }
-      }
-    }
-    
-    ThreadWatcher.listNode.innerHTML = html;
+    html += '/' + tuid[1] + '/ - ' + this.watched[key][0] + '</a></li>';
   }
   
+  if (rebuildButtons) {
+    buttons = $.cls('wbtn', $.id('delform'));
+    for (i = 0; btn = buttons[i]; ++i) {
+      key = btn.getAttribute('data-id') + '-' + Main.board;
+      if (ThreadWatcher.watched[key]) {
+        if (!btn.hasAttribute('data-active')) {
+          btn.src = Main.icons.watched;
+          btn.setAttribute('data-active', '1')
+        }
+      }
+      else {
+        if (btn.hasAttribute('data-active')) {
+          btn.src = Main.icons.notwatched;
+          btn.removeAttribute('data-active')
+        }
+      }
+    }
+  }
+  
+  ThreadWatcher.listNode.innerHTML = html;
 };
 
 ThreadWatcher.onClick = function(e) {
@@ -1992,7 +2026,7 @@ ThreadWatcher.onClick = function(e) {
       t.getAttribute('data-board')
     );
   }
-  else if (t.src) {
+  else if (t.src && !ThreadWatcher.isRefreshing) {
     ThreadWatcher.refresh();
   }
 };
@@ -2028,7 +2062,7 @@ ThreadWatcher.toggle = function(tid, board, synced) {
       lastReply = tid;
     }
     
-    this.watched[key] = [ label, lastReply ];
+    this.watched[key] = [ label, lastReply, 0 ];
     
     if (btn = $.id('wbtn-' + key)) {
       btn.src = Main.icons.watched;
@@ -2036,7 +2070,8 @@ ThreadWatcher.toggle = function(tid, board, synced) {
     }
   }
   this.save();
-  this.reload();
+  this.load();
+  this.build();
 };
 
 ThreadWatcher.save = function() {
@@ -2050,6 +2085,7 @@ ThreadWatcher.refresh = function() {
     i = to = 0;
     img = $.id('twPrune');
     img.src = Main.icons.rotate;
+    ThreadWatcher.isRefreshing = true;
     for (key in ThreadWatcher.watched) {
       setTimeout(ThreadWatcher.fetch, to, key, ++i == total ? img : null);
       to += 200;
@@ -2057,31 +2093,49 @@ ThreadWatcher.refresh = function() {
   }
 };
 
-ThreadWatcher.refreshCurrent = function() {
+ThreadWatcher.refreshCurrent = function(rebuild) {
   var key, thread, lastReply;
   
   key = Main.tid + '-' + Main.board;
-  if ((thread = $.id('t' + Main.tid)).children[1]) {
-    lastReply = thread.lastElementChild.id.slice(2);
-  }
-  else {
-    lastReply = 0;
-  }
   
-  if (this.watched[key] && this.watched[key][1] != lastReply) {
-    this.watched[key][1] = lastReply;
+  if (this.watched[key]) {
+    if ((thread = $.id('t' + Main.tid)).children[1]) {
+      lastReply = thread.lastElementChild.id.slice(2);
+    }
+    else {
+      lastReply = Main.tid;
+    }
+    if (this.watched[key][1] != lastReply) {
+      this.watched[key][1] = lastReply;
+    }
+    
+    this.watched[key][2] = 0;
     this.save();
+    
+    if (rebuild) {
+      this.build();
+    }
   }
 };
 
+ThreadWatcher.onRefreshEnd = function(img) {
+  img.src = Main.icons.refresh;
+  this.isRefreshing = false;
+  this.save();
+  this.load();
+  this.build();
+};
+
 ThreadWatcher.fetch = function(key, img) {
-  var tuid, xhr;
+  var tuid, xhr, li, method;
+  
+  li = $.id('watch-' + key);
+  
   if (ThreadWatcher.watched[key][1] == -1) {
     delete ThreadWatcher.watched[key];
+    li.parentNode.removeChild(li);
     if (img) {
-      img.src = Main.icons.refresh;
-      ThreadWatcher.save();
-      ThreadWatcher.reload();
+      ThreadWatcher.onRefreshEnd(img);
     }
     return;
   }
@@ -2090,26 +2144,26 @@ ThreadWatcher.fetch = function(key, img) {
   
   xhr = new XMLHttpRequest();
   xhr.onload = function() {
-    var lastReply, el;
+    var i, newReplies, posts, lastReply;
     if (this.status == 200) {
-      lastReply = Parser.parseThreadJSON(this.responseText);
-      lastReply = lastReply[lastReply.length - 1].no;
-      el = $.id('watch-' + key).lastElementChild;
-      if (lastReply > ThreadWatcher.watched[key][1]) {
-        ThreadWatcher.watched[key][1] = lastReply;
-        $.addClass(el, 'hasNewReplies');
+      posts = Parser.parseThreadJSON(this.responseText);
+      lastReply = ThreadWatcher.watched[key][1];
+      newReplies = 0;
+      for (i = posts.length - 1; i >= 1; i--) {
+        if (posts[i].no <= lastReply) {
+          break;
+        }
+        ++newReplies;
       }
-      else {
-        $.removeClass(el, 'hasNewReplies');
+      if (newReplies > ThreadWatcher.watched[key][2]) {
+        ThreadWatcher.watched[key][2] = newReplies;
       }
     }
     else if (this.status == 404) {
-      $.addClass($.id('watch-' + key).lastElementChild, 'deadlink');
       ThreadWatcher.watched[key][1] = -1;
     }
     if (img) {
-      img.src = Main.icons.refresh;
-      ThreadWatcher.save();
+      ThreadWatcher.onRefreshEnd(img);
     }
   };
   if (img) {
@@ -2126,6 +2180,61 @@ var ThreadExpansion = {};
 
 ThreadExpansion.init = function() {
   this.enabled = UA.hasCORS;
+};
+
+ThreadExpansion.expandComment = function(link) {
+  var i, ids, tid, pid, abbr, msg, com, posts;
+  
+  if (!(ids = link.getAttribute('href').match(/^(?:res\/)([0-9]+)#p([0-9]+)$/))) {
+    return;
+  }
+  
+  tid = ids[1];
+  pid = ids[2];
+  
+  abbr = link.parentNode;
+  abbr.textContent = 'Loading...';
+  
+  $.get('//api.4chan.org/' + Main.board + '/res/' + tid + '.json',
+    {
+      onload: function() {
+        if (this.status == 200) {
+          msg = $.id('m' + pid);
+          
+          posts = Parser.parseThreadJSON(this.responseText);
+          
+          if (tid == pid) {
+            com = posts[0].com;
+          }
+          else {
+            for (i = posts.length - 1; i > 0; i--) {
+              if (posts[i].no == pid) {
+                com = posts[i].com;
+                break;
+              }
+            }
+          }
+          if (com) {
+            msg.innerHTML = com;
+          }
+          else {
+            abbr.textContent = "This post doesn't exist anymore.";
+          }
+        }
+        else if (this.status == 404) {
+          abbr.textContent = "This thread doesn't exist anymore.";
+        }
+        else {
+          abbr.textContent = 'Connection Error';
+          console.log('ThreadExpansion: ' + this.status + ' ' + this.statusText);
+        }
+      },
+      onerror: function() {
+        abbr.textContent = 'Connection Error';
+        console.log('ThreadExpansion: xhr failed');
+      }
+    }
+  );
 };
 
 ThreadExpansion.toggle = function(tid) {
@@ -2471,9 +2580,29 @@ ThreadUpdater.update = function() {
   );
 };
 
+ThreadUpdater.markDeletedReplies = function(newposts) {
+  var i, j, posthash, oldposts, el;
+  
+  posthash = {};
+  for (i = 0; j = newposts[i]; ++i) {
+    posthash['p' + j.no] = 1;
+  }
+  
+  oldposts = $.cls('post');
+  for (i = 0; j = oldposts[i]; ++i) {
+    if (!posthash[j.id] && !j.hasAttribute('data-pfx') && !$.hasClass(j, 'deleted')) {
+      el = document.createElement('img');
+      el.src = Main.icons2.trash;
+      el.className = 'trashIcon';
+      el.title = 'This post has been deleted';
+      $.addClass(j, 'deleted');
+      $.cls('postNum', j)[1].appendChild(el);
+    }
+  }
+};
+
 ThreadUpdater.onload = function() {
-  var i, j, self, nodes, thread, newposts, frag, lastrep, lastid, spoiler,
-    posthash, oldposts, oldimgs;
+  var i, el, state, self, nodes, thread, newposts, frag, lastrep, lastid, spoiler, op;
   
   self = ThreadUpdater;
   nodes = [];
@@ -2490,40 +2619,37 @@ ThreadUpdater.onload = function() {
     
     newposts = Parser.parseThreadJSON(this.responseText);
     
-    if (newposts[0].closed != Main.threadClosed && $.id('quickReply')) {
-      if ((Main.threadClosed = newposts[0].closed) == 1) {
-        QR.lock();
+    state = !!newposts[0].closed;
+    if (state != Main.threadClosed) {
+      if (QR.enabled && $.id('quickReply')) {
+        if (state) {
+          QR.lock();
+        }
+        else {
+          QR.hidePostError();
+        }
       }
-      else {
-        QR.hidePostError();
+      Main.setThreadState('closed', state);
+    }
+    
+    state = !!newposts[0].sticky;
+    if (state != Main.threadSticky) {
+      Main.setThreadState('sticky', state);
+    }
+    
+    state = !!newposts[0].imagelimit;
+    if (QR.enabled && state != QR.fileDisabled) {
+      if ($.id('quickReply')) {
+        QR.toggleFileInput(state);
       }
+      QR.fileDisabled = state;
     }
     
     if (!Config.revealSpoilers && newposts[0].custom_spoiler) {
       Parser.setCustomSpoiler(Main.board, newposts[0].custom_spoiler);
     }
     
-    posthash = {};
-    for (i = 0; j = ts[i]; ++i) {
-      posthash['p' + j.no] = 1;
-      if (j.filedeleted) {
-        posthash['f' + j.no] = 1;
-      }
-    }
-    
-    oldposts = $.cls('post');
-    for (i = 0; j = oldposts[i]; ++i) {
-      if (!posthash[j.id]) {
-        $.addClass(j, 'deleted');
-      }
-    }
-    
-    oldimgs = $.cls('fileInfo');
-    for (i = 0; j = oldimgs[i]; ++i) {
-      if (posthash[j.parentNode.id]) {
-        $.addClass(j.nextElementSibling, 'deleted');
-      }
-    }
+    self.markDeletedReplies(newposts);
     
     for (i = newposts.length - 1; i >= 0; i--) {
       if (newposts[i].no <= lastid) {
@@ -2555,11 +2681,12 @@ ThreadUpdater.onload = function() {
       Parser.parseThread(thread.id.slice(1), -nodes.length);
       
       if (Config.threadWatcher) {
-        ThreadWatcher.refreshCurrent();
+        ThreadWatcher.refreshCurrent(true);
       }
       
       if (Config.threadStats) {
-        ThreadStats.update();
+        op = newposts[0];
+        ThreadStats.update(op.replies, op.images, op.bumplimit, op.imagelimit);
       }
     }
     else {
@@ -2639,15 +2766,28 @@ ThreadStats.init = function() {
   this.update();
 };
 
-ThreadStats.update = function() {
-  var posts, img;
+ThreadStats.update = function(replies, images, isBumpFull, isImageFull) {
+  var repStr, imgStr;
   
-  posts = $.cls('postContainer').length;
-  img = $.cls('fileThumb').length;
+  if (replies === undefined) {
+    replies = $.cls('replyContainer').length;
+    images = $.cls('fileText').length - ($.id('fT' + Main.tid) ? 1 : 0);
+  }
   
-  this.nodeTop.textContent = this.nodeBot.textContent
-    = '[' + posts + ' post' + (posts > 1 ? 's] ' : '] ')
-    + '[' + img + ' image' + ((img > 1 || !img) ? 's] ' : ']');
+  repStr = replies + ' repl' + ((replies > 1 || !replies) ? 'ies' : 'y');
+  imgStr = images + ' image' + ((images > 1 || !images) ? 's' : '');
+  
+  if (isBumpFull) {
+    repStr = '<em title="Bump limit reached">' + repStr + '</em>';
+  }
+  
+  if (isImageFull) {
+    imgStr = '<em title="Image limit reached" >' + imgStr + '</em>';
+  }
+  
+  this.nodeTop.innerHTML = this.nodeBot.innerHTML
+    = '[' + repStr + '] '
+    + '[' + imgStr + ']';
 };
 
 /**
@@ -3843,8 +3983,6 @@ Main.run = function() {
   $.addClass(document.body, Main.stylesheet);
   $.addClass(document.body, Main.type);
   
-  Main.threadClosed = document.forms.post ? 0 : 1;
-  
   if (Config.compactThreads) {
     $.addClass(document.body, 'compact');
   }
@@ -3861,10 +3999,6 @@ Main.run = function() {
   
   if (Config.stickyNav) {
     Main.setStickyNav();
-  }
-  
-  if (Config.quickReply) {
-    QR.init();
   }
   
   if (Config.threadExpansion) {
@@ -3894,6 +4028,9 @@ Main.run = function() {
   Parser.init();
   
   if (Main.tid) {
+    Main.threadClosed = !document.forms.post;
+    Main.threadSticky = !!$.cls('sticky', $.id('pi' + Main.tid))[0];
+    
     if (Config.pageTitle) {
       Main.setTitle();
     }
@@ -3914,6 +4051,10 @@ Main.run = function() {
     else {
       Parser.parseBoard();
     }
+  }
+  
+  if (Config.quickReply) {
+    QR.init();
   }
   
   if (Media.active) {
@@ -3940,6 +4081,35 @@ Main.onFirstRun = function() {
   }
 }
 
+Main.setThreadState = function(state, mode) {
+  var cnt, el, ref, cap;
+  
+  cap = state.charAt(0).toUpperCase() + state.slice(1);
+  
+  if (mode) {
+    cnt = $.cls('postNum', $.id('pi' + Main.tid))[0];
+    el = document.createElement('img');
+    el.className = state + 'Icon retina';
+    el.title = cap;
+    el.src = Main.icons2[state];
+    if (state == 'sticky' && (ref = $.cls('closedIcon', cnt)[0])) {
+      cnt.insertBefore(el, ref);
+      cnt.insertBefore(document.createTextNode(' '), ref);
+    }
+    else {
+      cnt.appendChild(document.createTextNode(' '));
+      cnt.appendChild(el);
+    }
+  }
+  else {
+    el = $.cls(state + 'Icon', $.id('pi' + Main.tid))[0];
+    el.parentNode.removeChild(el.previousSibling);
+    el.parentNode.removeChild(el);
+  }
+  
+  Main['thread' + cap] = mode;
+};
+
 Main.icons = {
   up: 'arrow_up.png',
   down: 'arrow_down.png',
@@ -3958,6 +4128,12 @@ Main.icons = {
   help: 'question.png'
 };
 
+Main.icons2 = {
+  closed: 'closed.gif',
+  sticky: 'sticky.gif',
+  trash: 'trash.gif'
+},
+
 Main.initIcons = function() {
   var key, paths, url;
   
@@ -3970,14 +4146,22 @@ Main.initIcons = function() {
     photon: 'photon/'
   };
   
-  url = '//static.4chan.org/image/buttons/' + paths[Main.stylesheet];
+  url = '//static.4chan.org/image/'
   
   if (window.devicePixelRatio >= 2) {
     for (key in Main.icons) {
       Main.icons[key] = Main.icons[key].replace('.', '@2x.');
     }
+    for (key in Main.icons2) {
+      Main.icons2[key] = Main.icons2[key].replace('.', '@2x.');
+    }
   }
   
+  for (key in Main.icons2) {
+    Main.icons2[key] = url + Main.icons2[key];
+  }
+  
+  url += 'buttons/' + paths[Main.stylesheet];
   for (key in Main.icons) {
     Main.icons[key] = url + Main.icons[key];
   }
@@ -4185,7 +4369,8 @@ Main.onclick = function(e) {
       QR.quotePost(!e.ctrlKey && t.textContent);
     }
     else if (Config.imageExpansion && e.which == 1 && t.parentNode
-      && $.hasClass(t.parentNode, 'fileThumb') && t.parentNode.nodeName == 'A'
+      && $.hasClass(t.parentNode, 'fileThumb')
+      && t.parentNode.nodeName == 'A'
       && !$.hasClass(t.parentNode, 'deleted')) {
       e.preventDefault();
       ImageExpansion.toggle(t);
@@ -4198,6 +4383,10 @@ Main.onclick = function(e) {
         e.preventDefault();
         location = t.href;
       }
+    }
+    else if (Config.threadExpansion && t.parentNode && $.hasClass(t.parentNode, 'abbr')) {
+      e.preventDefault();
+      ThreadExpansion.expandComment(t);
     }
   }
 }
@@ -4282,6 +4471,11 @@ img.pointer {\
 .extButton {\
   cursor: pointer;\
   margin-bottom: -4px;\
+}\
+.trashIcon {\
+  width: 16px;\
+  height: 16px;\
+  margin-bottom: -2px;\
 }\
 .threadUpdateStatus {\
   margin-left: 0.5ex;\
@@ -4866,7 +5060,7 @@ kbd {\
   padding: 0 5px;\
 }\
 .deleted {\
-  opacity: 0.5;\
+  opacity: 0.66;\
 }\
 ';
   

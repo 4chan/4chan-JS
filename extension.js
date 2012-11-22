@@ -4433,7 +4433,7 @@ Main.reportPost = function(pid) {
 Main.linkToThread = function(tid, board, post) {
   return '//' + location.host + '/'
     + (board || Main.board) + '/res/'
-    + tid + (post ? ('#p' + post) : '');
+    + tid + (post > 0 ? ('#p' + post) : '');
 };
 
 Main.addCSS = function()

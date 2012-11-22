@@ -1776,13 +1776,19 @@ ThreadHiding.show = function(tid) {
 };
 
 ThreadHiding.hide = function(tid) {
-  var sa;
+  var sa, th;
   
-  sa = $.id('sa' + tid);
-  sa.setAttribute('data-hidden', tid);
-  sa.firstChild.src = Main.icons.plus;
+  th = $.id('t' + tid);
   
-  $.id('t' + tid).className += ' post-hidden';
+  if (Config.hideStubs) {
+    th.style.display = th.nextElementSibling.style.display = 'none';
+  }
+  else {
+    sa = $.id('sa' + tid);
+    sa.setAttribute('data-hidden', tid);
+    sa.firstChild.src = Main.icons.plus;
+    th.className += ' post-hidden';
+  }
   
   this.hidden[tid] = Date.now();
 };
@@ -3650,6 +3656,7 @@ var Config = {
   embedSoundCloud: false,
 
   customCSS: false,
+  hideStubs: false,
   compactThreads: false,
   dropDownNav: false,
   fixedThreadWatcher: false,
@@ -3755,6 +3762,7 @@ SettingsMenu.options = {
     },
     'Customization': {
       customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', 'Embed your own CSS rules' ],
+      hideStubs: [ 'Hide thread stubs', "Don't display stubs of hidden threads" ],
       compactThreads: [ 'Force long posts to wrap', 'Long posts will wrap at 75% screen width' ],
       dropDownNav: [ 'Use drop-down navigation', 'Use persistent drop-down navigation bar instead of traditional links' ],
       fixedThreadWatcher: [ 'Pin thread watcher', 'Pin the thread watcher to the page' ],

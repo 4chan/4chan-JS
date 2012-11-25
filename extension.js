@@ -4484,6 +4484,7 @@ img.pointer {\
   width: 16px;\
   height: 16px;\
   margin-bottom: -2px;\
+  margin-left: 5px;\
 }\
 .threadUpdateStatus {\
   margin-left: 0.5ex;\
@@ -4586,6 +4587,9 @@ div.post div.postInfo {\
   width: 215px;\
   margin-right: 5px;\
 }\
+.yotsuba_new #qrFile {\
+  color:black;\
+}\
 #qrSpoiler {\
   display: inline;\
 }\
@@ -4611,10 +4615,8 @@ div.post div.postInfo {\
 .burichan_new #twHeader {\
   line-height: 1;\
 }\
-#twHeader img {\
-  margin-left: 3px;\
-}\
 #twPrune {\
+  margin-left: 3px;\
   margin-top: -1px;\
 }\
 #threadWatcher {\
@@ -4700,6 +4702,7 @@ div.op div.file .image-expanded-anti {\
 .photon .highlight-anti {\
   background-color: #bbb !important;\
 }\
+#quote-preview .trashIcon,\
 #quote-preview .inlined,\
 #quote-preview .extButton,\
 #quote-preview .extControls {\
@@ -5067,7 +5070,7 @@ kbd {\
   line-height: 1.4;\
   padding: 0 5px;\
 }\
-.deleted {\
+.deleted:not(#quote-preview) {\
   opacity: 0.66;\
 }\
 ';

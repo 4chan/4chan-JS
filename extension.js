@@ -4037,7 +4037,7 @@ Main.run = function() {
   
   if (Main.tid) {
     Main.threadClosed = !document.forms.post;
-    Main.threadSticky = !!$.cls('sticky', $.id('pi' + Main.tid))[0];
+    Main.threadSticky = !!$.cls('stickyIcon', $.id('pi' + Main.tid))[0];
     
     if (Config.pageTitle) {
       Main.setTitle();

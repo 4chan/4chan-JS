@@ -1780,7 +1780,7 @@ ThreadHiding.hide = function(tid) {
   
   th = $.id('t' + tid);
   
-  if (Config.hideStubs) {
+  if (Config.hideStubs && !$.cls('stickyIcon', th)[0]) {
     th.style.display = th.nextElementSibling.style.display = 'none';
   }
   else {

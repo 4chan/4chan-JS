@@ -904,7 +904,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
 };
 
 QuotePreview.show = function(link, post, remote) {
-    var rect, docWidth, style, pos, quotes, i, j, qid;
+    var rect, postHeight, doc, docWidth, style, pos, quotes, i, j, qid, top, scrollTop;
     
     if (remote) {
       Parser.parsePost(post);
@@ -935,23 +935,41 @@ QuotePreview.show = function(link, post, remote) {
     }
     
     rect = link.getBoundingClientRect();
-    docWidth = document.documentElement.offsetWidth;
+    doc = document.documentElement;
+    docWidth = doc.offsetWidth;
     style = post.style;
     
     document.body.appendChild(post);
     
     if ((docWidth - rect.right) < (0 | (docWidth * 0.3))) {
       pos = docWidth - rect.left;
-      style.right = pos + 5 + 'px'
+      style.right = pos + 5 + 'px';
     }
     else {
       pos = rect.left + rect.width;
       style.left = pos + 5 + 'px';
     }
     
-    style.top =
-      rect.top + link.offsetHeight + (window.scrollY || window.pageYOffset) -
-      post.offsetHeight / 2 - rect.height / 2 + 'px';
+    top = rect.top + link.offsetHeight + window.pageYOffset
+      - post.offsetHeight / 2 - rect.height / 2;
+    
+    postHeight = post.getBoundingClientRect().height;
+    
+    if (doc.scrollTop != document.body.scrollTop) {
+      scrollTop = doc.scrollTop + document.body.scrollTop;
+    } else {
+      scrollTop = document.body.scrollTop;
+    }
+    
+    if (top < scrollTop) {
+      style.top = scrollTop + 'px';
+    }
+    else if (top + postHeight > scrollTop + doc.clientHeight) {
+      style.top = scrollTop + doc.clientHeight - postHeight + 'px';
+    }
+    else {
+      style.top = top + 'px';
+    }
 };
 
 QuotePreview.remove = function(el) {
@@ -1336,15 +1354,26 @@ QR.show = function(tid) {
           el = row.firstChild;
         }
         if (el.nodeName == 'INPUT' || el.nodeName == 'TEXTAREA') {
-          if (el.name == 'name' && (cookie = Main.getCookie('4chan_name'))) {
-            el.value = cookie;
+          if (el.name == 'name') {
+            QR.noCaptcha && (el.tabIndex = 1);
+            if (cookie = Main.getCookie('4chan_name')) {
+              el.value = cookie;
+            }
           }
           else if (el.name == 'email') {
+            QR.noCaptcha && (el.tabIndex = 2);
             el.id = 'qrEmail';
             el.addEventListener('change', QR.checkCDType, false);
             if (cookie = Main.getCookie('4chan_email')) {
               el.value = cookie;
             }
+          }
+          else if (el.name == 'sub') {
+            QR.noCaptcha && (el.tabIndex = 3);
+          }
+          else if (el.name == 'com') {
+            QR.noCaptcha && (el.tabIndex = 4);
+            el.addEventListener('keydown', QR.onKeyDown, false);
           }
           el.setAttribute('placeholder', placeholder);
         }
@@ -1353,8 +1382,9 @@ QR.show = function(tid) {
     qrForm.appendChild(row);
   }
   
-  qrForm.querySelector('input[type="submit"]')
-    .previousSibling.className = 'presubmit';
+  el = qrForm.querySelector('input[type="submit"]');
+  el.previousSibling.className = 'presubmit';
+  QR.noCaptcha && (el.tabIndex = 5) && (file.tabIndex = 5);
   
   if (spoiler = postForm.querySelector('input[name="spoiler"]')) {
     spoiler = document.createElement('span');
@@ -1363,7 +1393,6 @@ QR.show = function(tid) {
       = '<label>[<input type="checkbox" value="on" name="spoiler">Spoiler?]</label>';
     file.parentNode.insertBefore(spoiler, file.nextSibling);
   }
-  $.tag('textarea', qrForm)[0].addEventListener('keydown', QR.onKeyDown, false);
   
   form.appendChild(qrForm);
   cnt.appendChild(form);
@@ -2591,12 +2620,12 @@ ThreadUpdater.markDeletedReplies = function(newposts) {
   
   posthash = {};
   for (i = 0; j = newposts[i]; ++i) {
-    posthash['p' + j.no] = 1;
+    posthash['pc' + j.no] = 1;
   }
   
-  oldposts = $.cls('post');
+  oldposts = $.cls('replyContainer');
   for (i = 0; j = oldposts[i]; ++i) {
-    if (!posthash[j.id] && !j.hasAttribute('data-pfx') && !$.hasClass(j, 'deleted')) {
+    if (!posthash[j.id] && !$.hasClass(j, 'deleted')) {
       el = document.createElement('img');
       el.src = Main.icons2.trash;
       el.className = 'trashIcon';
@@ -2608,7 +2637,7 @@ ThreadUpdater.markDeletedReplies = function(newposts) {
 };
 
 ThreadUpdater.onload = function() {
-  var i, el, state, self, nodes, thread, newposts, frag, lastrep, lastid, spoiler, op;
+  var i, el, state, self, nodes, thread, newposts, frag, lastrep, lastid, spoiler, op, doc;
   
   self = ThreadUpdater;
   nodes = [];
@@ -2655,7 +2684,9 @@ ThreadUpdater.onload = function() {
       Parser.setCustomSpoiler(Main.board, newposts[0].custom_spoiler);
     }
     
-    self.markDeletedReplies(newposts);
+    if (!self.fromQR) {
+      self.markDeletedReplies(newposts);
+    }
     
     for (i = newposts.length - 1; i >= 0; i--) {
       if (newposts[i].no <= lastid) {
@@ -2665,7 +2696,8 @@ ThreadUpdater.onload = function() {
     }
     
     if (nodes[0]) {
-      if (!self.force) {
+      doc = document.documentElement;
+      if (!self.force && doc.scrollHeight > doc.clientHeight) {
         if (!self.lastReply && lastid != Main.tid) {
           (self.lastReply = lastrep.lastChild).className += ' newPostsMarker';
         }
@@ -2678,7 +2710,6 @@ ThreadUpdater.onload = function() {
       else if (!self.fromQR) {
         self.setStatus(nodes.length + ' new post' + (nodes.length > 1 ? 's' : ''));
       }
-      self.fromQR = false;
       frag = document.createDocumentFragment();
       for (i = nodes.length - 1; i >= 0; i--) {
         frag.appendChild(Parser.buildHTMLFromJSON(nodes[i], Main.board));
@@ -2712,7 +2743,7 @@ ThreadUpdater.onload = function() {
   
   self.lastUpdated = Date.now();
   self.adjustDelay(nodes.length);
-  self.updating = self.force = false;
+  self.updating = self.force = self.fromQR = false;
 };
 
 ThreadUpdater.onerror = function() {
@@ -2727,7 +2758,7 @@ ThreadUpdater.onerror = function() {
   
   self.lastUpdated = Date.now();
   self.adjustDelay(0);
-  self.updating = self.force = false;
+  self.updating = self.force = self.fromQR = false;
 };
 
 ThreadUpdater.setStatus = function(msg) {
@@ -2835,7 +2866,7 @@ Filter.onClick = function(e) {
 };
 
 Filter.exec = function(cnt, pi, nb, msg, tid) {
-  var trip, name, com, f, filters = Filter.activeFilters, hit = false;
+  var trip, name, com, mail, f, filters = Filter.activeFilters, hit = false;
   
   for (i = 0; f = filters[i]; ++i) {
     if (f.type == 0) {
@@ -2852,13 +2883,23 @@ Filter.exec = function(cnt, pi, nb, msg, tid) {
         break;
       }
     }
-    else {
+    else if (f.type == 2) {
       if (!com) {
         this.entities.innerHTML
           = msg.innerHTML.replace(/<br>/g, '\n').replace(/[<[^>]+>/g, '');
         com = this.entities.textContent;
       }
       if (f.pattern.test(com)) {
+        hit = true;
+        break;
+      }
+    }
+    else {
+      if ((mail ||
+          ((mail = nb.getElementsByClassName('useremail')[0])
+            && (mail = mail.href.slice(7))
+          )
+        ) && f.pattern.test(mail)) {
         hit = true;
         break;
       }
@@ -2971,7 +3012,7 @@ Filter.openHelp = function() {
 <ul><li>Those use simple string comparison.</li>\
 <li>Type them exactly as they appear on 4chan, including the exclamation mark for tripcode filters.</li>\
 <li>Example: <code>!Ep8pui8Vw2</code></li></ul>\
-<h4>Comment filters:</h4>\
+<h4>Comment end E-mail filters:</h4>\
 <ul><li><strong>Matching whole words:</strong></li>\
 <li><code>feel</code> &mdash; will match <em>"feel"</em> but not <em>"feeling"</em>. This search is case-insensitive.</li></ul>\
 <ul><li><strong>AND operator:</strong></li>\
@@ -3111,7 +3152,8 @@ Filter.buildEntry = function(filter) {
   html += '<td><select size="1"><option value="0"'
     + sel[0] + '>Tripcode</option><option value="1"'
     + sel[1] + '>Name</option><option value="2"'
-    + sel[2] + '>Comment</option></select></td>';
+    + sel[2] + '>Comment</option><option value="3"'
+    + sel[3] + '>E-mail</option></select></td>';
   
   // Color
   html += '<td><input type="text" class="fColor" value="'
@@ -3279,7 +3321,7 @@ Media.embedSoundCloud = function(msg, url) {
   
   xhr = new XMLHttpRequest();
   xhr.open('GET', 'http://soundcloud.com/oembed?show_artwork=false&'
-    + '&maxwidth=500px&show_comments=false&format=json&url='
+    + 'maxwidth=500px&show_comments=false&format=json&url='
     + (url.charAt(0) != 'h' ? ('http://' + url) : url));
   xhr.onload = function() {
     if (this.status == 200 || this.status == 304) {
@@ -4671,6 +4713,7 @@ div.op div.file .image-expanded-anti {\
   display: block;\
   position: absolute;\
   padding: 3px 6px 6px 3px;\
+  margin: 0;\
 }\
 #quote-preview .dateTime {\
   white-space: nowrap;\
@@ -5070,7 +5113,7 @@ kbd {\
   line-height: 1.4;\
   padding: 0 5px;\
 }\
-.deleted:not(#quote-preview) {\
+.deleted {\
   opacity: 0.66;\
 }\
 ';

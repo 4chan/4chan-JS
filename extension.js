@@ -2866,7 +2866,10 @@ Filter.onClick = function(e) {
 };
 
 Filter.exec = function(cnt, pi, nb, msg, tid) {
-  var trip, name, com, mail, f, filters = Filter.activeFilters, hit = false;
+  var trip, name, com, mail, uid, f, filters, hit;
+  
+  filters = Filter.activeFilters;
+  hit = false;
   
   for (i = 0; f = filters[i]; ++i) {
     if (f.type == 0) {
@@ -2894,12 +2897,22 @@ Filter.exec = function(cnt, pi, nb, msg, tid) {
         break;
       }
     }
-    else {
+    else if (f.type == 3) {
       if ((mail ||
           ((mail = nb.getElementsByClassName('useremail')[0])
             && (mail = mail.href.slice(7))
           )
         ) && f.pattern.test(mail)) {
+        hit = true;
+        break;
+      }
+    }
+    else {
+      if ((uid ||
+          ((uid = nb.getElementsByClassName('posteruid')[0])
+            && (uid = uid.firstElementChild.textContent)
+          )
+        ) && f.pattern == uid) {
         hit = true;
         break;
       }
@@ -2953,8 +2966,8 @@ Filter.load = function() {
     for (fid = 0; f = rawFilters[fid]; ++fid) {
       if (f.active && f.pattern != '') {
         rawPattern = f.pattern;
-        // Name or Tripcode, string comparison
-        if (!f.type || f.type == 1) {
+        // Name, Tripcode or ID, string comparison
+        if (!f.type || f.type == 1 || f.type == 4) {
           pattern = rawPattern;
         }
         // /RegExp/
@@ -3008,7 +3021,7 @@ Filter.openHelp = function() {
 <div class="extPanel reply"><div class="panelHeader">Filters &amp; Highlights Help\
 <span><img alt="Close" title="Close" class="pointer" data-cmd="filters-help-close" src="'
 + Main.icons.cross + '"></span></div>\
-<h4>Tripcode and Name filters:</h4>\
+<h4>Tripcode, Name and ID filters:</h4>\
 <ul><li>Those use simple string comparison.</li>\
 <li>Type them exactly as they appear on 4chan, including the exclamation mark for tripcode filters.</li>\
 <li>Example: <code>!Ep8pui8Vw2</code></li></ul>\
@@ -3147,13 +3160,14 @@ Filter.buildEntry = function(filter) {
     + filter.pattern.replace(/"/g, '&quot;') + '"></td>';
   
   // Type
-  sel = [ '', '', '' ];
+  sel = [ '', '', '', '', '' ];
   sel[filter.type] = 'selected="selected"';
   html += '<td><select size="1"><option value="0"'
     + sel[0] + '>Tripcode</option><option value="1"'
     + sel[1] + '>Name</option><option value="2"'
     + sel[2] + '>Comment</option><option value="3"'
-    + sel[3] + '>E-mail</option></select></td>';
+    + sel[3] + '>E-mail</option><option value="4"'
+    + sel[4] + '>ID</option></select></td>';
   
   // Color
   html += '<td><input type="text" class="fColor" value="'
@@ -3694,6 +3708,7 @@ var Config = {
   threadStats: false,
   IDColor: false,
   downloadFile: false,
+  noPictures: false,
   embedYouTube: false,
   embedSoundCloud: false,
 
@@ -3799,6 +3814,7 @@ SettingsMenu.options = {
       threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
       IDColor: [ 'Color user IDs', 'Assign unique colors to user IDs on boards that use them' ],
       downloadFile: [ 'Download original', 'Adds a button to download image with original filename (Chrome only)'],
+      noPictures: [ 'Hide thumbnails', 'Don\'t display thumbnails while browsing'],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
     },
@@ -4035,6 +4051,10 @@ Main.run = function() {
   
   if (Config.compactThreads) {
     $.addClass(document.body, 'compact');
+  }
+  
+  if (Config.noPictures) {
+    $.addClass(document.body, 'noPictures');
   }
   
   if (Config.quotePreview || Config.imageHover|| Config.filter) {
@@ -5115,6 +5135,9 @@ kbd {\
 }\
 .deleted {\
   opacity: 0.66;\
+}\
+.noPictures .fileThumb {\
+  opacity: 0;\
 }\
 ';
   

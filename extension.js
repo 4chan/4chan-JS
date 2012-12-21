@@ -3480,6 +3480,10 @@ Keybinds.init = function() {
     82: function() {
       if (ThreadUpdater.enabled) ThreadUpdater.forceUpdate();
     },
+    // W
+    87: function() {
+      if (Config.threadWatcher && Main.tid) ThreadWatcher.toggle(Main.tid);
+    },
     // B
     66: function() {
       var el;
@@ -3534,6 +3538,7 @@ Keybinds.open = function() {
 <li><kbd>A</kbd> &mdash; Toggle auto-updater</li>\
 <li><kbd>Q</kbd> &mdash; Open Quick Reply</li>\
 <li><kbd>R</kbd> &mdash; Update thread</li>\
+<li><kbd>W</kbd> &mdash; Watch/Unwatch thread</li>\
 <li><kbd>B</kbd> &mdash; Previous page</li>\
 <li><kbd>N</kbd> &mdash; Next page</li>\
 <li><kbd>I</kbd> &mdash; Return to index</li>\
@@ -3864,9 +3869,7 @@ SettingsMenu.open = function() {
   cnt.className = 'UIPanel';
   
   html = '<div class="extPanel reply"><div class="panelHeader">Settings'
-    + '<span><a target="_blank" href="//www.4chan.org/tools">'
-      + '<img class="pointer" alt="Help" title="Help" src="' + Main.icons.help + '"></a>'
-    + '<img alt="Close" title="Close" class="pointer" data-cmd="settings-toggle" src="'
+    + '<span><img alt="Close" title="Close" class="pointer" data-cmd="settings-toggle" src="'
     + Main.icons.cross + '"></a>'
     + '</span></div><ul>';
   

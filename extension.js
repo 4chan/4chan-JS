@@ -2866,7 +2866,7 @@ Filter.onClick = function(e) {
 };
 
 Filter.exec = function(cnt, pi, nb, msg, tid) {
-  var trip, name, com, mail, uid, f, filters, hit;
+  var trip, name, com, mail, uid, sub, f, filters, hit;
   
   filters = Filter.activeFilters;
   hit = false;
@@ -2907,12 +2907,22 @@ Filter.exec = function(cnt, pi, nb, msg, tid) {
         break;
       }
     }
-    else {
+    else if (f.type == 4) {
       if ((uid ||
           ((uid = nb.getElementsByClassName('posteruid')[0])
             && (uid = uid.firstElementChild.textContent)
           )
         ) && f.pattern == uid) {
+        hit = true;
+        break;
+      }
+    }
+    else {
+      if ((sub ||
+          ((sub = nb.getElementsByClassName('subject')[0])
+            && (sub = sub.textContent)
+          )
+        ) && f.pattern.test(sub)) {
         hit = true;
         break;
       }
@@ -3025,7 +3035,7 @@ Filter.openHelp = function() {
 <ul><li>Those use simple string comparison.</li>\
 <li>Type them exactly as they appear on 4chan, including the exclamation mark for tripcode filters.</li>\
 <li>Example: <code>!Ep8pui8Vw2</code></li></ul>\
-<h4>Comment end E-mail filters:</h4>\
+<h4>Comment, Subject and E-mail filters:</h4>\
 <ul><li><strong>Matching whole words:</strong></li>\
 <li><code>feel</code> &mdash; will match <em>"feel"</em> but not <em>"feeling"</em>. This search is case-insensitive.</li></ul>\
 <ul><li><strong>AND operator:</strong></li>\
@@ -3160,14 +3170,15 @@ Filter.buildEntry = function(filter) {
     + filter.pattern.replace(/"/g, '&quot;') + '"></td>';
   
   // Type
-  sel = [ '', '', '', '', '' ];
-  sel[filter.type] = 'selected="selected"';
+  sel = [ '', '', '', '', '', '' ];
+  sel[filter.type] = ' selected="selected"';
   html += '<td><select size="1"><option value="0"'
     + sel[0] + '>Tripcode</option><option value="1"'
     + sel[1] + '>Name</option><option value="2"'
     + sel[2] + '>Comment</option><option value="3"'
     + sel[3] + '>E-mail</option><option value="4"'
-    + sel[4] + '>ID</option></select></td>';
+    + sel[4] + '>ID</option><option value="5"'
+    + sel[5] + '>Subject</option></select></td>';
   
   // Color
   html += '<td><input type="text" class="fColor" value="'

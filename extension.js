@@ -712,7 +712,7 @@ Parser.parsePost = function(pid, tid) {
 Parser.getLocaleDate = function(date) {
   return ('0' + (1 + date.getMonth())).slice(-2) + '/'
     + ('0' + date.getDate()).slice(-2) + '/'
-    + ('0' + date.getFullYear()).slice(-2) + '/('
+    + ('0' + date.getFullYear()).slice(-2) + '('
     + this.weekdays[date.getDay()] + ')'
     + ('0' + date.getHours()).slice(-2) + ':'
     + ('0' + date.getMinutes()).slice(-2) + ':'

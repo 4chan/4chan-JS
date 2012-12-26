@@ -160,7 +160,7 @@ Parser.inlineQuote = function(link, e) {
       isBl = true;
     }
     else {
-      el = blcnt.parentNode.parentNode;
+      el = blcnt.parentNode;
     }
     
     if (el.id.split('m')[1] == id) {
@@ -203,8 +203,7 @@ Parser.inlineQuote = function(link, e) {
     dest.insertBefore(el, dest.firstChild);
   }
   else {
-    dest = link.parentNode;
-    dest.parentNode.insertBefore(el, dest.nextSibling);
+    link.parentNode.insertBefore(el, link.nextSibling);
   }
 };
 

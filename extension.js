@@ -2561,7 +2561,7 @@ ThreadUpdater.onScroll = function(e) {
   var self;
   
   if (document.documentElement.scrollHeight ==
-    (document.documentElement.clientHeight + window.scrollY)) {
+    (document.documentElement.clientHeight + window.pageYOffset)) {
     self = ThreadUpdater;
     if (!self.dead) {
       self.setIcon(self.defaultIcon);
@@ -3278,7 +3278,7 @@ Media.checkEmbeds = function(e) {
     return;
   }
   
-  limit = document.documentElement.clientHeight + window.scrollY;
+  limit = document.documentElement.clientHeight + window.pageYOffset;
   
   if (Config.embedSoundCloud) {
     dHeight = document.documentElement.offsetHeight - Media.baseHeight;
@@ -3620,8 +3620,8 @@ var Draggable = {
     self.bottom = doc.clientHeight - offs.height;
     
     if (getComputedStyle(self.el, null).position != 'fixed') {
-      self.scrollX = window.scrollX || window.pageXOffset;
-      self.scrollY = window.scrollY || window.pageYOffset;
+      self.scrollX = window.pageXOffset;
+      self.scrollY = window.pageYOffset;
     }
     else {
       self.scrollX = self.scrollY = 0;

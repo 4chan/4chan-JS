@@ -11,7 +11,7 @@ In addition, we offer a read-only JSON API that you can read more about [here](h
 
 Bugs and feature requests should be submitted to the repo's [Issues page](https://github.com/4chan/4chan-JS/issues).
 
-This code is released under a 3-clause BSD license, [available here](https://github.com/4chan/4chan-JS/blob/master/LICENSE).
+This code is released under a 3-clause BSD license, [available here](https://raw.github.com/4chan/4chan-JS/master/LICENSE).
 
 Many thanks to [desuwa](https://github.com/desuwa) of The Yotsuba Catalog for being a total badass, and almost single-handedly bringing this project to fruition.
 

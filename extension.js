@@ -482,7 +482,6 @@ Parser.parseThread = function(tid, offset, limit) {
         filtered = Filter.exec(
           thread,
           pi, 
-          thread.getElementsByClassName('nameBlock')[0],
           document.getElementById('m' + tid),
           tid
         );
@@ -562,11 +561,7 @@ Parser.parseThread = function(tid, offset, limit) {
     }
   }
   
-  if (UA.hasCustomEventCtor) {
-    document.dispatchEvent(new CustomEvent('4chanParsingDone',
-      { detail: { threadId: tid, offset: j, limit: limit } }
-    ));
-  }
+  UA.dispatchEvent('4chanParsingDone', { threadId: tid, offset: j, limit: limit });
 };
 
 Parser.parseMarkup = function(post) {
@@ -634,7 +629,7 @@ Parser.parsePost = function(pid, tid) {
     
     if (pid != tid) {
       if (Config.filter) {
-        filtered = Filter.exec(pi.parentNode, pi, pi.children[2], msg);
+        filtered = Filter.exec(pi.parentNode, pi, msg);
       }
       
       if (Config.replyHiding && !filtered) {
@@ -920,7 +915,7 @@ QuotePreview.show = function(link, post, remote) {
     
     if (!link.parentNode.className) {
       quotes = post.querySelectorAll(
-        '#' + $.cls('postMessage', post)[0].id + ' > .quote .quotelink'
+        '#' + $.cls('postMessage', post)[0].id + ' > .quotelink'
       );
       if (quotes[1]) {
         qid = '>>' + link.parentNode.parentNode.id.split('_')[1];
@@ -1152,7 +1147,13 @@ QR.init = function() {
   this.enabled = true;
   this.currentTid = null;
   this.cooldown = null;
+  this.timestamp = null;
   this.auto = false;
+  
+  this.btn = null;
+  this.comField = null;
+  this.comLength = window.comlen;
+  this.lenCheckTimeout = null;
   
   this.sagePost = 2;
   this.filePost = 4;
@@ -1175,6 +1176,7 @@ QR.init = function() {
   this.captchaInterval = null;
   this.pulse = null;
   this.xhr = null;
+  this.banXhr = null;
   
   this.fileDisabled = false;
   
@@ -1204,7 +1206,7 @@ QR.toggleFileInput = function(mode) {
       el.title = 'Shift + Click to remove the file';
     }
   }
-}
+};
 
 QR.syncStorage = function(e) {
   var key;
@@ -1372,7 +1374,13 @@ QR.show = function(tid) {
           }
           else if (el.name == 'com') {
             QR.noCaptcha && (el.tabIndex = 4);
+            QR.comField = el;
             el.addEventListener('keydown', QR.onKeyDown, false);
+            el.addEventListener('paste', QR.onKeyDown, false);
+            el.addEventListener('cut', QR.onKeyDown, false);
+            if (row.children[1]) {
+              row.removeChild(el.nextSibling);
+            }
           }
           el.setAttribute('placeholder', placeholder);
         }
@@ -1381,9 +1389,9 @@ QR.show = function(tid) {
     qrForm.appendChild(row);
   }
   
-  el = qrForm.querySelector('input[type="submit"]');
-  el.previousSibling.className = 'presubmit';
-  QR.noCaptcha && (el.tabIndex = 5) && (file.tabIndex = 5);
+  this.btn = qrForm.querySelector('input[type="submit"]');
+  this.btn.previousSibling.className = 'presubmit';
+  QR.noCaptcha && (this.btn.tabIndex = 5) && (file.tabIndex = 5);
   
   if (spoiler = postForm.querySelector('input[name="spoiler"]')) {
     spoiler = document.createElement('span');
@@ -1440,12 +1448,33 @@ QR.onKeyDown = function(e) {
   }
   else if (e.keyCode == 27 && !e.ctrlkey && !e.altkey && !e.shiftkey && !e.metakey) {
     QR.close();
+    return;
+  }
+  
+  clearTimeout(QR.lenCheckTimeout);
+  QR.lenCheckTimeout = setTimeout(QR.checkComLength, 500);
+};
+
+QR.checkComLength = function() {
+  var byteLength, qrError;
+  
+  if (QR.comLength) {
+    byteLength = encodeURIComponent(QR.comField.value).split(/%..|./).length - 1;
+    
+    if (byteLength > QR.comLength) {
+      QR.showPostError('Comment too long ('
+        + byteLength + '/' + QR.comLength + ')');
+    }
+    else if ((qrError = $.id('qrError')) && qrError.style.display == 'block' ) {
+      qrError.style.display = 'none';
+    }
   }
 };
 
 QR.close = function() {
   var el, cnt = $.id('quickReply');
   
+  QR.comField = null;
   QR.currentTid = null;
   
   clearInterval(QR.captchaInterval);
@@ -1454,6 +1483,11 @@ QR.close = function() {
   if (QR.xhr) {
     QR.xhr.abort();
     QR.xhr = null;
+  }
+  
+  if (QR.banXhr) {
+    QR.banXhr.abort();
+    QR.banXhr = null;
   }
   
   cnt.removeEventListener('click', QR.onClick, false);
@@ -1472,7 +1506,7 @@ QR.cloneCaptcha = function() {
 };
 
 QR.reloadCaptcha = function(focus) {
-  var pulse, func, el;
+  var pulse, poll, el;
   
   if (QR.noCaptcha || !(el = $.id('recaptcha_image'))) {
     return;
@@ -1546,6 +1580,11 @@ QR.showPostError = function(msg, silent) {
   var qrError;
   
   qrError = $.id('qrError');
+  
+  if (!qrError) {
+    return;
+  }
+  
   qrError.innerHTML = msg;
   qrError.style.display = 'block';
   if (!silent && (document.hidden
@@ -1578,26 +1617,52 @@ QR.resetFile = function() {
   QR.checkCDType();
 };
 
+QR.checkBan = function() {
+  QR.banXhr = new XMLHttpRequest();
+  QR.banXhr.open('GET', '//api.4chan.org/banned?' + Date.now(), true);
+  QR.banXhr.timeout = 3000;
+  QR.banXhr.onload = function() {
+    if (this.status == 403) {
+      QR.showPostError('You are <a href="https://www.4chan.org/banned" target="_blank">banned</a> ;_;');
+    }
+    else {
+      QR.showPostError('Connection error.');
+    }
+    QR.banXhr = null;
+    QR.btn.value = 'Submit';
+  };
+  QR.banXhr.onerror = QR.banXhr.ontimeout = function() {
+    QR.banXhr = null;
+    QR.btn.value = 'Submit';
+    QR.showPostError('Connection error.');
+  };
+  QR.banXhr.send(null);
+};
+
 QR.submit = function(force) {
-  var i, btn, email, field;
+  var field;
+  
+  if (QR.banXhr) {
+    QR.banXhr.abort();
+    QR.banXhr = null;
+  }
   
   QR.hidePostError();
-  btn = $.id('quickReply').querySelector('input[type="submit"]');
   
   if (QR.xhr) {
     QR.xhr.abort();
     QR.xhr = null;
     QR.showPostError('Aborted');
-    btn.value = 'Submit';
+    QR.btn.value = 'Submit';
     return;
   }
   
   if (!force && QR.cooldown) {
     if (QR.auto = !QR.auto) {
-      btn.value = QR.cooldown + 's (auto)';
+      QR.btn.value = QR.cooldown + 's (auto)';
     }
     else {
-      btn.value = QR.cooldown + 's';
+      QR.btn.value = QR.cooldown + 's';
     }
     return;
   }
@@ -1615,38 +1680,27 @@ QR.submit = function(force) {
   QR.xhr.withCredentials = true;
   QR.xhr.upload.onprogress = function(e) {
     if (e.loaded >= e.total) {
-      btn.value = '100%';
+      QR.btn.value = '100%';
     }
     else {
-      btn.value = (0 | (e.loaded / e.total * 100)) + '%';
+      QR.btn.value = (0 | (e.loaded / e.total * 100)) + '%';
     }
   };
   QR.xhr.onerror = function() {
-    btn.value = 'Submit';
     QR.xhr = null;
-    QR.showPostError('Connection error. Are you '
-      + '<a href="https://www.4chan.org/banned">banned</a>?');
+    QR.checkBan();
   };
   QR.xhr.onload = function() {
     var resp, el, hasFile, cd;
     
     QR.xhr = null;
     
-    btn.value = 'Submit';
+    QR.btn.value = 'Submit';
     
     if (this.status == 200) {
       if (resp = this.responseText.match(/"errmsg"[^>]*>(.*?)<\/span/)) {
         QR.reloadCaptcha();
         QR.showPostError(resp[1]);
-        return;
-      }
-      
-      if (/heeding this warning/.test(this.responseText)) {
-        resp = this.responseText
-          .split(/<br\/><br\/>\n<b>/)[1]
-          .split(/<\/b><br\/><br\/>/)[0];
-        QR.showPostError('<h3>You were issued a warning:<h3>' + resp);
-        QR.reloadCaptcha();
         return;
       }
       
@@ -1690,17 +1744,18 @@ QR.submit = function(force) {
     }
   };
   clearInterval(QR.pulse);
-  btn.value = 'Sending';
+  QR.btn.value = 'Sending';
   QR.xhr.send(new FormData(document.forms.qrPost));
 };
 
 QR.purgeCooldown = function() {
-  var data, cd, type, time, thres;
+  var data, cd, type, time, thres, elapsed;
   
   if (data = localStorage.getItem('4chan-cd-' + Main.board)) {
     cd = data.split('-');
     time = parseInt(cd[0], 10);
     type = +cd[1];
+    
     if (type & QR.sagePost) {
       thres = QR.sageDelay;
     }
@@ -1710,7 +1765,10 @@ QR.purgeCooldown = function() {
     else {
       thres = QR.baseDelay;
     }
-    if ((Date.now() - time) >= thres) {
+    
+    elapsed = Date.now() - time;
+    
+    if (elapsed >= thres || elapsed < 0) {
       localStorage.removeItem('4chan-cd-' + Main.board);
     }
     else {
@@ -1720,19 +1778,18 @@ QR.purgeCooldown = function() {
 };
 
 QR.startCooldown = function(cd) {
-  var ms, btn, el;
+  var el;
   
-  if (QR.noCooldown || !(btn = $.id('quickReply')) || QR.xhr) {
+  if (QR.noCooldown || !$.id('quickReply') || QR.xhr) {
     return;
   }
   
   clearInterval(QR.pulse);
   
-  btn = btn.querySelector('input[type="submit"]');
-  
   cd = cd.split('-');
-  ms = parseInt(cd[0], 10);
+  QR.timestamp = parseInt(cd[0], 10);
   QR.cdType = +cd[1];
+  
   if ((QR.cdType & QR.sagePost) && (el = $.id('qrEmail')) && /sage/i.test(el.value)) {
     QR.activeDelay = QR.sageDelay;
   }
@@ -1743,31 +1800,33 @@ QR.startCooldown = function(cd) {
     QR.activeDelay = QR.baseDelay;
   }
   
-  QR.cdElapsed = Date.now() - ms;
+  QR.cdElapsed = Date.now() - QR.timestamp;
   QR.cooldown = Math.floor((QR.activeDelay - QR.cdElapsed) / 1000);
   
-  if (QR.cooldown <= 0) {
+  if (QR.cooldown <= 0 || QR.cdElapsed < 0) {
     QR.cooldown = false;
     return;
   }
   
-  btn.value = QR.cooldown + 's';
+  QR.btn.value = QR.cooldown + 's';
   
-  QR.pulse = setInterval(function() {
-    QR.cdElapsed = Date.now() - ms;
-    QR.cooldown = Math.floor((QR.activeDelay - QR.cdElapsed) / 1000);
-    if (QR.cooldown <= 0) {
-      clearInterval(QR.pulse);
-      btn.value = 'Submit';
-      QR.cooldown = false;
-      if (QR.auto) {
-        QR.submit();
-      }
+  QR.pulse = setInterval(QR.onPulse, 1000);
+};
+
+QR.onPulse = function() {
+  QR.cdElapsed = Date.now() - QR.timestamp;
+  QR.cooldown = Math.floor((QR.activeDelay - QR.cdElapsed) / 1000);
+  if (QR.cooldown <= 0) {
+    clearInterval(QR.pulse);
+    QR.btn.value = 'Submit';
+    QR.cooldown = false;
+    if (QR.auto) {
+      QR.submit();
     }
-    else {
-      btn.value = QR.cooldown + (QR.auto ? 's (auto)' : 's');
-    }
-  }, 1000);
+  }
+  else {
+    QR.btn.value = QR.cooldown + (QR.auto ? 's (auto)' : 's');
+  }
 };
 
 /**
@@ -1993,7 +2052,7 @@ ThreadWatcher.syncStorage = function(e) {
   key = e.key.split('-');
   
   if (key[0] == '4chan' && key[1] == 'watch' && e.newValue != e.oldValue) {
-    ThreadWatcher.load();
+    ThreadWatcher.watched = JSON.parse(e.newValue);
     ThreadWatcher.build(true);
   }
 };
@@ -2790,7 +2849,6 @@ var ThreadStats = {};
 ThreadStats.init = function() {
   var i, cnt;
   
-  
   this.nodeTop = document.createElement('div');
   this.nodeTop.className = 'thread-stats';
   this.nodeBot = this.nodeTop.cloneNode(false);
@@ -2799,13 +2857,13 @@ ThreadStats.init = function() {
   cnt[0] && cnt[0].appendChild(this.nodeTop);
   cnt[3] && cnt[3].appendChild(this.nodeBot);
   
-  this.update();
+  this.update(null, null, window.bumplimit, window.imagelimit);
 };
 
 ThreadStats.update = function(replies, images, isBumpFull, isImageFull) {
   var repStr, imgStr;
   
-  if (replies === undefined) {
+  if (replies === null) {
     replies = $.cls('replyContainer').length;
     images = $.cls('fileText').length - ($.id('fT' + Main.tid) ? 1 : 0);
   }
@@ -2864,7 +2922,7 @@ Filter.onClick = function(e) {
   }
 };
 
-Filter.exec = function(cnt, pi, nb, msg, tid) {
+Filter.exec = function(cnt, pi, msg, tid) {
   var trip, name, com, mail, uid, sub, f, filters, hit;
   
   filters = Filter.activeFilters;
@@ -2872,14 +2930,14 @@ Filter.exec = function(cnt, pi, nb, msg, tid) {
   
   for (i = 0; f = filters[i]; ++i) {
     if (f.type == 0) {
-      if ((trip || (trip = nb.getElementsByClassName('postertrip')[0]))
+      if ((trip || (trip = pi.getElementsByClassName('postertrip')[0]))
         && f.pattern == trip.textContent) {
         hit = true;
         break;
       }
     }
     else if (f.type == 1) {
-      if ((name || (name = nb.getElementsByClassName('name')[0]))
+      if ((name || (name = pi.getElementsByClassName('name')[0]))
         && f.pattern == name.textContent) {
         hit = true;
         break;
@@ -2898,7 +2956,7 @@ Filter.exec = function(cnt, pi, nb, msg, tid) {
     }
     else if (f.type == 3) {
       if ((mail ||
-          ((mail = nb.getElementsByClassName('useremail')[0])
+          ((mail = pi.getElementsByClassName('useremail')[0])
             && (mail = mail.href.slice(7))
           )
         ) && f.pattern.test(mail)) {
@@ -2908,7 +2966,7 @@ Filter.exec = function(cnt, pi, nb, msg, tid) {
     }
     else if (f.type == 4) {
       if ((uid ||
-          ((uid = nb.getElementsByClassName('posteruid')[0])
+          ((uid = pi.getElementsByClassName('posteruid')[0])
             && (uid = uid.firstElementChild.textContent)
           )
         ) && f.pattern == uid) {
@@ -2918,7 +2976,7 @@ Filter.exec = function(cnt, pi, nb, msg, tid) {
     }
     else {
       if ((sub ||
-          ((sub = nb.getElementsByClassName('subject')[0])
+          ((sub = pi.getElementsByClassName('subject')[0])
             && (sub = sub.textContent)
           )
         ) && f.pattern.test(sub)) {
@@ -2927,6 +2985,7 @@ Filter.exec = function(cnt, pi, nb, msg, tid) {
       }
     }
   }
+  
   if (hit) {
     if (f.hide) {
       cnt.className += ' post-hidden';
@@ -3107,7 +3166,10 @@ Filter.open = function() {
       filterList.appendChild(this.buildEntry(f, i));
     }
   }
+  
   cnt.style.display = '';
+  
+  i && $.cls('fPattern', cnt)[0].focus();
 };
 
 Filter.close = function() {
@@ -3429,6 +3491,7 @@ CustomCSS.open = function() {
   
   document.body.appendChild(cnt);
   cnt.addEventListener('click', this.onClick, false);
+  $.id('customCSSBox').focus();
 };
 
 CustomCSS.save = function() {
@@ -3687,10 +3750,15 @@ UA.init = function() {
   this.hasCORS = 'withCredentials' in new XMLHttpRequest;
   
   this.hasFormData = 'FormData' in window;
-  
-  this.hasCustomEventCtor = (function() {
-    try { new window.CustomEvent('e'); return true; } catch (e) { return false; }
-  })();
+};
+
+UA.dispatchEvent = function(name, detail) {
+  var e = document.createEvent('Event');
+  e.initEvent(name, false, false);
+  if (detail) {
+    e.detail = detail;
+  }
+  document.dispatchEvent(e);
 };
 
 /**
@@ -3816,7 +3884,7 @@ SettingsMenu.options = {
       imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
       reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ],
       localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ],
-      topPageNav: [ 'Page navigation at the top', 'Show the page switcher at the top of the page, hold Shift and drag to move' ],
+      topPageNav: [ 'Page navigation at top of page', 'Show the page switcher at the top of the page, hold Shift and drag to move' ],
       stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows, hold Shift and drag to move' ],
       keyBinds: [ 'Use keyboard shortcuts [<a href="javascript:;" data-cmd="keybinds-open">Show</a>]', 'Enable handy keyboard shortcuts for common actions' ]
     },
@@ -3868,7 +3936,7 @@ SettingsMenu.toggle = function() {
 };
 
 SettingsMenu.open = function() {
-  var cat, key, html, cnt, opts;
+  var cat, key, html, cnt, opts, el;
   
   if (Main.firstRun) {
     Config.save();
@@ -3906,10 +3974,11 @@ SettingsMenu.open = function() {
   cnt.innerHTML = html;
   cnt.addEventListener('click', SettingsMenu.onClick, false);
   document.body.appendChild(cnt);
+  (el = $.cls('menuOption', cnt)[0]) && el.focus();
 };
 
 SettingsMenu.showExport = function() {
-  var cnt, str;
+  var cnt, str, el;
   
   if ($.id('exportSettings')) {
     return;
@@ -3936,6 +4005,9 @@ bookmarks bar and click it to restore.</p>\
 
   document.body.appendChild(cnt);
   cnt.addEventListener('click', this.onExportClick, false);
+  el = $.cls('export-field', cnt)[0];
+  el.focus();
+  el.select();
 };
 
 SettingsMenu.closeExport = function() {
@@ -4032,9 +4104,7 @@ Main.init = function()
     Keybinds.init();
   }
   
-  if (UA.hasCustomEventCtor) {
-    document.dispatchEvent(new CustomEvent('4chanMainInit'));
-  }
+  UA.dispatchEvent('4chanMainInit');
 };
 
 Main.run = function() {
@@ -4054,6 +4124,7 @@ Main.run = function() {
     $.id('boardNavDesktop').style.display = 'none';
     $.id('boardNavDesktopFoot').style.display = 'none';
     $.removeClass($.id('boardNavMobile'), 'mobile');
+    $.addClass(document.body, 'hasDropDownNav');
   }
   else if (Main.firstRun) {
     Main.onFirstRun();
@@ -4522,6 +4593,9 @@ Main.linkToThread = function(tid, board, post) {
 Main.addCSS = function()
 {
   var style, css = '\
+body.hasDropDownNav {\
+  margin-top: 50px;\
+}\
 .extButton.threadHideButton {\
   float: left;\
   margin-right: 5px;\
@@ -4678,8 +4752,9 @@ div.post div.postInfo {\
   padding: 3px 5px;\
   text-shadow: 0 1px rgba(0, 0, 0, 0.20);\
 }\
+#qrError a:hover,\
 #qrError a {\
-  color: white;\
+  color: white !important;\
 }\
 #twHeader {\
   font-weight: bold;\

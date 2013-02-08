@@ -91,7 +91,7 @@ $.hash = function(str) {
 var Parser = {};
 
 Parser.init = function() {
-  var o, a, h, m, tail, staticPath;
+  var o, a, h, m, tail, staticPath, tracked;
   
   if (Config.filter || Config.embedSoundCloud || Config.embedYouTube) {
     this.needMsg = true;
@@ -129,6 +129,10 @@ Parser.init = function() {
     }
     
     this.weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  }
+  
+  if (Main.tid && (tracked = sessionStorage.getItem('4chan-track-' + Main.tid))) {
+    this.trackedReplies = JSON.parse(tracked);
   }
 };
 
@@ -470,8 +474,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
   return container;
 };
 
-Parser.parseBoard = function()
-{
+Parser.parseBoard = function() {
   var i, threads = document.getElementsByClassName('thread');
   
   for (i = 0; threads[i]; ++i) {
@@ -578,6 +581,12 @@ Parser.parseThread = function(tid, offset, limit) {
     }
   }
   
+  if (Parser.trackedReplies) {
+    for (i = j; i < limit; ++i) {
+      Parser.parseTrackedReplies(posts[i]);
+    }
+  }
+  
   for (i = j; i < limit; ++i) {
     Parser.parsePost(posts[i].id.slice(1), tid);
   }
@@ -589,6 +598,18 @@ Parser.parseThread = function(tid, offset, limit) {
   }
   
   UA.dispatchEvent('4chanParsingDone', { threadId: tid, offset: j, limit: limit });
+};
+
+Parser.parseTrackedReplies = function(post) {
+  var i, link, quotelinks;
+  
+  quotelinks = $.cls('quotelink', post);
+  
+  for (i = 0; link = quotelinks[i]; ++i) {
+    if (Parser.trackedReplies[link.textContent]) {
+      $.addClass(link, 'ownpost');
+    }
+  }
 };
 
 Parser.parseMobileQuotelinks = function(post) {
@@ -1242,6 +1263,8 @@ QR.init = function() {
   
   this.fileDisabled = false;
   
+  this.tracked = {};
+  
   QR.purgeCooldown();
   
   window.addEventListener('storage', this.syncStorage, false);
@@ -1761,7 +1784,7 @@ QR.submit = function(force) {
     QR.checkBan();
   };
   QR.xhr.onload = function() {
-    var resp, el, hasFile, cd;
+    var resp, el, hasFile, cd, ids;
     
     QR.xhr = null;
     
@@ -1787,10 +1810,6 @@ QR.submit = function(force) {
       cd = Date.now() + '-' + cd;
       localStorage.setItem('4chan-cd-' + Main.board, cd);
       
-      if (Main.tid && ThreadUpdater.enabled) {
-        setTimeout(ThreadUpdater.forceUpdate, 500, true);
-      }
-      
       if (Config.persistentQR) {
         QR.startCooldown(cd);
         $.byName('com')[1].value = '';
@@ -1808,6 +1827,20 @@ QR.submit = function(force) {
         QR.close();
       }
       
+      if (Main.tid && ThreadUpdater.enabled) {
+        setTimeout(ThreadUpdater.forceUpdate, 500, true);
+        
+        if (ids = this.responseText.match(/<!-- thread:[0-9]+,no:([0-9]+) -->/)) {
+          if (!Parser.trackedReplies) {
+            Parser.trackedReplies = {};
+          }
+          Parser.trackedReplies['>>' + ids[1]] = 1;
+          sessionStorage.setItem(
+            '4chan-track-' + Main.tid,
+            JSON.stringify(Parser.trackedReplies)
+          );
+        }
+      }
     }
     else {
       QR.showPostError('Error: ' + this.status + ' ' + this.statusText);
@@ -2762,7 +2795,7 @@ ThreadUpdater.onVisibilityChange = function(e) {
 
 ThreadUpdater.onScroll = function(e) {
   if (document.documentElement.scrollHeight
-      == (window.innerHeight + window.pageYOffset)
+      <= (window.innerHeight + window.pageYOffset)
       && !document[ThreadUpdater.hidden]) {
     ThreadUpdater.clearUnread();
   }
@@ -3767,6 +3800,22 @@ Report.onDone = function(e) {
 };
 
 Report.open = function(pid) {
+  if (Config.inlineReport) {
+    this.openInline(pid);
+  }
+  else {
+    this.openPopup(pid);
+  }
+};
+
+Report.openPopup = function(pid) {
+  window.open('https://sys.4chan.org/'
+    + Main.board + '/imgboard.php?mode=report&no=' + pid
+    , Date.now(),
+    "toolbar=0,scrollbars=0,location=0,status=1,menubar=0,resizable=1,width=600,height=170");
+};
+
+Report.openInline = function(pid) {
   if (this.cnt) {
     this.close();
   }
@@ -3964,6 +4013,7 @@ var Config = {
   threadStats: false,
   IDColor: false,
   downloadFile: false,
+  inlineReport: false,
   noPictures: false,
   embedYouTube: false,
   embedSoundCloud: false,
@@ -4071,6 +4121,7 @@ SettingsMenu.options = {
       threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
       IDColor: [ 'Color user IDs', 'Assign unique colors to user IDs on boards that use them' ],
       downloadFile: [ 'Download original', 'Adds a button to download image with original filename (Chrome only)'],
+      inlineReport: [ 'Inline report panel', 'Open report panel in browser window, instead of a popup'],
       noPictures: [ 'Hide thumbnails', 'Don\'t display thumbnails while browsing'],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
       embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
@@ -5432,6 +5483,12 @@ kbd {\
 }\
 .noPictures .fileThumb {\
   opacity: 0;\
+}\
+.ownpost:after {\
+  content: " (You)";\
+}\
+.ownpost {\
+  display: inline-block;\
 }\
 @media only screen and (max-width: 480px) {\
 .postLink .mobileHideButton {\

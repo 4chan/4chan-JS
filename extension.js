@@ -2404,7 +2404,7 @@ ThreadExpansion.init = function() {
 };
 
 ThreadExpansion.expandComment = function(link) {
-  var i, ids, tid, pid, abbr, msg, com, posts;
+  var ids, tid, pid, abbr;
   
   if (!(ids = link.getAttribute('href').match(/^(?:res\/)([0-9]+)#p([0-9]+)$/))) {
     return;
@@ -2419,6 +2419,8 @@ ThreadExpansion.expandComment = function(link) {
   $.get('//api.4chan.org/' + Main.board + '/res/' + tid + '.json',
     {
       onload: function() {
+        var i, msg, com, posts;
+        
         if (this.status == 200) {
           msg = $.id('m' + pid);
           
@@ -2437,6 +2439,9 @@ ThreadExpansion.expandComment = function(link) {
           }
           if (com) {
             msg.innerHTML = com;
+            if (Parser.prettify) {
+              Parser.parseMarkup(msg);
+            }
           }
           else {
             abbr.textContent = "This post doesn't exist anymore.";
@@ -2541,6 +2546,9 @@ ThreadExpansion.fetch = function(tid) {
             }
             else {
               msg.innerHTML = posts[0].com;
+            }
+            if (Parser.prettify) {
+              Parser.parseMarkup(msg);
             }
           }
           
@@ -5457,9 +5465,6 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
 .dotted {\
   text-decoration: none;\
   border-bottom: 1px dashed;\
-}\
-.inlined .extControls {\
-  display: none;\
 }\
 .linkfade {\
   opacity: 0.5;\

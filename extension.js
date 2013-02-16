@@ -591,13 +591,41 @@ Parser.parseThread = function(tid, offset, limit) {
     Parser.parsePost(posts[i].id.slice(1), tid);
   }
   
-  if (offset && Parser.prettify) {
-    for (i = j; i < limit; ++i) {
-      Parser.parseMarkup(posts[i]);
+  if (offset) {
+    if (Parser.prettify) {
+      for (i = j; i < limit; ++i) {
+        Parser.parseMarkup(posts[i]);
+      }
+    }
+    if (window.jsMath) {
+      if (window.jsMath.loaded) {
+        for (i = j; i < limit; ++i) {
+          window.jsMath.ProcessBeforeShowing(posts[i]);
+        }
+      }
+      else {
+        Parser.loadJSMath();
+      }
     }
   }
   
   UA.dispatchEvent('4chanParsingDone', { threadId: tid, offset: j, limit: limit });
+};
+
+Parser.loadJSMath = function(root) {
+  if ($.cls('math', root)[0]) {
+    window.jsMath.Autoload.Script.Push('ProcessBeforeShowing', [ null ]);
+    window.jsMath.Autoload.LoadJsMath();
+  }
+};
+
+Parser.parseMathOne = function(node) {
+  if (window.jsMath.loaded) {
+    window.jsMath.ProcessBeforeShowing(node);
+  }
+  else {
+    Parser.loadJSMath(node);
+  }
 };
 
 Parser.parseTrackedReplies = function(post) {
@@ -2442,6 +2470,9 @@ ThreadExpansion.expandComment = function(link) {
             if (Parser.prettify) {
               Parser.parseMarkup(msg);
             }
+            if (window.jsMath) {
+              Parser.parseMathOne(msg);
+            }
           }
           else {
             abbr.textContent = "This post doesn't exist anymore.";
@@ -2549,6 +2580,9 @@ ThreadExpansion.fetch = function(tid) {
             }
             if (Parser.prettify) {
               Parser.parseMarkup(msg);
+            }
+            if (window.jsMath) {
+              Parser.parseMathOne(msg);
             }
           }
           

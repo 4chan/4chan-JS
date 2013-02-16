@@ -3515,7 +3515,7 @@ IDColor.applyRemote = function(uid) {
 var Media = {};
 
 Media.init = function() {
-  this.matchSC = /soundcloud\.com\/[^\s<]+(?:<wbr>)?[^\s<]*/g;
+  this.matchSC = /(?:soundcloud\.com|snd\.sc)\/[^\s<]+(?:<wbr>)?[^\s<]*/g;
   this.matchYT = /(?:youtube\.com\/watch\?[^\s]*?v=|youtu\.be\/)[^\s<]+(?:<wbr>)?[^\s<]*/g;
   this.toggleYT = /(?:v=|\.be\/)([a-zA-Z0-9_-]{11})/;
 };

@@ -131,9 +131,26 @@ Parser.init = function() {
     this.weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   }
   
-  if (Main.tid && (tracked = sessionStorage.getItem('4chan-track-' + Main.tid))) {
-    this.trackedReplies = JSON.parse(tracked);
+  if (Main.tid) {
+    this.trackedReplies = this.getTrackedReplies(Main.tid) || {};
   }
+};
+
+Parser.getTrackedReplies = function(tid) {
+  var tracked = null;
+  
+  if (tracked = sessionStorage.getItem('4chan-track-' + Main.board + '-' + tid)) {
+    tracked = JSON.parse(tracked);
+  }
+  
+  return tracked;
+};
+
+Parser.saveTrackedReplies = function(tid, replies) {
+  sessionStorage.setItem(
+    '4chan-track-' + Main.board + '-' + tid,
+    JSON.stringify(replies)
+  );
 };
 
 Parser.inlineQuote = function(link, e) {
@@ -1812,7 +1829,7 @@ QR.submit = function(force) {
     QR.checkBan();
   };
   QR.xhr.onload = function() {
-    var resp, el, hasFile, cd, ids;
+    var resp, el, hasFile, cd, ids, tid, pid, tracked;
     
     QR.xhr = null;
     
@@ -1855,19 +1872,24 @@ QR.submit = function(force) {
         QR.close();
       }
       
-      if (Main.tid && ThreadUpdater.enabled) {
-        setTimeout(ThreadUpdater.forceUpdate, 500, true);
+      if (ids = this.responseText.match(/<!-- thread:([0-9]+),no:([0-9]+) -->/)) {
+        tid = ids[1];
+        pid = ids[2];
         
-        if (ids = this.responseText.match(/<!-- thread:[0-9]+,no:([0-9]+) -->/)) {
-          if (!Parser.trackedReplies) {
-            Parser.trackedReplies = {};
-          }
-          Parser.trackedReplies['>>' + ids[1]] = 1;
-          sessionStorage.setItem(
-            '4chan-track-' + Main.tid,
-            JSON.stringify(Parser.trackedReplies)
-          );
+        if (Main.tid) {
+          QR.lastReplyId = +pid;
+          Parser.trackedReplies['>>' + pid] = 1;
+          Parser.saveTrackedReplies(tid, Parser.trackedReplies);
         }
+        else {
+          tracked = Parser.getTrackedReplies(tid) || {};
+          tracked['>>' + pid] = 1;
+          Parser.saveTrackedReplies(tid, tracked);
+        }
+      }
+      
+      if (ThreadUpdater.enabled) {
+        setTimeout(ThreadUpdater.forceUpdate, 500);
       }
     }
     else {
@@ -2761,7 +2783,7 @@ ThreadUpdater.initControls = function() {
 ThreadUpdater.start = function() {
   this.auto = true;
   this.autoNode.checked = this.autoNodeBot.checked = true;
-  this.force = this.updating = this.fromQR = false;
+  this.force = this.updating = false;
   this.lastUpdated = Date.now();
   if (this.hidden) {
     document.addEventListener(this.visibilitychange,
@@ -2776,7 +2798,7 @@ ThreadUpdater.start = function() {
 
 ThreadUpdater.stop = function(manual) {
   clearTimeout(this.interval);
-  this.auto = this.updating = this.force = this.fromQR = false;
+  this.auto = this.updating = this.force = false;
   this.autoNode.checked = this.autoNodeBot.checked = false;
   if (this.hidden) {
     document.removeEventListener(this.visibilitychange,
@@ -2855,9 +2877,8 @@ ThreadUpdater.clearUnread = function() {
   }
 };
 
-ThreadUpdater.forceUpdate = function(fromQR) {
+ThreadUpdater.forceUpdate = function() {
   ThreadUpdater.force = true;
-  ThreadUpdater.fromQR = fromQR;
   ThreadUpdater.update();
 };
 
@@ -2917,7 +2938,7 @@ ThreadUpdater.markDeletedReplies = function(newposts) {
 
 ThreadUpdater.onload = function() {
   var i, el, state, self, nodes, thread, newposts, frag, lastrep, lastid,
-    spoiler, op, doc, autoscroll;
+    spoiler, op, doc, autoscroll, count, fromQR;
   
   self = ThreadUpdater;
   nodes = [];
@@ -2964,10 +2985,6 @@ ThreadUpdater.onload = function() {
       Parser.setCustomSpoiler(Main.board, newposts[0].custom_spoiler);
     }
     
-    if (!self.fromQR) {
-      self.markDeletedReplies(newposts);
-    }
-    
     for (i = newposts.length - 1; i >= 0; i--) {
       if (newposts[i].no <= lastid) {
         break;
@@ -2975,21 +2992,34 @@ ThreadUpdater.onload = function() {
       nodes.push(newposts[i]);
     }
     
-    if (nodes[0]) {
+    count = nodes.length;
+    
+    if (count == 1 && QR.lastReplyId == nodes[0].no) {
+      fromQR = true;
+      QR.lastReplyId = null;
+    }
+    
+    if (!fromQR) {
+      self.markDeletedReplies(newposts);
+    }
+    
+    if (count) {
       doc = document.documentElement;
       
-      if (!self.force && doc.scrollHeight > window.innerHeight) {
-        if (!self.lastReply && lastid != Main.tid) {
-          (self.lastReply = lastrep.lastChild).className += ' newPostsMarker';
+      if (!fromQR) {
+        if (!self.force && doc.scrollHeight > window.innerHeight) {
+          if (!self.lastReply && lastid != Main.tid) {
+            (self.lastReply = lastrep.lastChild).className += ' newPostsMarker';
+          }
+          if (self.unreadCount == 0) {
+            self.setIcon(self.icons[Main.type]);
+          }
+          self.unreadCount += count;
+          document.title = '(' + self.unreadCount + ') ' + self.pageTitle;
         }
-        if (self.unreadCount == 0) {
-          self.setIcon(self.icons[Main.type]);
+        else {
+          self.setStatus(count + ' new post' + (count > 1 ? 's' : ''));
         }
-        self.unreadCount += nodes.length;
-        document.title = '(' + self.unreadCount + ') ' + self.pageTitle;
-      }
-      else if (!self.fromQR) {
-        self.setStatus(nodes.length + ' new post' + (nodes.length > 1 ? 's' : ''));
       }
       
       autoscroll = (
@@ -3035,7 +3065,7 @@ ThreadUpdater.onload = function() {
   
   self.lastUpdated = Date.now();
   self.adjustDelay(nodes.length);
-  self.updating = self.force = self.fromQR = false;
+  self.updating = self.force = false;
 };
 
 ThreadUpdater.onerror = function() {
@@ -3050,7 +3080,7 @@ ThreadUpdater.onerror = function() {
   
   self.lastUpdated = Date.now();
   self.adjustDelay(0);
-  self.updating = self.force = self.fromQR = false;
+  self.updating = self.force = false;
 };
 
 ThreadUpdater.setStatus = function(msg) {
@@ -4518,6 +4548,7 @@ Main.onFirstRun = function() {
   if (link = $.id('settingsWindowLink')) {
     el = document.createElement('div');
     el.id = 'first-run';
+    el.className = 'click-me';
     el.innerHTML = 'Click me!';
     link.parentNode.appendChild(el);
   }
@@ -5399,7 +5430,7 @@ div.post-hidden:not(#quote-preview) div.file,\
 div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   display: none;\
 }\
-#first-run {\
+.click-me {\
   border-radius: 5px;\
   margin-top: 5px;\
   margin-left: -7px;\
@@ -5407,29 +5438,29 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   position: absolute;\
   font-weight: bold;\
 }\
-.yotsuba_new #first-run,\
-.futaba_new #first-run {\
+.yotsuba_new .click-me,\
+.futaba_new .click-me {\
   color: #800000;\
   background-color: #F0E0D6;\
   border: 2px solid #D9BFB7;\
 }\
-.yotsuba_b_new #first-run,\
-.burichan_new #first-run {\
+.yotsuba_b_new .click-me,\
+.burichan_new .click-me {\
   color: #000;\
   background-color: #D6DAF0;\
   border: 2px solid #B7C5D9;\
 }\
-.tomorrow #first-run {\
+.tomorrow .click-me {\
   color: #C5C8C6;\
   background-color: #282A2E;\
   border: 2px solid #111;\
 }\
-.photon #first-run {\
+.photon .click-me {\
   color: #333;\
   background-color: #ddd;\
   border: 2px solid #ccc;\
 }\
-#first-run:before {\
+.click-me:before {\
   content: "";\
   border-width: 0 6px 6px;\
   border-style: solid;\
@@ -5440,21 +5471,21 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   height: 0;\
   top: -6px;\
 }\
-.yotsuba_new #first-run:before,\
-.futaba_new #first-run:before {\
+.yotsuba_new .click-me:before,\
+.futaba_new .click-me:before {\
   border-color: #D9BFB7 transparent;\
 }\
-.yotsuba_b_new #first-run:before,\
-.burichan_new #first-run:before {\
+.yotsuba_b_new .click-me:before,\
+.burichan_new .click-me:before {\
   border-color: #B7C5D9 transparent;\
 }\
-.tomorrow #first-run:before {\
+.tomorrow .click-me:before {\
   border-color: #111 transparent;\
 }\
-.photon #first-run:before {\
+.photon .click-me:before {\
   border-color: #ccc transparent;\
 }\
-#first-run:after {\
+.click-me:after {\
   content: "";\
   border-width: 0 4px 4px;\
   top: -4px;\
@@ -5465,21 +5496,21 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   width: 0;\
   height: 0;\
 }\
-.yotsuba_new #first-run:after,\
-.futaba_new #first-run:after {\
+.yotsuba_new .click-me:after,\
+.futaba_new .click-me:after {\
   border-color: #F0E0D6 transparent;\
   border-style: solid;\
 }\
-.yotsuba_b_new #first-run:after,\
-.burichan_new #first-run:after {\
+.yotsuba_b_new .click-me:after,\
+.burichan_new .click-me:after {\
   border-color: #D6DAF0 transparent;\
   border-style: solid;\
 }\
-.tomorrow #first-run:after {\
+.tomorrow .click-me:after {\
   border-color: #282A2E transparent;\
   border-style: solid;\
 }\
-.photon #first-run:after {\
+.photon .click-me:after {\
   border-color: #DDD transparent;\
   border-style: solid;\
 }\

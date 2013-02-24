@@ -3779,6 +3779,10 @@ Keybinds.init = function() {
       var el;
       (el = $.cls('prev')[0]) && (el = $.tag('form', el)[0]) && el.submit();
     },
+    // C
+    67: function() {
+      location.href = '/' + Main.board + '/catalog';
+    },
     // N
     78: function() {
       var el;
@@ -3795,16 +3799,15 @@ Keybinds.init = function() {
 
 Keybinds.resolve = function(e) {
   var bind, el = e.target;
+  
   if (el.nodeName == 'TEXTAREA' || el.nodeName == 'INPUT') {
     return;
   }
-  if (bind = Keybinds.map[e.keyCode]) {
-    if (bind[1] || e[bind[1]]) {
-      bind[0]();
-    }
-    else if (!e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-      bind();
-    }
+  
+  bind = Keybinds.map[e.keyCode];
+  
+  if (bind && !e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    bind();
   }
 };
 
@@ -3832,6 +3835,7 @@ Keybinds.open = function() {
 <li><kbd>B</kbd> &mdash; Previous page</li>\
 <li><kbd>N</kbd> &mdash; Next page</li>\
 <li><kbd>I</kbd> &mdash; Return to index</li>\
+<li><kbd>C</kbd> &mdash; Open catalog</li>\
 </ul><ul>\
 <li><strong>Quick Reply (always enabled)</strong></li>\
 <li><kbd>Ctrl + Click</kbd> the post number &mdash; Quote without linking</li>\
@@ -4114,9 +4118,9 @@ Config.load = function() {
 Config.loadFromURL = function() {
   var cmd, data;
   
-  cmd = location.hash.split('=', 2);
+  cmd = location.href.split('=', 2);
   
-  if (cmd[0] == '#cfg') {
+  if (/#cfg$/.test(cmd[0])) {
     try {
       data = JSON.parse(decodeURIComponent(cmd[1]));
       history.replaceState(null, '', location.href.split('#', 1)[0]);
@@ -4171,7 +4175,8 @@ SettingsMenu.options = {
       threadUpdater: [ 'Thread updater', 'Enable inline thread updating', true ],
       threadHiding: [ 'Thread hiding', 'Enable thread hiding', true ],
       pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ],
-      hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ]
+      hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ],
+      topPageNav: [ 'Page navigation at top of page', 'Show the page switcher at the top of the page, hold Shift and drag to move' ]
     },
     'Recommended': {
       threadWatcher: [ 'Thread watcher', 'Enable thread watcher' ],
@@ -4180,7 +4185,6 @@ SettingsMenu.options = {
       imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
       reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ],
       localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ],
-      topPageNav: [ 'Page navigation at top of page', 'Show the page switcher at the top of the page, hold Shift and drag to move' ],
       stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows, hold Shift and drag to move' ],
       keyBinds: [ 'Use keyboard shortcuts [<a href="javascript:;" data-cmd="keybinds-open">Show</a>]', 'Enable handy keyboard shortcuts for common actions' ]
     },
@@ -4194,9 +4198,9 @@ SettingsMenu.options = {
       IDColor: [ 'Color user IDs', 'Assign unique colors to user IDs on boards that use them' ],
       downloadFile: [ 'Download original', 'Adds a button to download image with original filename (Chrome only)'],
       inlineReport: [ 'Inline report panel', 'Open report panel in browser window, instead of a popup'],
-      noPictures: [ 'Hide thumbnails', 'Don\'t display thumbnails while browsing'],
       embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
-      embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
+      embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ],
+      noPictures: [ 'Hide thumbnails', 'Don\'t display thumbnails while browsing']
     },
     'Customization': {
       customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', 'Embed your own CSS rules', true ],
@@ -4436,7 +4440,7 @@ Main.run = function() {
   }
   
   Main.hasMobileLayout = (el = $.id('refresh_top')) && el.offsetWidth > 0;
-  Main.isMobileDevice = /Mobile|Android|Dolfin|Opera Mobi/.test(navigator.userAgent);
+  Main.isMobileDevice = /Mobile|Android|Dolfin|Opera Mobi|PlayStation Vita|Nintendo DS/.test(navigator.userAgent);
   
   if (Main.firstRun && Main.isMobileDevice) {
     Config.dropDownNav = true;

@@ -85,6 +85,8 @@ $.hash = function(str) {
   return msg;
 };
 
+$.cache = {};
+
 /**
  * Parser
  */
@@ -153,81 +155,6 @@ Parser.saveTrackedReplies = function(tid, replies) {
   );
 };
 
-Parser.inlineQuote = function(link, e) {
-  var pfx, now, src, dest, id, el, tblcnt, blcnt, isBl, i, j, inner;
-  
-  
-  if (pfx = link.getAttribute('data-pfx')) {
-    link.removeAttribute('data-pfx');
-    $.removeClass(link, 'linkfade');
-    el = $.id(pfx + 'p' + link.textContent.slice(2));
-    el.parentNode.removeChild(el);
-    return e && e.preventDefault();
-  }
-  
-  now = Date.now();
-  
-  id = link.textContent.slice(2);
-  src = $.id('p' + id);
-  
-  if (!src || $.hasClass(src, 'op')) {
-    return;
-  }
-  else {
-    e && e.preventDefault();
-    
-    if ((blcnt = link.parentNode.parentNode).className == 'backlink') {
-      el = blcnt.parentNode.parentNode.parentNode;
-      isBl = true;
-    }
-    else {
-      el = blcnt.parentNode;
-    }
-    
-    if (el.id.split('m')[1] == id) {
-      return;
-    }
-  }
-  
-  link.className += ' linkfade';
-  link.setAttribute('data-pfx', now);
-  
-  el = src.cloneNode(true);
-  el.id = now + el.id;
-  el.setAttribute('data-pfx', now);
-  el.className += ' preview inlined';
-  $.removeClass(el, 'highlight');
-  $.removeClass(el, 'highlight-anti');
-  
-  if ((inner = $.cls('inlined', el))[0]) {
-    while (j = inner[0]) {
-      j.parentNode.removeChild(j);
-    }
-    inner = $.cls('quotelink', el);
-    for (i = 0; j = inner[i]; ++i) {
-      j.removeAttribute('data-pfx');
-      $.removeClass(j, 'linkfade');
-    }
-  }
-  
-  for (i = 0; j = el.children[i]; ++i) {
-    j.id = now + j.id;
-  }
-  
-  if (tblcnt = $.cls('backlink', el)[0]) {
-    tblcnt.id = now + tblcnt.id;
-  }
-  
-  if (isBl) {
-    pfx = blcnt.parentNode.parentNode.getAttribute('data-pfx') || '';
-    dest = $.id(pfx + 'm' + blcnt.id.split('_')[1]);
-    dest.insertBefore(el, dest.firstChild);
-  }
-  else {
-    link.parentNode.insertBefore(el, link.nextSibling);
-  }
-};
-
 Parser.parseThreadJSON = function(data) {
   var thread;
   
@@ -256,6 +183,29 @@ Parser.setCustomSpoiler = function(board, val) {
   }
 };
 
+Parser.buildPost = function(thread, board, pid) {
+  var i, j, el = null;
+  
+  for (i = 0; j = thread[i]; ++i) {
+    if (j.no != pid) {
+      continue;
+    }
+    
+    if (!Config.revealSpoilers && thread[0].custom_spoiler) {
+      Parser.setCustomSpoiler(board, thread[0].custom_spoiler);
+    }
+    
+    el = Parser.buildHTMLFromJSON(j, board).lastElementChild;
+    
+    if (Config.IDColor && IDColor.boards[board]
+      && (uid = $.cls('posteruid', el)[1])) {
+      IDColor.applyRemote(uid.firstElementChild);
+    }
+  }
+  
+  return el;
+};
+
 Parser.buildHTMLFromJSON = function(data, board) {
   var
     container = document.createElement('div'),
@@ -269,6 +219,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     fileInfo = '',
     fileHtml = '',
     fileThumb,
+    filePath,
     fileSize = '',
     size = '',
     fileClass = '',
@@ -362,8 +313,12 @@ Parser.buildHTMLFromJSON = function(data, board) {
   else {
     flag = '';
   }
-
-  if (data.ext) {
+  
+  if (data.filedeleted) {
+    fileHtml = '<div id="f' + data.no + '" class="file"><span class="fileThumb"><img src="'
+      + Parser.icons.del + '" class="fileDeletedRes" alt="File deleted."></span></div>';
+  }
+  else if (data.ext) {
     shortFile = longFile = data.filename + data.ext;
     if (data.filename.length > (isOP ? 40 : 30)) {
       shortFile = data.filename.slice(0, isOP ? 35 : 25) + '(...)' + data.ext;
@@ -405,8 +360,9 @@ Parser.buildHTMLFromJSON = function(data, board) {
     }
     
     if (board != 'f') {
-      imgSrc = '<a class="fileThumb' + fileClass + '" href="' + imgDir + '/'
-        + data.tim + data.ext + '" target="_blank"><img src="' + fileThumb
+      filePath = imgDir + '/' + data.tim + data.ext;
+      imgSrc = '<a class="fileThumb' + fileClass + '" href="' + filePath
+        + '" target="_blank"><img src="' + fileThumb
         + '" alt="' + fileSize + 'B" data-md5="' + data.md5
         + '" style="height: ' + data.tn_h + 'px; width: '
         + data.tn_w + 'px;">'
@@ -414,13 +370,15 @@ Parser.buildHTMLFromJSON = function(data, board) {
         + data.ext.slice(1).toUpperCase()
         + '</div></a>';
     }
+    else {
+      filePath = imgDir + '/' + data.filename + data.ext;
+    }
     
     fileDims = data.ext == '.pdf' ? 'PDF' : data.w + 'x' + data.h;
     fileInfo = '<span class="fileText" id="fT' + data.no
       + (data.spoiler ? ('" title="' + longFile + '"') : '"')
-      + '>File: <a href="' + imgDir + '/' + data.tim + data.ext
-      + '" target="_blank">' + data.tim + data.ext + '</a>-(' + fileSize
-      + 'B, ' + fileDims
+      + '>File: <a href="' + filePath + '" target="_blank">'
+      + data.tim + data.ext + '</a>-(' + fileSize + 'B, ' + fileDims
       + (noFilename ? '' : (', <span title="' + longFile + '">'
       + shortFile + '</span>')) + ')</span>';
     
@@ -429,10 +387,6 @@ Parser.buildHTMLFromJSON = function(data, board) {
     
     fileHtml = '<div id="f' + data.no + '" class="file">'
       + fileBuildStart + fileInfo + fileBuildEnd + imgSrc + '</div>';
-  }
-  else if (data.filedeleted) {
-    fileHtml = '<div id="f' + data.no + '" class="file"><span class="fileThumb"><img src="'
-      + Parser.icons.del + '" class="fileDeletedRes" alt="File deleted."></span></div>';
   }
   
   if (data.trip) {
@@ -653,6 +607,7 @@ Parser.parseTrackedReplies = function(post) {
   for (i = 0; link = quotelinks[i]; ++i) {
     if (Parser.trackedReplies[link.textContent]) {
       $.addClass(link, 'ownpost');
+      Parser.hasYouMarkers = true;
     }
   }
 };
@@ -802,7 +757,7 @@ Parser.parsePost = function(pid, tid) {
       }
       filename.lastChild.textContent
         = filename.lastChild.textContent.slice(0, -1) + ', ' + txt + ')';
-      file.appendChild(img);
+      file.insertBefore(img, file.firstElementChild);
     }
   }
   
@@ -881,6 +836,208 @@ Parser.parseBacklinks = function(pid, tid)
   }
 };
 
+
+/**
+ * Quote inlining
+ */
+var QuoteInline = {};
+
+QuoteInline.isSelfQuote = function(node, pid, board) {
+  var cnt;
+  
+  if (board && board != Main.board) {
+    return false;
+  }
+  
+  node = node.parentNode;
+  
+  if ((node.nodeName == 'BLOCKQUOTE' && node.id.split('m')[1] == pid)
+      || node.parentNode.id.split('_')[1] == pid) {
+    return true;
+  }
+  
+  return false;
+};
+
+QuoteInline.toggle = function(link, e) {
+  var t, pfx, src, el, count;
+  
+  t = link.getAttribute('href').match(/^(?:\/([^\/]+)\/)?(?:res\/)?([0-9]+)?#p([0-9]+)$/);
+  
+  if (!t || t[1] == 'rs' || QuoteInline.isSelfQuote(link, t[3], t[1])) {
+    return;
+  }
+  
+  e && e.preventDefault();
+  
+  if (pfx = link.getAttribute('data-pfx')) {
+    link.removeAttribute('data-pfx');
+    $.removeClass(link, 'linkfade');
+    
+    el = $.id(pfx + 'p' + t[3]);
+    el.parentNode.removeChild(el);
+    
+    if (link.parentNode.parentNode.className == 'backlink') {
+      el = $.id('pc' + t[3]);
+      count = +el.getAttribute('data-inline-count') - 1;
+      if (count == 0) {
+        el.style.display = '';
+        el.removeAttribute('data-inline-count');
+      }
+      else {
+        el.setAttribute('data-inline-count', count);
+      }
+    }
+    
+    return;
+  }
+  
+  if (src = $.id('p' + t[3])) {
+    QuoteInline.inline(link, src, t[3]);
+  }
+  else {
+    QuoteInline.inlineRemote(link, t[1] || Main.board, t[2], t[3]);
+  }
+};
+
+QuoteInline.inlineRemote = function(link, board, tid, pid) {
+  var xhr, onload, onerror, cached, key, el, dummy;
+  
+  if (link.hasAttribute('data-loading')) {
+    return;
+  }
+  
+  key = board + '-' + tid;
+  
+  if ((cached = $.cache[key]) && (el = Parser.buildPost(cached, board, pid))) {
+    QuoteInline.inline(link, el);
+    return;
+  }
+  
+  if ((dummy = link.nextElementSibling) && $.hasClass(dummy, 'spinner')) {
+    dummy.parentNode.removeChild(dummy);
+    return;
+  }
+  else {
+    dummy = document.createElement('div');
+  }
+  
+  dummy.className = 'preview spinner inlined';
+  dummy.textContent = 'Loading...';
+  link.parentNode.insertBefore(dummy, link.nextSibling);
+  
+  onload = function() {
+    var el, thread;
+    
+    link.removeAttribute('data-loading');
+    
+    if (this.status == 200 || this.status == 304 || this.status == 0) {
+      thread = Parser.parseThreadJSON(this.responseText);
+      
+      $.cache[key] = thread;
+      
+      if (el = Parser.buildPost(thread, board, pid)) {
+        dummy.parentNode && dummy.parentNode.removeChild(dummy);
+        QuoteInline.inline(link, el);
+      }
+      else {
+        $.addClass(link, 'deadlink');
+        dummy.textContent = 'This post doesn\'t exist anymore';
+      }
+    }
+    else if (this.status == 404) {
+      $.addClass(link, 'deadlink');
+      dummy.textContent = 'This thread doesn\'t exist anymore';
+    }
+    else {
+      this.onerror();
+    }
+  };
+  
+  onerror = function() {
+    dummy.textContent = 'Error: ' + this.statusText + ' (' + this.status + ')';
+    link.removeAttribute('data-loading');
+  };
+  
+  link.setAttribute('data-loading', '1');
+  
+  $.get('//api.4chan.org/' + board + '/res/' + tid + '.json',
+    {
+      onload: onload,
+      onerror: onerror
+    }
+  );
+};
+
+QuoteInline.inline = function(link, src, id) {
+  var i, j, now, el, blcnt, isBl, inner, tblcnt, pfx, dest, count;
+  
+  now = Date.now();
+  
+  if (id) {
+    if ((blcnt = link.parentNode.parentNode).className == 'backlink') {
+      el = blcnt.parentNode.parentNode.parentNode;
+      isBl = true;
+    }
+    else {
+      el = blcnt.parentNode;
+    }
+    
+    while (el.parentNode !== document) {
+      if (el.id.split('m')[1] == id) {
+        return;
+      }
+      el = el.parentNode;
+    }
+  }
+  
+  link.className += ' linkfade';
+  link.setAttribute('data-pfx', now);
+  
+  el = src.cloneNode(true);
+  el.id = now + el.id;
+  el.setAttribute('data-pfx', now);
+  el.className += ' preview inlined';
+  $.removeClass(el, 'highlight');
+  $.removeClass(el, 'highlight-anti');
+  
+  if ((inner = $.cls('inlined', el))[0]) {
+    while (j = inner[0]) {
+      j.parentNode.removeChild(j);
+    }
+    inner = $.cls('quotelink', el);
+    for (i = 0; j = inner[i]; ++i) {
+      j.removeAttribute('data-pfx');
+      $.removeClass(j, 'linkfade');
+    }
+  }
+  
+  for (i = 0; j = el.children[i]; ++i) {
+    j.id = now + j.id;
+  }
+  
+  if (tblcnt = $.cls('backlink', el)[0]) {
+    tblcnt.id = now + tblcnt.id;
+  }
+  
+  if (isBl) {
+    pfx = blcnt.parentNode.parentNode.getAttribute('data-pfx') || '';
+    dest = $.id(pfx + 'm' + blcnt.id.split('_')[1]);
+    dest.insertBefore(el, dest.firstChild);
+    if (count = src.parentNode.getAttribute('data-inline-count')) {
+      count = +count + 1;
+    }
+    else {
+      count = 1;
+      src.parentNode.style.display = 'none';
+    }
+    src.parentNode.setAttribute('data-inline-count', count);
+  }
+  else {
+    link.parentNode.insertBefore(el, link.nextSibling);
+  }
+};
+
 /**
  * Quote preview
  */
@@ -892,14 +1049,13 @@ QuotePreview.init = function() {
   this.regex = /^(?:\/([^\/]+)\/)?(?:res\/)?([0-9]+)?#p([0-9]+)$/;
   this.debounce = 200;
   this.timeout = null;
-  this.cached = {};
   this.highlight = null;
   this.highlightAnti = null;
   this.out = true;
 };
 
 QuotePreview.resolve = function(link) {
-  var self, t, post, ids, offset, cacheKey;
+  var self, t, post, ids, offset;
   
   self = QuotePreview;
   self.out = false;
@@ -935,64 +1091,54 @@ QuotePreview.resolve = function(link) {
     if (!UA.hasCORS) {
       return;
     }
-    if (!t[1]) {
-      t[1] = Main.board;
-    }
-    if (self.cached[cacheKey = [t[1], t[2], t[3]].join('-')]) {
-      self.show(link, self.cached[cacheKey], true);
+    if (Main.isMobileDevice) {
+      self.showRemote(link, t[1] || Main.board, t[2], t[3]);
     }
     else {
-      if (Main.isMobileDevice) {
-        self.showRemote(link, t[1] || Main.board, t[2], t[3]);
-      }
-      else {
-        self.timeout = setTimeout(
-          self.showRemote,
-          self.debounce,
-          link, t[1] || Main.board, t[2], t[3]
-        );
-      }
+      self.timeout = setTimeout(
+        self.showRemote,
+        self.debounce,
+        link, t[1] || Main.board, t[2], t[3]
+      );
     }
   }
 };
 
 QuotePreview.showRemote = function(link, board, tid, pid) {
-  var xhr, onload, onerror;
+  var xhr, onload, onerror, el, cached, key;
+  
+  key = board + '-' + tid;
+  
+  if ((cached = $.cache[key]) && (el = Parser.buildPost(cached, board, pid))) {
+    QuotePreview.show(link, el);
+    return;
+  }
   
   link.style.cursor = 'wait';
   
   onload = function() {
-    var i, j, el, posts, uid;
+    var el, thread;
     
     link.style.cursor = '';
     
     if (this.status == 200 || this.status == 304 || this.status == 0) {
-      posts = Parser.parseThreadJSON(this.responseText);
+      thread = Parser.parseThreadJSON(this.responseText);
       
-      for (i = 0; j = posts[i]; ++i) {
-        if (j.no != pid) {
-          continue;
-        }
-        if (!Config.revealSpoilers && posts[0].custom_spoiler) {
-          Parser.setCustomSpoiler(board, posts[0].custom_spoiler);
-        }
-        el = $.cls('post', Parser.buildHTMLFromJSON(j, board))[0];
+      $.cache[key] = thread;
+      
+      if ($.id('quote-preview') || QuotePreview.out) {
+        return;
+      }
+      
+      if (el = Parser.buildPost(thread, board, pid)) {
         el.className = 'post preview';
         el.style.display = 'none';
         el.id = 'quote-preview';
-        
-        QuotePreview.cached[[board, tid, pid].join('-')] = el;
-        
-        if (!$.id('quote-preview') && !QuotePreview.out) {
-          if (Config.IDColor && IDColor.boards[board]
-            && (uid = $.cls('posteruid', el)[1])) {
-            IDColor.applyRemote(uid.firstElementChild);
-          }
-          document.body.appendChild(el);
-          QuotePreview.show(link, el, true);
-        }
-        
-        return;
+        document.body.appendChild(el);
+        QuotePreview.show(link, el, true);
+      }
+      else {
+        $.addClass(link, 'deadlink');
       }
     }
     else if (this.status == 404) {
@@ -1014,7 +1160,7 @@ QuotePreview.showRemote = function(link, board, tid, pid) {
 
 QuotePreview.show = function(link, post, remote) {
     var rect, postHeight, doc, docWidth, style, pos, quotes, i, j, qid, top,
-      scrollTop, margin;
+      scrollTop, margin, img;
     
     if (remote) {
       Parser.parsePost(post);
@@ -1027,6 +1173,10 @@ QuotePreview.show = function(link, post, remote) {
       }
       post.id = 'quote-preview';
       post.className += ' preview';
+      
+      if (Config.imageExpansion && (img = $.cls('fitToPage', post)[0])) {
+        ImageExpansion.contract(img);
+      }
     }
     
     if (!link.parentNode.className) {
@@ -1269,9 +1419,10 @@ ImageHover.checkLoadStart = function(img, thumb) {
 var QR = {};
 
 QR.init = function() {
-  if (!UA.hasFormData || Main.threadClosed) {
+  if (!UA.hasFormData) {
     return;
   }
+  
   this.enabled = true;
   this.currentTid = null;
   this.cooldown = null;
@@ -1289,6 +1440,7 @@ QR.init = function() {
   this.cdElapsed = 0;
   this.cdType = 0;
   this.activeDelay = 0;
+  
   if (Main.board == 'q') {
     this.baseDelay = 60500;
     this.fileDelay = 300500;
@@ -1305,37 +1457,30 @@ QR.init = function() {
   this.pulse = null;
   this.xhr = null;
   this.banXhr = null;
+  this.dndFile = null;
   
-  this.fileDisabled = false;
+  this.fileDisabled = !!window.imagelimit;
   
   this.tracked = {};
   
   QR.purgeCooldown();
   
+  if (UA.hasDragAndDrop) {
+    document.addEventListener('drop', QR.onDrop, false);
+    document.addEventListener('dragover', QR.onDragOver, false);
+    document.addEventListener('dragstart', QR.toggleDropHandlers, false);
+    document.addEventListener('dragend', QR.toggleDropHandlers, false);
+  }
+  
   window.addEventListener('storage', this.syncStorage, false);
 };
 
 QR.lock = function() {
-  QR.showPostError('This thread is closed.', true);
+  QR.showPostError('This thread is closed.', 'closed', true);
 };
 
-QR.toggleFileInput = function(mode) {
-  var el;
-  
-  if (mode) {
-    this.fileDisabled = true;
-    if (el = $.id('qrFile')) {
-      el.setAttribute('disabled', 'disabled');
-      el.title = 'Image limit reached';
-    }
-  }
-  else {
-    this.fileDisabled = false;
-    if (el = $.id('qrFile')) {
-      el.removeAttribute('disabled');
-      el.title = 'Shift + Click to remove the file';
-    }
-  }
+QR.unlock = function() {
+  QR.hidePostError('closed');
 };
 
 QR.syncStorage = function(e) {
@@ -1355,17 +1500,23 @@ QR.syncStorage = function(e) {
   }
 };
 
-QR.quotePost = function(pid) {
+QR.quotePost = function(tid, pid) {
+  if (Main.threadClosed || (!Main.tid && Main.isThreadClosed(tid))) {
+    alert('Thread closed. You may not reply at this time.');
+    return;
+  }
+  QR.show(tid);
+  QR.addQuote(pid);
+};
+
+QR.addQuote = function(pid) {
   var q, pos, sel, ta;
   
   ta = $.tag('textarea', document.forms.qrPost)[0];
   
   pos = ta.selectionStart;
   
-  if (UA.isOpera && typeof (sel = document.getSelection()) == 'string') {}
-  else {
-    sel = window.getSelection().toString();
-  }
+  sel = UA.getSelection();
   
   if (pid) {
     q = '>>' + pid + '\n';
@@ -1459,7 +1610,7 @@ QR.show = function(tid) {
         + $.id('recaptcha_image').firstChild.src + '" alt="reCAPTCHA challenge image">'
         + '<input id="qrCapField" name="recaptcha_response_field" '
         + 'placeholder="reCAPTCHA Challenge (Required)" '
-        + 'type="text" autocomplete="off">'
+        + 'type="text" autocomplete="off" autocorrect="off" autocapitalize="off">'
         + '<input id="qrChallenge" name="recaptcha_challenge_field" type="hidden" value="'
         + $.id('recaptcha_challenge_field').value + '">';
     }
@@ -1472,15 +1623,30 @@ QR.show = function(tid) {
         file = fields[i].children[1].firstChild.cloneNode(false);
         file.id = 'qrFile';
         file.size = '19';
-        if (QR.fileDisabled) {
-          file.title = 'Image limit reached';
-          file.setAttribute('disabled', 'disabled');
-        }
-        else {
-          file.title = 'Shift + Click to remove the file';
-        }
-        file.addEventListener('change', QR.checkCDType, false);
+        file.addEventListener('change', QR.onFileChange, false);
         row.appendChild(file);
+        
+        if (UA.hasDragAndDrop) {
+          $.addClass(file, 'qrRealFile');
+          
+          file = document.createElement('div');
+          file.id = 'qrDummyFile';
+          
+          el = document.createElement('button');
+          el.id = 'qrDummyFileButton';
+          el.type = 'button';
+          el.textContent = 'Browse…';
+          file.appendChild(el);
+          
+          el = document.createElement('span');
+          el.id = 'qrDummyFileLabel';
+          el.textContent = 'No file selected.';
+          file.appendChild(el);
+          
+          row.appendChild(file);
+        }
+        
+        file.title = 'Shift + Click to remove the file';
       }
       else {
         row.innerHTML = fields[i].children[1].innerHTML;
@@ -1563,6 +1729,22 @@ QR.show = function(tid) {
   }
 };
 
+QR.onFileChange = function(e) {
+  if (this.value && QR.fileDisabled) {
+    QR.showPostError('Image limit reached.', 'imagelimit', true);
+  }
+  else {
+    QR.hidePostError();
+  }
+  
+  if (UA.hasDragAndDrop) {
+    QR.dndFile = null;
+    $.id('qrDummyFileLabel').textContent = this.files[0].name;
+  }
+  
+  QR.checkCDType();
+};
+
 QR.onKeyDown = function(e) {
   if (e.ctrlKey && e.keyCode == 83) {
     var ta, start, end, spoiler;
@@ -1601,10 +1783,10 @@ QR.checkComLength = function() {
     
     if (byteLength > QR.comLength) {
       QR.showPostError('Comment too long ('
-        + byteLength + '/' + QR.comLength + ')');
+        + byteLength + '/' + QR.comLength + ')', 'length');
     }
-    else if ((qrError = $.id('qrError')) && qrError.style.display == 'block' ) {
-      qrError.style.display = 'none';
+    else {
+      QR.hidePostError('length');
     }
   }
 };
@@ -1629,10 +1811,12 @@ QR.close = function() {
   }
   
   cnt.removeEventListener('click', QR.onClick, false);
+  
   (el = $.id('qrFile')) && el.removeEventListener('change', QR.checkCDType, false);
   (el = $.id('qrEmail')) && el.removeEventListener('change', QR.checkCDType, false);
-  Draggable.unset($.id('qrHeader'));
   $.tag('textarea', cnt)[0].removeEventListener('keydown', QR.onKeyDown, false);
+  
+  Draggable.unset($.id('qrHeader'));
   
   document.body.removeChild(cnt);
 };
@@ -1704,6 +1888,17 @@ QR.onClick = function(e) {
           QR.resetFile();
         }
         break;
+      case 'qrDummyFile':
+      case 'qrDummyFileButton':
+      case 'qrDummyFileLabel':
+        e.preventDefault();
+        if (e.shiftKey) {
+          QR.resetFile();
+        }
+        else {
+          $.id('qrFile').click();
+        }
+        break;
       case 'qrCaptcha':
         QR.reloadCaptcha(true);
         break;
@@ -1714,7 +1909,45 @@ QR.onClick = function(e) {
   }
 };
 
-QR.showPostError = function(msg, silent) {
+QR.onDragStart = function(e) {
+  document.removeEventListener('drop', QR.onDrop, false);
+  document.removeEventListener('dragover', QR.onDragOver, false);
+};
+
+QR.onDragEnd = function(e) {
+  document.addEventListener('drop', QR.onDrop, false);
+  document.addEventListener('dragover', QR.onDragOver, false);
+};
+
+QR.onDrop = function(e) {
+  var file;
+  
+  if (!e.dataTransfer.files.length) {
+    return;
+  }
+  
+  e.preventDefault();
+  
+  file = e.dataTransfer.files[0];
+  
+  QR.dndFile = file;
+  
+  if (Main.tid) {
+    QR.quotePost(Main.tid);
+  }
+  else if (!QR.currentTid) {
+    return;
+  }
+  
+  $.id('qrDummyFileLabel').textContent = file.name;
+};
+
+QR.onDragOver = function(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+};
+
+QR.showPostError = function(msg, type, silent) {
   var qrError;
   
   qrError = $.id('qrError');
@@ -1725,6 +1958,9 @@ QR.showPostError = function(msg, silent) {
   
   qrError.innerHTML = msg;
   qrError.style.display = 'block';
+  
+  qrError.setAttribute('data-type', type || '');
+  
   if (!silent && (document.hidden
     || document.mozHidden
     || document.webkitHidden
@@ -1733,8 +1969,16 @@ QR.showPostError = function(msg, silent) {
   }
 };
 
-QR.hidePostError = function() {
-  $.id('qrError').style.display = 'none';
+QR.hidePostError = function(type) {
+  var el = $.id('qrError');
+  
+  if (!el.hasAttribute('style')) {
+    return;
+  }
+  
+  if (!type || el.getAttribute('data-type') == type) {
+    el.removeAttribute('style');
+  }
 };
 
 QR.resetFile = function() {
@@ -1745,13 +1989,20 @@ QR.resetFile = function() {
   el.type = 'file';
   el.size = '19';
   el.name = 'upfile';
-  el.addEventListener('change', QR.checkCDType, false);
+  el.addEventListener('change', QR.onFileChange, false);
+  
+  if (UA.hasDragAndDrop) {
+    el.className = 'qrRealFile';
+    QR.dndFile = null;
+    $.id('qrDummyFileLabel').textContent = 'No file selected.';
+  }
   
   file = $.id('qrFile');
-  file.removeEventListener('change', QR.checkCDType, false);
+  file.removeEventListener('change', QR.onFileChange, false);
   
   file.parentNode.replaceChild(el, file);
   
+  QR.hidePostError('imagelimit');
   QR.checkCDType();
 };
 
@@ -1778,7 +2029,7 @@ QR.checkBan = function() {
 };
 
 QR.submit = function(force) {
-  var field;
+  var field, formdata, file;
   
   if (QR.banXhr) {
     QR.banXhr.abort();
@@ -1842,7 +2093,7 @@ QR.submit = function(force) {
         return;
       }
       
-      hasFile = (el = $.id('qrFile')) && el.value;
+      hasFile = QR.dndFile || ((el = $.id('qrFile')) && el.value);
       
       cd = 1;
       if ((el = $.id('qrEmail')) && /sage/i.test(el.value)) {
@@ -1896,9 +2147,24 @@ QR.submit = function(force) {
       QR.showPostError('Error: ' + this.status + ' ' + this.statusText);
     }
   };
+  
+  
+  if (QR.dndFile) {
+    file = $.id('qrFile');
+    file.disabled = true;
+    formdata = new FormData(document.forms.qrPost);
+    formdata.append('upfile', QR.dndFile);
+    file.disabled = false;
+  }
+  else {
+    formdata = new FormData(document.forms.qrPost);
+  }
+  
   clearInterval(QR.pulse);
+  
   QR.btn.value = 'Sending';
-  QR.xhr.send(new FormData(document.forms.qrPost));
+  
+  QR.xhr.send(formdata);
 };
 
 QR.purgeCooldown = function() {
@@ -1993,8 +2259,46 @@ ThreadHiding.init = function() {
   this.load();
 };
 
+ThreadHiding.clear = function(silent) {
+  var i, id, key, msg;
+  
+  this.load();
+  
+  i = 0;
+  
+  for (id in this.hidden) {
+    ++i;
+  }
+  
+  key = '4chan-hide-t-' + Main.board;
+  
+  if (!silent) {
+    if (!i) {
+      alert("You don't have any hidden threads on /" + Main.board + '/');
+      return;
+    }
+    
+    msg = 'This will unhide ' + i + ' thread' + (i > 1 ? 's' : '') + ' on /' + Main.board + '/';
+    
+    if (!confirm(msg)) {
+      return;
+    }
+    
+    localStorage.removeItem(key);
+  }
+  else {
+    localStorage.removeItem(key);
+  }
+};
+
+ThreadHiding.isHidden = function(tid) {
+  var sa = $.id('sa' + tid);
+  
+  return !sa || sa.hasAttribute('data-hidden');
+};
+
 ThreadHiding.toggle = function(tid) {
-  if ($.id('sa' + tid).hasAttribute('data-hidden')) {
+  if (this.isHidden(tid)) {
     this.show(tid);
   }
   else {
@@ -2100,8 +2404,14 @@ ReplyHiding.init = function() {
   this.load();
 };
 
+ReplyHiding.isHidden = function(pid) {
+  var sa = $.id('sa' + pid);
+  
+  return !sa || sa.hasAttribute('data-hidden');
+};
+
 ReplyHiding.toggle = function(pid) {
-  if ($.id('sa' + pid).hasAttribute('data-hidden')) {
+  if (this.isHidden(pid)) {
     this.show(pid);
   }
   else {
@@ -2207,17 +2517,24 @@ ThreadWatcher.init = function() {
   
   this.listNode = document.createElement('ul');
   this.listNode.id = 'watchList';
+  
   this.load();
-  this.refreshCurrent();
+  
+  if (Main.tid) {
+    this.refreshCurrent();
+  }
+  
   this.build();
+  
   cnt.appendChild(this.listNode);
-  
   document.body.appendChild(cnt);
-  
   cnt.addEventListener('mouseup', this.onClick, false);
   Draggable.set($.id('twHeader'));
-  
   window.addEventListener('storage', this.syncStorage, false);
+  
+  if (!Main.tid && this.canAutoRefresh()) {
+    this.refresh();
+  }
 };
 
 ThreadWatcher.syncStorage = function(e) {
@@ -2349,6 +2666,19 @@ ThreadWatcher.save = function() {
   localStorage.setItem('4chan-watch', JSON.stringify(ThreadWatcher.watched));
 };
 
+ThreadWatcher.canAutoRefresh = function() {
+  var time;
+  
+  if (time = localStorage.getItem('4chan-tw-timestamp')) {
+    return Date.now() - (+time) >= 60000;
+  }
+  return false;
+};
+
+ThreadWatcher.setRefreshTimestamp = function() {
+  localStorage.setItem('4chan-tw-timestamp', Date.now());
+};
+
 ThreadWatcher.refresh = function() {
   var i, to, key, total, img;
   
@@ -2357,6 +2687,7 @@ ThreadWatcher.refresh = function() {
     img = $.id('twPrune');
     img.src = Main.icons.rotate;
     ThreadWatcher.isRefreshing = true;
+    ThreadWatcher.setRefreshTimestamp();
     for (key in ThreadWatcher.watched) {
       setTimeout(ThreadWatcher.fetch, to, key, ++i == total ? img : null);
       to += 200;
@@ -2662,9 +2993,18 @@ ThreadUpdater.init = function() {
   this.lastModified = '0';
   this.lastReply = null;
   
+  this.iconPath = '//static.4chan.org/image/';
   this.iconNode = document.head.querySelector('link[rel="shortcut icon"]');
   this.iconNode.type = 'image/x-icon';
-  this.defaultIcon = this.iconNode.getAttribute('href');
+  this.defaultIcon = this.iconNode.getAttribute('href').replace(this.iconPath, '');
+  
+  this.deletionQueue = {};
+  
+  if (Config.updaterSound) {
+    this.audioEnabled = false;
+    this.audio = document.createElement('audio');
+    this.audio.src = '//static.4chan.org/media/beep.ogg';
+  }
   
   if (!document.hidden) {
     if ('mozHidden' in document) {
@@ -2754,6 +3094,21 @@ ThreadUpdater.buildDesktopControl = function(bottom) {
   label.appendChild(document.createTextNode('Auto'));
   frag.appendChild(label);
   frag.appendChild(document.createTextNode('] '));
+  
+  if (Config.updaterSound) {
+    // Sound checkbox
+    frag.appendChild(document.createTextNode(' ['));
+    label = document.createElement('label');
+    el = document.createElement('input');
+    el.type = 'checkbox';
+    el.title = 'Play a sound on new replies to your posts';
+    el.setAttribute('data-cmd', 'sound');
+    this['soundNode' + bottom] = el;
+    label.appendChild(el);
+    label.appendChild(document.createTextNode('Sound'));
+    frag.appendChild(label);
+    frag.appendChild(document.createTextNode('] '));
+  }
   
   // Status label
   frag.appendChild(
@@ -2889,6 +3244,11 @@ ThreadUpdater.toggleAuto = function() {
   this.auto ? this.stop(true) : this.start();
 };
 
+ThreadUpdater.toggleSound = function() {
+  this.soundNode.checked = this.soundNodeBot.checked =
+    this.audioEnabled = !this.audioEnabled;
+};
+
 ThreadUpdater.update = function() {
   var self, now = Date.now();
   
@@ -2926,12 +3286,18 @@ ThreadUpdater.markDeletedReplies = function(newposts) {
   oldposts = $.cls('replyContainer');
   for (i = 0; j = oldposts[i]; ++i) {
     if (!posthash[j.id] && !$.hasClass(j, 'deleted')) {
-      el = document.createElement('img');
-      el.src = Main.icons2.trash;
-      el.className = 'trashIcon';
-      el.title = 'This post has been deleted';
-      $.addClass(j, 'deleted');
-      $.cls('postNum', j)[1].appendChild(el);
+      if (this.deletionQueue[j.id]) {
+        el = document.createElement('img');
+        el.src = Main.icons2.trash;
+        el.className = 'trashIcon';
+        el.title = 'This post has been deleted';
+        $.addClass(j, 'deleted');
+        $.cls('postNum', j)[1].appendChild(el);
+        delete this.deletionQueue[j.id];
+      }
+      else {
+        this.deletionQueue[j.id] = 1;
+      }
     }
   }
 };
@@ -2962,7 +3328,7 @@ ThreadUpdater.onload = function() {
           QR.lock();
         }
         else {
-          QR.hidePostError();
+          QR.unlock();
         }
       }
       Main.setThreadState('closed', state);
@@ -2975,9 +3341,6 @@ ThreadUpdater.onload = function() {
     
     state = !!newposts[0].imagelimit;
     if (QR.enabled && state != QR.fileDisabled) {
-      if ($.id('quickReply')) {
-        QR.toggleFileInput(state);
-      }
       QR.fileDisabled = state;
     }
     
@@ -3006,22 +3369,6 @@ ThreadUpdater.onload = function() {
     if (count) {
       doc = document.documentElement;
       
-      if (!fromQR) {
-        if (!self.force && doc.scrollHeight > window.innerHeight) {
-          if (!self.lastReply && lastid != Main.tid) {
-            (self.lastReply = lastrep.lastChild).className += ' newPostsMarker';
-          }
-          if (self.unreadCount == 0) {
-            self.setIcon(self.icons[Main.type]);
-          }
-          self.unreadCount += count;
-          document.title = '(' + self.unreadCount + ') ' + self.pageTitle;
-        }
-        else {
-          self.setStatus(count + ' new post' + (count > 1 ? 's' : ''));
-        }
-      }
-      
       autoscroll = (
         Config.autoScroll
         && document[self.hidden]
@@ -3033,7 +3380,31 @@ ThreadUpdater.onload = function() {
         frag.appendChild(Parser.buildHTMLFromJSON(nodes[i], Main.board));
       }
       thread.appendChild(frag);
+      
+      Parser.hasYouMarkers = false;
       Parser.parseThread(thread.id.slice(1), -nodes.length);
+      
+      if (!fromQR) {
+        if (!self.force && doc.scrollHeight > window.innerHeight) {
+          if (!self.lastReply && lastid != Main.tid) {
+            (self.lastReply = lastrep.lastChild).className += ' newPostsMarker';
+          }
+          if (Parser.hasYouMarkers) {
+            self.setIcon(self.icons[Main.type + 'rep']);
+            if (self.audioEnabled && document[self.hidden]) {
+              self.audio.play();
+            }
+          }
+          else if (self.unreadCount == 0) {
+            self.setIcon(self.icons[Main.type]);
+          }
+          self.unreadCount += count;
+          document.title = '(' + self.unreadCount + ') ' + self.pageTitle;
+        }
+        else {
+          self.setStatus(count + ' new post' + (count > 1 ? 's' : ''));
+        }
+      }
       
       if (autoscroll) {
         window.scrollTo(0, document.documentElement.scrollHeight);
@@ -3094,15 +3465,17 @@ ThreadUpdater.setError = function(msg) {
 };
 
 ThreadUpdater.setIcon = function(data) {
-  this.iconNode.href = data;
+  this.iconNode.href = this.iconPath + data;
   document.head.appendChild(this.iconNode);
 };
 
 ThreadUpdater.icons = {
-  ws: '//static.4chan.org/image/favicon-ws-newposts.ico',
-  nws: '//static.4chan.org/image/favicon-nws-newposts.ico',
-  wsdead: '//static.4chan.org/image/favicon-ws-deadthread.ico',
-  nwsdead: '//static.4chan.org/image/favicon-nws-deadthread.ico'
+  ws: 'favicon-ws-newposts.ico',
+  nws: 'favicon-nws-newposts.ico',
+  wsrep: 'favicon-ws-newreplies.ico',
+  nwsrep: 'favicon-nws-newreplies.ico',
+  wsdead: 'favicon-ws-deadthread.ico',
+  nwsdead: 'favicon-nws-deadthread.ico'
 };
 
 /**
@@ -3121,11 +3494,15 @@ ThreadStats.init = function() {
   cnt[0] && cnt[0].appendChild(this.nodeTop);
   cnt[3] && cnt[3].appendChild(this.nodeBot);
   
+  this.pageNumber = null;
+  this.updatePageNumber();
+  this.pageInterval = setInterval(this.updatePageNumber, 3 * 60000);
+  
   this.update(null, null, window.bumplimit, window.imagelimit);
 };
 
 ThreadStats.update = function(replies, images, isBumpFull, isImageFull) {
-  var repStr, imgStr;
+  var repStr, imgStr, pageStr, stateStr;
   
   if (replies === null) {
     replies = $.cls('replyContainer').length;
@@ -3140,12 +3517,75 @@ ThreadStats.update = function(replies, images, isBumpFull, isImageFull) {
   }
   
   if (isImageFull) {
-    imgStr = '<em title="Image limit reached" >' + imgStr + '</em>';
+    imgStr = '<em title="Image limit reached">' + imgStr + '</em>';
+  }
+  
+  if (Main.threadSticky) {
+    stateStr = ' [Sticky]';
+  }
+  else {
+    stateStr = '';
+  }
+  
+  if (Main.threadClosed) {
+    stateStr += ' [Closed]';
+  }
+  
+  if (this.pageNumber !== null) {
+    pageStr = '<span class="ts-page"> [Page ' + this.pageNumber + ']</span>';
+  }
+  else {
+    pageStr = '';
   }
   
   this.nodeTop.innerHTML = this.nodeBot.innerHTML
-    = '[' + repStr + '] '
-    + '[' + imgStr + ']';
+    = '[' + repStr + '] ' + '[' + imgStr + ']' + stateStr + pageStr;
+};
+
+ThreadStats.updatePageNumber = function() {
+  $.get('//api.4chan.org/' + Main.board + '/threads.json',
+    {
+      onload: ThreadStats.onCatalogLoad,
+      onerror: ThreadStats.onCatalogError
+    }
+  );
+};
+
+ThreadStats.onCatalogLoad = function() {
+  var self, i, j, page, post, threads, catalog, tid, nodes;
+  
+  self = ThreadStats;
+  
+  if (this.status == 200) {
+    tid = +Main.tid;
+    catalog = JSON.parse(this.responseText);
+    for (i = 0; page = catalog[i]; ++i) {
+      threads = page.threads;
+      for (j = 0; post = threads[j]; ++j) {
+        if (post.no == tid) {
+          if (self.pageNumber === null) {
+            self.nodeTop.innerHTML = self.nodeBot.innerHTML
+              += '<span class="ts-page"> [Page ' + i + ']</span>';
+          }
+          else {
+            nodes = $.cls('ts-page');
+            nodes[0].textContent = nodes[1].textContent
+              = ' [Page ' + i + ']'
+          }
+          self.pageNumber = i;
+          return;
+        }
+      }
+    }
+    clearInterval(self.pageInterval);
+  }
+  else {
+    ThreadStats.onCatalogError();
+  }
+};
+
+ThreadStats.onCatalogError = function() {
+  console.log('ThreadStats: couldn\'t get the catalog (' + this.status + ')');
 };
 
 /**
@@ -3173,6 +3613,18 @@ Filter.onClick = function(e) {
       case 'filters-close':
         Filter.close();
         break;
+      case 'filters-palette':
+        Filter.openPalette(e.target);
+        break;
+      case 'filters-palette-close':
+        Filter.closePalette();
+        break;
+      case 'filters-palette-clear':
+        Filter.clearPalette();
+        break;
+      case 'filters-up':
+        Filter.moveUp(e.target.parentNode.parentNode);
+        break;
       case 'filters-del':
         Filter.remove(e.target.parentNode.parentNode);
         break;
@@ -3186,8 +3638,33 @@ Filter.onClick = function(e) {
   }
 };
 
+Filter.onPaletteClick = function(e) {
+  var cmd;
+  
+  if (cmd = e.target.getAttribute('data-cmd')) {
+    switch (cmd) {
+      case 'palette-pick':
+        Filter.pickColor(e.target);
+        break;
+      case 'palette-clear':
+        Filter.pickColor(e.target, true);
+        break;
+      case 'palette-close':
+        Filter.closePalette();
+        break;
+    }
+  }
+  else {
+    Filter.closePalette();
+  }
+};
+
 Filter.exec = function(cnt, pi, msg, tid) {
   var trip, name, com, mail, uid, sub, f, filters, hit;
+  
+  if (Parser.trackedReplies && Parser.trackedReplies['>>' + pi.id.slice(2)]) {
+    return false;
+  }
   
   filters = Filter.activeFilters;
   hit = false;
@@ -3338,6 +3815,40 @@ Filter.load = function() {
   }
 };
 
+Filter.addSelection = function() {
+  var text, type, node, sel = UA.getSelection(true);
+  
+  if (Filter.open() === false) {
+    return;
+  }
+  
+  if (typeof sel == 'string') {
+    text = sel.trim();
+  }
+  else {
+    node = sel.anchorNode.parentNode;
+    text = sel.toString().trim();
+    
+    if ($.hasClass(node, 'name')) {
+      type = 1;
+    }
+    else if ($.hasClass(node, 'postertrip')) {
+      type = 0;
+    }
+    else if ($.hasClass(node, 'subject')) {
+      type = 5;
+    }
+    else if ($.hasClass(node, 'posteruid') || $.hasClass(node, 'hand')) {
+      type = 4;
+    }
+    else {
+      type = 2;
+    }
+  }
+  
+  Filter.add(text, type);
+};
+
 Filter.openHelp = function() {
   var cnt;
   
@@ -3374,7 +3885,9 @@ Filter.openHelp = function() {
 <li><code>/^$/</code> &mdash; comments with no text.</li></ul>\
 <h4>Colors:</h4>\
 <ul><li>The color field can accept any valid CSS color:</li>\
-<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etc…</li></ul>';
+<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etc…</li></ul>\
+<h4>Shortcut:</h4>\
+<ul><li>If you have <code>Keyboard shortcuts</code> enabled, pressing <kbd>F</kbd> will add the selected text to your filters.</li></ul>';
 
   document.body.appendChild(cnt);
   cnt.addEventListener('click', this.onClick, false);
@@ -3393,7 +3906,7 @@ Filter.open = function() {
   var i, f, cnt, menu, html, rawFilters, filterId, filterList;
   
   if ($.id('filtersMenu')) {
-    return;
+    return false;
   }
   
   cnt = document.createElement('div');
@@ -3408,13 +3921,14 @@ Filter.open = function() {
 + '"><img alt="Close" title="Close" class="pointer" data-cmd="filters-close" src="'
 + Main.icons.cross + '"></span></div>\
 <table><thead><tr>\
+<th>Order</th>\
 <th>On</th>\
 <th>Pattern</th>\
 <th>Type</th>\
 <th>Color</th>\
 <th>Hide</th>\
 <th>Del</th>\
-</tr></thead><tbody id="filter-list"></tbody><tfoot><tr><td colspan="6">\
+</tr></thead><tbody id="filter-list"></tbody><tfoot><tr><td colspan="7">\
 <button data-cmd="filters-add">Add</button>\
 <button class="right" data-cmd="filters-save">Save</button>\
 </td></tr></tfoot></table></div>';
@@ -3432,23 +3946,42 @@ Filter.open = function() {
   }
   
   cnt.style.display = '';
-  
-  i && $.cls('fPattern', cnt)[0].focus();
 };
 
 Filter.close = function() {
   var cnt;
   
   if (cnt = $.id('filtersMenu')) {
+    this.closePalette();
     cnt.removeEventListener('click', this.onClick, false);
     document.body.removeChild(cnt);
   }
 };
 
-Filter.add = function() {
-  var filter;
-  filter = { active: true, type: 0, pattern: '',  color: '', hide: false };
-  $.id('filter-list').appendChild(this.buildEntry(filter));
+Filter.moveUp = function(el) {
+  var prev;
+  
+  if (prev = el.previousElementSibling) {
+    el.parentNode.insertBefore(el, prev);
+  }
+};
+
+Filter.add = function(pattern, type) {
+  var filter, id, el;
+  
+  filter = {
+    active: true,
+    type: type || 0,
+    pattern: pattern || '', 
+    color: '',
+    hide: false
+  };
+  
+  id = this.getNextFilterId();
+  el = this.buildEntry(filter, id);
+  
+  $.id('filter-list').appendChild(el);
+  $.cls('fPattern', el)[0].focus();
 };
 
 Filter.remove = function(tr) {
@@ -3456,20 +3989,28 @@ Filter.remove = function(tr) {
 };
 
 Filter.save = function() {
-  var i, rawFilters, entries, tr;
+  var i, rawFilters, entries, tr, f, color;
   
   rawFilters = [];
   entries = $.id('filter-list').children;
   
   for (i = 0; tr = entries[i]; ++i) {
-    rawFilters.push({
-      active: tr.children[0].firstChild.checked,
-      pattern: tr.children[1].firstChild.value,
-      type: tr.children[2].firstChild.selectedIndex,
-      color: tr.children[3].firstChild.value,
-      hide: tr.children[4].firstChild.checked
-    });
+    f = {
+      active: tr.children[1].firstChild.checked,
+      pattern: tr.children[2].firstChild.value,
+      type: tr.children[3].firstChild.selectedIndex,
+      hide: tr.children[5].firstChild.checked
+    }
+    
+    color = tr.children[4].firstChild;
+    
+    if (!color.hasAttribute('data-nocolor')) {
+      f.color = color.style.backgroundColor;
+    }
+    
+    rawFilters.push(f);
   }
+
   
   if (rawFilters[0]) {
     localStorage.setItem('4chan-filters', JSON.stringify(rawFilters));
@@ -3479,12 +4020,34 @@ Filter.save = function() {
   }
 };
 
-Filter.buildEntry = function(filter) {
+Filter.getNextFilterId = function() {
+  var i, j, max, entries = $.id('filter-list').children;
+  
+  if (!entries.length) {
+    return 0;
+  }
+  else {
+    max = 0;
+    for (i = 0; j = entries[i]; ++i) {
+      j = +j.id.slice(7);
+      if (j > max) {
+        max = j;
+      }
+    }
+    return max + 1;
+  }
+};
+
+Filter.buildEntry = function(filter, id) {
   var tr, html, sel;
   
   tr = document.createElement('tr');
+  tr.id = 'filter-' + id;
   
   html = '';
+  
+  // Move up
+  html += '<td><span data-cmd="filters-up" class="pointer">&uarr;</span></td>';
   
   // On
   html += '<td><input type="checkbox"'
@@ -3506,8 +4069,15 @@ Filter.buildEntry = function(filter) {
     + sel[5] + '>Subject</option></select></td>';
   
   // Color
-  html += '<td><input type="text" class="fColor" value="'
-    + filter.color + '"></td>';
+  html += '<td><span data-cmd="filters-palette" title="Change Color" class="colorbox fColor" ';
+  
+  if (!filter.color) {
+    html += ' data-nocolor="1">&#x2215;';
+  }
+  else {
+    html += ' style="background-color:' + filter.color + '">';
+  }
+  html += '</span></td>';
   
   // Hide
   html += '<td><input type="checkbox"'
@@ -3520,6 +4090,108 @@ Filter.buildEntry = function(filter) {
   
   return tr;
 }
+
+Filter.buildPalette = function(id) {
+  var i, j, cnt, html, colors, rowCount, colCount;
+  
+  colors = [
+    ['#E0B0FF', '#F2F3F4', '#7DF9FF', '#FFFF00'],
+    ['#FBCEB1', '#FFBF00', '#ADFF2F', '#0047AB'],
+    ['#00A550', '#007FFF', '#AF0A0F', '#B5BD68']
+  ];
+  
+  rowCount = colors.length;
+  colCount = colors[0].length;
+  
+  html = '<div id="colorpicker" class="reply extPanel"><table><tbody>';
+  
+  for (i = 0; i < rowCount; ++i) {
+    html += '<tr>'
+    for (j = 0; j < colCount; ++j) {
+      html += '<td><div data-cmd="palette-pick" class="colorbox" style="background:'
+        + colors[i][j] + '"></div></td>';
+    }
+    html += '</tr>'
+  }
+  
+  html += '</tbody></table>Custom\
+<div id="palette-custom"><input id="palette-custom-input" type="text">\
+<div id="palette-custom-ok" data-cmd="palette-pick" title="Select Color" class="colorbox"></div></div>\
+[<a href="javascript:;" data-cmd="palette-close">Close</a>]\
+[<a href="javascript:;" data-cmd="palette-clear">Clear</a>]</div>';
+  
+  cnt = document.createElement('div');
+  cnt.id = 'filter-palette';
+  cnt.setAttribute('data-target', id);
+  cnt.className = 'UIMenu';
+  cnt.innerHTML = html;
+  
+  return cnt;
+};
+
+Filter.openPalette = function(target) {
+  var el, pos, id, picker;
+  
+  Filter.closePalette();
+  
+  pos = target.getBoundingClientRect();
+  id = target.parentNode.parentNode.id.slice(7);
+  
+  el = Filter.buildPalette(id);
+  document.body.appendChild(el);
+  
+  $.id('filter-palette').addEventListener('click', Filter.onPaletteClick, false);
+  $.id('palette-custom-input').addEventListener('keyup', Filter.setCustomColor, false);
+  
+  picker = el.firstElementChild;
+  picker.style.cssText = 'top:' + pos.top + 'px;left:'
+    + (pos.left - picker.clientWidth - 10) + 'px;';
+};
+
+Filter.closePalette = function() {
+  var el;
+  
+  if (el = $.id('filter-palette')) {
+    $.id('filter-palette').removeEventListener('click', Filter.onPaletteClick, false);
+    $.id('palette-custom-input').removeEventListener('keyup', Filter.setCustomColor, false);
+    el.parentNode.removeChild(el);
+  }
+};
+
+Filter.pickColor = function(el, clear) {
+  var id, target;
+  
+  id = $.id('filter-palette').getAttribute('data-target');
+  target = $.id('filter-' + id);
+  
+  if (!target) {
+    return;
+  }
+  
+  target = $.cls('colorbox', target)[0];
+  
+  if (clear === true) {
+    target.setAttribute('data-nocolor', '1');
+    target.innerHTML = '&#x2215;';
+    target.style.background = '';
+  }
+  else {
+    target.removeAttribute('data-nocolor');
+    target.innerHTML = '';
+    target.style.background = el.style.backgroundColor;
+  }
+  
+  Filter.closePalette();
+};
+
+Filter.setCustomColor = function() {
+  var input, box;
+  
+  input = $.id('palette-custom-input');
+  box = $.id('palette-custom-ok');
+  
+  box.style.backgroundColor = input.value;
+};
 
 /**
  * ID colors
@@ -3580,8 +4252,9 @@ var Media = {};
 
 Media.init = function() {
   this.matchSC = /(?:soundcloud\.com|snd\.sc)\/[^\s<]+(?:<wbr>)?[^\s<]*/g;
-  this.matchYT = /(?:youtube\.com\/watch\?[^\s]*?v=|youtu\.be\/)[^\s<]+(?:<wbr>)?[^\s<]*/g;
+  this.matchYT = /(?:youtube\.com\/watch\?[^\s]*?v=|youtu\.be\/)[^\s<]+(?:<wbr>)?[^\s<]*(?:<wbr>)?[^\s<]*/g;
   this.toggleYT = /(?:v=|\.be\/)([a-zA-Z0-9_-]{11})/;
+  this.timeYT = /#t=([ms0-9]+)]/;
 };
 
 Media.parseSoundCloud = function(msg) {
@@ -3635,20 +4308,28 @@ Media.replaceYouTube = function(link) {
 };
 
 Media.toggleYouTube = function(node) {
-  var vid, el;
+  var vid, time, el, url;
   
   if (node.textContent == 'Remove') {
     node.parentNode.removeChild(node.nextElementSibling);
     node.textContent = 'Embed';
   }
   else {
-    vid = node.previousElementSibling.textContent.match(this.toggleYT);
+    url = node.previousElementSibling.textContent;
+    vid = url.match(this.toggleYT);
+    time = url.match(this.timeYT);
     
     if (vid && (vid = vid[1])) {
+      vid = encodeURIComponent(vid);
+      
+      if (time && (time = time[1])) {
+        vid += '#t=' + encodeURIComponent(time);
+      }
+      
       el = document.createElement('div');
       el.className = 'media-embed';
       el.innerHTML = '<iframe src="//www.youtube.com/embed/'
-        + encodeURIComponent(vid)
+        + vid
         + '" width="640" height="360" frameborder="0"></iframe>'
       
       node.parentNode.insertBefore(el, node.nextElementSibling);
@@ -3759,11 +4440,16 @@ Keybinds.init = function() {
     65: function() {
       if (ThreadUpdater.enabled) ThreadUpdater.toggleAuto();
     },
+    // F
+    70: function() {
+      if (Config.filter) {
+        Filter.addSelection();
+      }
+    },
     // Q
     81: function() {
       if (QR.enabled && Main.tid) {
-        QR.show(Main.tid);
-        QR.quotePost();
+        QR.quotePost(Main.tid);
       }
     },
     // R
@@ -3794,7 +4480,7 @@ Keybinds.init = function() {
     }
   };
   
-  document.addEventListener('keyup', this.resolve, false);
+  document.addEventListener('keydown', this.resolve, false);
 };
 
 Keybinds.resolve = function(e) {
@@ -3807,6 +4493,8 @@ Keybinds.resolve = function(e) {
   bind = Keybinds.map[e.keyCode];
   
   if (bind && !e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    e.stopPropagation();
     bind();
   }
 };
@@ -3836,6 +4524,7 @@ Keybinds.open = function() {
 <li><kbd>N</kbd> &mdash; Next page</li>\
 <li><kbd>I</kbd> &mdash; Return to index</li>\
 <li><kbd>C</kbd> &mdash; Open catalog</li>\
+<li><kbd>F</kbd> &mdash; Filter selected text</li>\
 </ul><ul>\
 <li><strong>Quick Reply (always enabled)</strong></li>\
 <li><kbd>Ctrl + Click</kbd> the post number &mdash; Quote without linking</li>\
@@ -3870,8 +4559,32 @@ Keybinds.onClick = function(e) {
 var Report = {};
 
 Report.onDone = function(e) {
-  if (Report.cnt && e.origin === 'https://sys.4chan.org' && e.data === 'done-report') {
-    Report.close();
+  var id;
+  
+  if (e.origin === 'https://sys.4chan.org' && /^done-report/.test(e.data)) {
+    if (Report.cnt) {
+      Report.close();
+    }
+    
+    id = e.data.split('-')[2];
+    
+    if (Config.threadHiding && $.id('t' + id)) {
+      if (!ThreadHiding.isHidden(id)) {
+        ThreadHiding.hide(id);
+        ThreadHiding.save();
+      }
+      
+      return;
+    }
+    
+    if (Config.replyHiding && $.id('p' + id)) {
+      if (!ReplyHiding.isHidden(id)) {
+        ReplyHiding.hide(id);
+        ReplyHiding.save();
+      }
+      
+      return;
+    }
   }
 };
 
@@ -4048,6 +4761,8 @@ UA.init = function() {
   this.hasCORS = 'withCredentials' in new XMLHttpRequest;
   
   this.hasFormData = 'FormData' in window;
+  
+  this.hasDragAndDrop = false; /*'draggable' in document.createElement('div');*/
 };
 
 UA.dispatchEvent = function(name, detail) {
@@ -4057,6 +4772,21 @@ UA.dispatchEvent = function(name, detail) {
     e.detail = detail;
   }
   document.dispatchEvent(e);
+};
+
+UA.getSelection = function(raw) {
+  var sel;
+  
+  if (UA.isOpera && typeof (sel = document.getSelection()) == 'string') {}
+  else {
+    sel = window.getSelection();
+    
+    if (!raw) {
+      sel = sel.toString();
+    }
+  }
+  
+  return sel;
 };
 
 /**
@@ -4070,14 +4800,14 @@ var Config = {
   threadHiding: true,
   pageTitle: true,
   hideGlobalMsg: true,
-
+  
+  topPageNav: false,
   threadWatcher: false,
   imageExpansion: false,
   threadExpansion: false,
   imageSearch: false,
   reportButton: false,
   localTime: false,
-  topPageNav: false,
   stickyNav: false,
   keyBinds: false,
   inlineQuotes: false,
@@ -4093,6 +4823,7 @@ var Config = {
   noPictures: false,
   embedYouTube: false,
   embedSoundCloud: false,
+  updaterSound: false,
 
   customCSS: false,
   autoScroll: false,
@@ -4168,49 +4899,121 @@ Config.save = function() {
 var SettingsMenu = {};
 
 SettingsMenu.options = {
-    'Essential': {
-      quotePreview: [ 'Quote preview', 'Enable inline quote previews', true ],
-      backlinks: [ 'Backlinks', 'Show who has replied to a post' ],
-      quickReply: [ 'Quick reply', 'Enable inline reply box', true ],
-      threadUpdater: [ 'Thread updater', 'Enable inline thread updating', true ],
-      threadHiding: [ 'Thread hiding', 'Enable thread hiding', true ],
-      pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ],
-      hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ],
-      topPageNav: [ 'Page navigation at top of page', 'Show the page switcher at the top of the page, hold Shift and drag to move' ]
-    },
-    'Recommended': {
-      threadWatcher: [ 'Thread watcher', 'Enable thread watcher' ],
-      imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],
-      threadExpansion: [ 'Thread expansion', 'Enable inline thread expansion' ],
-      imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
-      reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ],
-      localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ],
-      stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows, hold Shift and drag to move' ],
-      keyBinds: [ 'Use keyboard shortcuts [<a href="javascript:;" data-cmd="keybinds-open">Show</a>]', 'Enable handy keyboard shortcuts for common actions' ]
-    },
-    'Advanced': {
-      filter: [ 'Filters &amp; Highlights [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
-      revealSpoilers: [ "Don't spoiler images", 'Don\'t replace spoiler images with a placeholder and show filenames' ],
-      replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
-      inlineQuotes: [ 'Inline quote links', 'Clicking quote links will inline expand the quoted post, shift-clicking bypasses the inlining' ],
-      imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
-      threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
-      IDColor: [ 'Color user IDs', 'Assign unique colors to user IDs on boards that use them' ],
-      downloadFile: [ 'Download original', 'Adds a button to download image with original filename (Chrome only)'],
-      inlineReport: [ 'Inline report panel', 'Open report panel in browser window, instead of a popup'],
-      embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
-      embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ],
-      noPictures: [ 'Hide thumbnails', 'Don\'t display thumbnails while browsing']
-    },
-    'Customization': {
-      customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', 'Embed your own CSS rules', true ],
-      autoScroll: [ 'Auto-scroll with auto-updated posts', 'Automatically scroll the page as new posts are added' ],
-      hideStubs: [ 'Hide thread stubs', "Don't display stubs of hidden threads" ],
-      compactThreads: [ 'Force long posts to wrap', 'Long posts will wrap at 75% screen width' ],
-      dropDownNav: [ 'Use drop-down navigation', 'Use persistent drop-down navigation bar instead of traditional links' ],
-      fixedThreadWatcher: [ 'Pin thread watcher', 'Pin the thread watcher to the page' ],
-      persistentQR: [ 'Persistent quick reply', 'Keep quick reply window open after posting' ]
-    }
+  'Quotes': {
+    quotePreview: [ 'Quote preview', 'Enable inline quote previews', true ],
+    backlinks: [ 'Backlinks', 'Show who has replied to a post' ],
+    inlineQuotes: [ 'Inline quote links', 'Clicking quote links will inline expand the quoted post, shift-clicking bypasses the inlining' ]
+  },
+  'Posting': {
+    quickReply: [ 'Quick reply', 'Enable inline reply box', true ],
+    persistentQR: [ 'Persistent quick reply', 'Keep quick reply window open after posting' ]
+  },
+  'Monitoring': {
+    threadUpdater: [ 'Thread updater', 'Enable inline thread updating', true ],
+    autoScroll: [ 'Auto-scroll with auto-updated posts', 'Automatically scroll the page as new posts are added' ],
+    updaterSound: [ 'Sound notification', 'Play a sound when somebody replies to your posts' ],
+    threadWatcher: [ 'Thread watcher', 'Enable thread watcher' ],
+    fixedThreadWatcher: [ 'Pin thread watcher', 'Pin the thread watcher to the page' ],
+    threadStats: [ 'Thread statistics', 'Display post and image counts at the top and bottom right of the page' ],
+    pageTitle: [ 'Excerpts in page title', 'Show post subjects or comment excerpts in page title' ]
+  },
+  'Filtering': {
+    filter: [ 'Filters &amp; Highlights [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
+    threadHiding: [ 'Thread hiding [<a href="javascript:;" data-cmd="thread-hiding-clear">Clear</a>]', 'Enable thread hiding', true ],
+    replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
+    hideStubs: [ 'Hide thread stubs', "Don't display stubs of hidden threads" ]
+  },
+  'Images': {
+    imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],
+    imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
+    imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
+    downloadFile: [ 'Download original', 'Adds a button to download image with original filename (Chrome only)'],
+    revealSpoilers: [ "Don't spoiler images", 'Don\'t replace spoiler images with a placeholder and show filenames' ],
+    noPictures: [ 'Hide thumbnails', 'Don\'t display thumbnails while browsing']
+  },
+  'Navigation': {
+    threadExpansion: [ 'Thread expansion', 'Enable inline thread expansion', true ],
+    topPageNav: [ 'Page navigation at top of page', 'Show the page switcher at the top of the page, hold Shift and drag to move' ],
+    dropDownNav: [ 'Use drop-down navigation', 'Use persistent drop-down navigation bar instead of traditional links' ],
+    stickyNav: [ 'Navigation arrows', 'Show top and bottom navigation arrows, hold Shift and drag to move' ],
+    keyBinds: [ 'Use keyboard shortcuts [<a href="javascript:;" data-cmd="keybinds-open">Show</a>]', 'Enable handy keyboard shortcuts for common actions' ]
+  },
+  'Media': {
+    embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
+    embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ]
+  },
+  'Other': {
+    customCSS: [ 'Custom CSS [<a href="javascript:;" data-cmd="css-open">Edit</a>]', 'Embed your own CSS rules', true ],
+    hideGlobalMsg: [ 'Enable announcement hiding', 'Enable announcement hiding (will reset on new or updated announcements)' ],
+    IDColor: [ 'Color user IDs', 'Assign unique colors to user IDs on boards that use them' ],
+    compactThreads: [ 'Force long posts to wrap', 'Long posts will wrap at 75% screen width' ],
+    reportButton: [ 'Report button', 'Add a report button next to posts for easy reporting' ],
+    inlineReport: [ 'Inline report panel', 'Open report panel in browser window, instead of a popup'],
+    localTime: [ 'Convert dates to local time', 'Convert 4chan server time (US Eastern Time) to your local time' ]
+  }
+};
+
+SettingsMenu.presets = {
+  'Essential': {
+    quotePreview: 1,
+    backlinks: 1,
+    quickReply: 1,
+    threadUpdater: 1,
+    threadHiding: 1,
+    pageTitle: 1,
+    hideGlobalMsg: 1
+  },
+  'Recommended': {
+    quotePreview: 1,
+    backlinks: 1,
+    quickReply: 1,
+    threadUpdater: 1,
+    threadHiding: 1,
+    pageTitle: 1,
+    hideGlobalMsg: 1,
+    topPageNav: 1,
+    threadWatcher: 1,
+    imageExpansion: 1,
+    threadExpansion: 1,
+    imageSearch: 1,
+    reportButton: 1,
+    localTime: 1,
+    topPageNav: 1,
+    stickyNav: 1,
+    keyBinds: 1
+  },
+  'Advanced': {
+    topPageNav: 1,
+    quotePreview: 1,
+    backlinks: 1,
+    quickReply: 1,
+    threadUpdater: 1,
+    threadHiding: 1,
+    pageTitle: 1,
+    hideGlobalMsg: 1,
+    topPageNav: 1,
+    threadWatcher: 1,
+    imageExpansion: 1,
+    threadExpansion: 1,
+    imageSearch: 1,
+    reportButton: 1,
+    localTime: 1,
+    topPageNav: 1,
+    stickyNav: 1,
+    keyBinds: 1,
+    filter: 1,
+    revealSpoilers: 1,
+    replyHiding: 1,
+    inlineQuotes: 1,
+    imageHover: 1,
+    threadStats: 1,
+    IDColor: 1,
+    downloadFile: 1,
+    inlineReport: 1,
+    noPictures: 1,
+    embedYouTube: 1,
+    embedSoundCloud: 1
+  }
 };
 
 SettingsMenu.save = function() {
@@ -4241,6 +5044,12 @@ SettingsMenu.open = function() {
   var i, cat, categories, key, html, cnt, opts, mobileOpts, el;
   
   if (Main.firstRun) {
+    if (el = $.id('settingsTip')) {
+      el.parentNode.removeChild(el);
+    }
+    if (el = $.id('settingsTipBottom')) {
+      el.parentNode.removeChild(el);
+    }
     Config.save();
   }
   
@@ -4270,12 +5079,22 @@ SettingsMenu.open = function() {
     }
   }
   else {
+    html += '<ul><li class="settings-cat">Presets <select id="settings-presets" size="1">';
+    
+    categories = SettingsMenu.presets;
+    
+    for (cat in categories) {
+      html += '<option value="' + cat + '">' + cat + '</option>';
+    }
+    
+    html += '</select></li></ul>';
+    
     categories = SettingsMenu.options;
   }
   
   for (cat in categories) {
     opts = categories[cat];
-    html += '<li class="settings-cat">' + cat + '</li>';
+    html += '<ul><li class="settings-cat">' + cat + '</li>';
     for (key in opts) {
       html += '<li><label'
         + (opts[key][1] ? ' title="' + opts[key][1] + '">' : '>')
@@ -4283,6 +5102,7 @@ SettingsMenu.open = function() {
         + key + '"' + (Config[key] ? ' checked="checked">' : '>')
         + opts[key][0] + '</label></li>';
     }
+    html += '</ul>';
   }
   
   html += '</ul><ul><li>'
@@ -4296,7 +5116,50 @@ SettingsMenu.open = function() {
   cnt.innerHTML = html;
   cnt.addEventListener('click', SettingsMenu.onClick, false);
   document.body.appendChild(cnt);
+  SettingsMenu.matchPreset();
+  $.id('settings-presets').addEventListener('change', SettingsMenu.onPresetChange, false);
   (el = $.cls('menuOption', cnt)[0]) && el.focus();
+};
+
+SettingsMenu.matchPreset = function() {
+  var i, id, el, opts, cat, nodes, preset, skip, select;
+  
+  nodes = $.cls('menuOption', $.id('settingsMenu'));
+  preset = id = -1;
+  
+  for (cat in this.presets) {
+    ++id;
+    skip = false;
+    opts = this.presets[cat];
+    for (i = 0; el = nodes[i]; ++i) {
+      if (!!opts[el.getAttribute('data-option')] != el.checked) {
+        skip = true;
+        break;
+      }
+    }
+    if (!skip) {
+      preset = id;
+    }
+  }
+  
+  select = $.id('settings-presets');
+  
+  if (el = $.id('custom-set')) {
+    select.removeChild(el);
+  }
+  
+  if (preset == -1) {
+    el = document.createElement('option');
+    el.id = 'custom-set';
+    el.textContent = 'Custom';
+    select.appendChild(el);
+    select.selectedIndex = select.options.length - 1;
+  }
+  else {
+    select.selectedIndex = preset;
+  }
+  
+  return preset;
 };
 
 SettingsMenu.showExport = function() {
@@ -4351,10 +5214,30 @@ SettingsMenu.onExportClick = function(e) {
   }
 };
 
-SettingsMenu.onClick = function(e) {
-  var el;
+SettingsMenu.onPresetChange = function() {
+  var i, j, el, preset, opts, cb, checked;
   
-  if (e.target.id == 'settingsMenu' && (el = $.id('settingsMenu'))) {
+  if (el = $.id('custom-set')) {
+    el.parentNode.removeChild(el);
+  }
+  
+  el = $.id('settings-presets');
+  preset = el.options[el.selectedIndex].value;
+  opts = $.cls('menuOption');
+  
+  for (i = 0; cb = opts[i]; ++i) {
+    cb.checked = !!SettingsMenu.presets[preset][cb.getAttribute('data-option')];
+  }
+};
+
+SettingsMenu.onClick = function(e) {
+  var el, t, i, j;
+  
+  t = e.target;
+  if ($.hasClass(t, 'menuOption')) {
+    SettingsMenu.matchPreset();
+  }
+  else if (t.id == 'settingsMenu' && (el = $.id('settingsMenu'))) {
     e.preventDefault();
     e.stopPropagation();
     SettingsMenu.close(el);
@@ -4364,6 +5247,9 @@ SettingsMenu.onClick = function(e) {
 SettingsMenu.close = function(el) {
   if (el = (el || $.id('settingsMenu'))) {
     el.removeEventListener('click', SettingsMenu.onClick, false);
+    if (!Main.hasMobileLayout) {
+      $.id('settings-presets').removeEventListener('change', SettingsMenu.onPresetChange, false);
+    }
     document.body.removeChild(el);
   }
 };
@@ -4443,6 +5329,7 @@ Main.run = function() {
   Main.isMobileDevice = /Mobile|Android|Dolfin|Opera Mobi|PlayStation Vita|Nintendo DS/.test(navigator.userAgent);
   
   if (Main.firstRun && Main.isMobileDevice) {
+    Config.topPageNav = false;
     Config.dropDownNav = true;
   }
   
@@ -4501,10 +5388,6 @@ Main.run = function() {
     ReplyHiding.init();
   }
   
-  if (Config.threadStats && Main.tid) {
-    ThreadStats.init();
-  }
-  
   if (Config.quotePreview) {
     QuotePreview.init();
   }
@@ -4515,6 +5398,10 @@ Main.run = function() {
     Main.threadClosed = !document.forms.post;
     Main.threadSticky = !!$.cls('stickyIcon', $.id('pi' + Main.tid))[0];
     
+    if (Config.threadStats) {
+      ThreadStats.init();
+    }
+    
     if (Config.pageTitle) {
       Main.setTitle();
     }
@@ -4524,6 +5411,8 @@ Main.run = function() {
     }
   }
   else {
+    Main.addCatalogTooltip();
+  
     if (Config.topPageNav) {
       Main.setPageNav();
     }
@@ -4550,13 +5439,57 @@ Main.onFirstRun = function() {
   var link, el;
   
   if (link = $.id('settingsWindowLink')) {
-    el = document.createElement('div');
-    el.id = 'first-run';
-    el.className = 'click-me';
-    el.innerHTML = 'Click me!';
-    link.parentNode.appendChild(el);
+    this.addTooltip(link, null, 'settingsTip');
+  }
+  
+  if (link = $.id('settingsWindowLinkBot')) {
+    this.addTooltip(link, null, 'settingsTipBottom');
   }
 }
+
+Main.onCatalogClick = function() {
+  var el = this.nextElementSibling;
+  
+  if (el && el.className == 'click-me') {
+    el.parentNode.removeChild(el);
+    this.removeEventListener('mousedown', Main.onCatalogClick, false);
+    localStorage.setItem('catalog-visited', '1');
+  }
+};
+
+Main.addCatalogTooltip = function() {
+  var i, links, el;
+  
+  if (!localStorage.getItem('catalog-visited')) {
+    links = $.cls('cataloglink');
+    for (i = 0; el = links[i]; ++i) {
+      el = el.firstElementChild;
+      this.addTooltip(el, 'Try me!');
+      el.addEventListener('mousedown', Main.onCatalogClick, false);
+    }
+  }
+};
+
+Main.addTooltip = function(link, message, id) {
+  var el, pos;
+  
+  el = document.createElement('div');
+  el.className = 'click-me';
+  if (id) {
+    el.id = id;
+  }
+  el.innerHTML = message || 'Click me!';
+  link.parentNode.appendChild(el);
+  
+  pos = (link.offsetWidth - el.offsetWidth + link.offsetLeft - el.offsetLeft) / 2;
+  el.style.marginLeft = pos + 'px';
+  
+  return el;
+};
+
+Main.isThreadClosed = function(tid) {
+  return (el = $.id('pi' + tid)) && $.cls('closedIcon', el)[0];
+};
 
 Main.setThreadState = function(state, mode) {
   var cnt, el, ref, cap;
@@ -4667,18 +5600,22 @@ Main.setPageNav = function() {
 };
 
 Main.initGlobalMessage = function() {
-  var msg, btn, oldHash;
+  var msg, btn, thisTs, oldTs;
   
   if ((msg = $.id('globalMessage')) && msg.textContent) {
     msg.nextElementSibling.style.clear = 'both';
+    
     btn = document.createElement('img');
     btn.id = 'toggleMsgBtn';
     btn.className = 'extButton';
     btn.setAttribute('data-cmd', 'toggleMsg');
     btn.alt = 'Toggle';
     btn.title = 'Toggle announcement';
-    if ((oldHash = localStorage.getItem('4chan-msg'))
-      && (Main.msgHash = $.hash(msg.textContent)) == oldHash) {
+    
+    oldTs = localStorage.getItem('4chan-global-msg');
+    thisTs = msg.getAttribute('data-utc');
+    
+    if (oldTs && thisTs <= oldTs) {
       msg.style.display = 'none';
       btn.style.opacity = '0.5';
       btn.src = Main.icons.plus;
@@ -4686,6 +5623,7 @@ Main.initGlobalMessage = function() {
     else {
       btn.src = Main.icons.minus;
     }
+    
     msg.parentNode.insertBefore(btn, msg);
   }
 };
@@ -4699,13 +5637,13 @@ Main.toggleGlobalMessage = function() {
     msg.style.display = '';
     btn.src = Main.icons.minus;
     btn.style.opacity = '1';
-    localStorage.removeItem('4chan-msg');
+    localStorage.removeItem('4chan-global-msg');
   }
   else {
     msg.style.display = 'none';
     btn.src = Main.icons.plus;
     btn.style.opacity = '0.5';
-    localStorage.setItem('4chan-msg', Main.msgHash || $.hash(msg.textContent));
+    localStorage.setItem('4chan-global-msg', msg.getAttribute('data-utc'));
   }
 };
 
@@ -4812,6 +5750,9 @@ Main.onclick = function(e) {
       case 'embed':
         Media.toggleEmbed(t);
         break
+      case 'sound':
+        ThreadUpdater.toggleSound();
+        break;
       case 'toggleMsg':
         Main.toggleGlobalMessage();
         break;
@@ -4826,6 +5767,9 @@ Main.onclick = function(e) {
         break;
       case 'filters-open':
         Filter.open();
+        break;
+      case 'thread-hiding-clear':
+        ThreadHiding.clear();
         break;
       case 'css-open':
         CustomCSS.open();
@@ -4842,8 +5786,7 @@ Main.onclick = function(e) {
     if (QR.enabled && t.title == 'Quote this post') {
       e.preventDefault();
       tid = Main.tid || t.previousElementSibling.getAttribute('href').split('#')[0].slice(4);
-      QR.show(tid);
-      QR.quotePost(!e.ctrlKey && t.textContent);
+      QR.quotePost(tid, !e.ctrlKey && t.textContent);
     }
     else if (Config.imageExpansion && e.which == 1 && t.parentNode
       && $.hasClass(t.parentNode, 'fileThumb')
@@ -4854,7 +5797,7 @@ Main.onclick = function(e) {
     }
     else if (Config.inlineQuotes && e.which == 1 && $.hasClass(t, 'quotelink')) {
       if (!e.shiftKey) {
-        Parser.inlineQuote(t, e);
+        QuoteInline.toggle(t, e);
       }
       else {
         e.preventDefault();
@@ -4916,8 +5859,7 @@ Main.linkToThread = function(tid, board, post) {
     + tid + (post > 0 ? ('#p' + post) : '');
 };
 
-Main.addCSS = function()
-{
+Main.addCSS = function() {
   var style, css = '\
 body.hasDropDownNav {\
   margin-top: 50px;\
@@ -5041,9 +5983,10 @@ div.post div.postInfo {\
   min-width: 296px;\
   float: left;\
 }\
-#quickReply input:-moz-placeholder,\
-#quickReply textarea:-moz-placeholder {\
+#quickReply input::-moz-placeholder,\
+#quickReply textarea::-moz-placeholder {\
   color: #aaa !important;\
+  opacity: 1 !important;\
 }\
 #quickReply input[type="submit"] {\
   width: 83px;\
@@ -5071,6 +6014,11 @@ div.post div.postInfo {\
   width: 215px;\
   margin-right: 5px;\
 }\
+.qrRealFile {\
+  position: absolute;\
+  left: 0;\
+  visibility: hidden;\
+}\
 .yotsuba_new #qrFile {\
   color:black;\
 }\
@@ -5086,6 +6034,7 @@ div.post div.postInfo {\
   color: white;\
   padding: 3px 5px;\
   text-shadow: 0 1px rgba(0, 0, 0, 0.20);\
+  clear: both;\
 }\
 #qrError a:hover,\
 #qrError a {\
@@ -5188,6 +6137,9 @@ div.op div.file .image-expanded-anti {\
 .photon .highlight-anti {\
   background-color: #bbb !important;\
 }\
+.op.inlined {\
+  display: block;\
+}\
 #quote-preview .inlined,\
 #quote-preview .extButton,\
 #quote-preview .extControls {\
@@ -5266,16 +6218,19 @@ div.backlink {\
   right: 5px;\
   top: 5px;\
 }\
+.UIMenu,\
 .UIPanel {\
   position: fixed;\
-  line-height: 14px;\
-  font-size: 14px;\
-  top: 0;\
-  left: 0;\
   width: 100%;\
   height: 100%;\
-  background-color: rgba(0, 0, 0, 0.25);\
   z-index: 9002;\
+  top: 0;\
+  left: 0;\
+}\
+.UIPanel {\
+  line-height: 14px;\
+  font-size: 14px;\
+  background-color: rgba(0, 0, 0, 0.25);\
 }\
 .UIPanel:after {\
   display: inline-block;\
@@ -5297,8 +6252,8 @@ div.backlink {\
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);\
   vertical-align: middle;\
 }\
-.UIPanel input[type="text"],\
-.UIPanel textarea {\
+.extPanel input[type="text"],\
+.extPanel textarea {\
   border: 1px solid #AAA;\
   outline: none;\
 }\
@@ -5317,8 +6272,8 @@ div.backlink {\
 }\
 .UIPanel ul {\
   list-style: none;\
-  padding: 0 0 10px 0;\
-  margin: 0;\
+  padding: 0;\
+  margin: 0 0 10px;\
 }\
 .UIPanel .export-field {\
   width: 385px;\
@@ -5331,8 +6286,8 @@ div.backlink {\
 }\
 .settings-cat {\
   font-weight: bold;\
+  margin: 10px 0 5px;\
   padding-left: 5px;\
-  margin: 10px 0 5px 0;\
 }\
 #customCSSMenu textarea {\
   display: block;\
@@ -5342,6 +6297,7 @@ div.backlink {\
   box-sizing: border-box;\
   height: 200px;\
   margin: 0 0 5px;\
+  font-family: monospace;\
 }\
 #customCSSMenu .right,\
 #settingsMenu .right {\
@@ -5385,7 +6341,7 @@ div.backlink {\
 }\
 #filtersMenu select,\
 #filtersMenu .fPattern,\
-#filtersMenu .fColor {\
+#palette-custom-input {\
   padding: 1px;\
   font-size: 11px;\
 }\
@@ -5399,7 +6355,7 @@ div.backlink {\
   padding: 3px 5px;\
 }\
 .fPattern {\
-  width: 150px;\
+  width: 130px;\
 }\
 .fColor {\
   width: 60px;\
@@ -5437,10 +6393,11 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
 .click-me {\
   border-radius: 5px;\
   margin-top: 5px;\
-  margin-left: -7px;\
   padding: 2px 5px;\
   position: absolute;\
   font-weight: bold;\
+  z-index: 2;\
+  white-space: nowrap;\
 }\
 .yotsuba_new .click-me,\
 .futaba_new .click-me {\
@@ -5555,8 +6512,22 @@ kbd {\
 .deleted {\
   opacity: 0.66;\
 }\
-.noPictures .fileThumb {\
+.noPictures a.fileThumb img {\
   opacity: 0;\
+}\
+.noPictures.futaba_new a.fileThumb,\
+.noPictures.yotsuba_new a.fileThumb {\
+  border: 1px solid #800;\
+}\
+.noPictures.burichan_new a.fileThumb,\
+.noPictures.yotsuba_b_new a.fileThumb {\
+  border: 1px solid #34345C;\
+}\
+.noPictures.tomorrow a.fileThumb {\
+  border: 1px solid #C5C8C6;\
+}\
+.noPictures.photon a.fileThumb {\
+  border: 1px solid #004A99;\
 }\
 .ownpost:after {\
   content: " (You)";\
@@ -5564,6 +6535,55 @@ kbd {\
 .ownpost {\
   display: inline-block;\
 }\
+.spinner {\
+  margin-top: 2px;\
+  padding: 3px;\
+  display: table;\
+}\
+#settings-presets {\
+  position: relative;\
+  top: -1px;\
+}\
+#colorpicker { \
+  position: fixed;\
+  text-align: center;\
+}\
+.colorbox {\
+  font-size: 10px;\
+  width: 16px;\
+  height: 16px;\
+  line-height: 17px;\
+  display: inline-block;\
+  text-align: center;\
+  background-color: #fff;\
+  border: 1px solid #aaa;\
+  text-decoration: none;\
+  color: #000;\
+  cursor: pointer;\
+  vertical-align: top;\
+}\
+#palette-custom-input {\
+  vertical-align: top;\
+  width: 45px;\
+  margin-right: 2px;\
+}\
+#qrDummyFile {\
+  float: left;\
+  margin-right: 5px;\
+  width: 220px;\
+  cursor: default;\
+  -moz-user-select: none;\
+  -webkit-user-select: none;\
+  -ms-user-select: none;\
+  user-select: none;\
+  white-space: nowrap;\
+  text-overflow: ellipsis;\
+  overflow: hidden;\
+}\
+#qrDummyFileLabel {\
+  margin-left: 3px;\
+}\
+\
 @media only screen and (max-width: 480px) {\
 .postLink .mobileHideButton {\
   margin-right: 3px;\
@@ -5621,7 +6641,9 @@ kbd {\
   border-color: #D9BFB7 !important;\
 }\
 #quickReply input[type="text"],\
-#quickReply textarea {\
+#quickReply textarea,\
+.extPanel input[type="text"],\
+.extPanel textarea {\
   font-size: 16px;\
 }\
 #quickReply {\

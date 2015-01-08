@@ -3,7 +3,7 @@
 
 ## About ##
 
-8 years ago, our very own DamageInc created the first 4chan extension as a Firefox add-on. Now, we've implemented these features directly into the site, open sourced it, and invite the community to contribute code and feedback.
+In 2004, our very own DamageInc created the first 4chan extension as a Firefox add-on. Now, we've implemented these features directly into the site, open sourced it, and invite the community to contribute code and feedback.
 
 In addition, we offer a read-only JSON API that you can read more about [here](https://github.com/4chan/4chan-API).
 

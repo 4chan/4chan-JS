@@ -4927,7 +4927,7 @@ SettingsMenu.options = {
     imageExpansion: [ 'Image expansion', 'Enable inline image expansion, limited to browser width' ],
     imageHover: [ 'Image hover', 'Expand images on hover, limited to browser size' ],
     imageSearch: [ 'Image search', 'Add Google and iqdb image search buttons next to image posts' ],
-    downloadFile: [ 'Download original', 'Adds a button to download image with original filename (Chrome only)'],
+    downloadFile: [ 'Download original', 'Adds a button to download image with original filename'],
     revealSpoilers: [ "Don't spoiler images", 'Don\'t replace spoiler images with a placeholder and show filenames' ],
     noPictures: [ 'Hide thumbnails', 'Don\'t display thumbnails while browsing']
   },

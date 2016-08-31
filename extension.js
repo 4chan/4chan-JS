@@ -405,7 +405,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
     '<div id="p' + data.no + '" class="post ' + (isOP ? 'op' : 'reply') + highlight + '">' +
       '<div class="postInfoM mobile" id="pim' + data.no + '">' +
         '<span class="nameBlock' + capcodeClass + '">' +
-        '<span class="name">' + name + '</span>' + tripcode +
+        '<span class="name">' + (Config.displayImagesOnly ? 'Anonymous' : name) + '</span>' + (Config.displayImagesOnly ? '' : tripcode) +
         capcodeStart + capcode + userId + flag +
         '<br><span class="subject">' + subject +
         '</span></span><span class="dateTime postNum" data-utc="' + data.time + '">' +
@@ -418,7 +418,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
         '<input type="checkbox" name="' + data.no + '" value="delete"> ' +
         '<span class="subject">' + subject + '</span> ' +
         '<span class="nameBlock' + capcodeClass + '">' + emailStart +
-          '<span class="name">' + name + '</span>' +
+          '<span class="name">' + (Config.displayImagesOnly ? '' : name) + '</span>' +
           tripcode + capcodeStart + emailEnd + capcode + userId + flag +
         ' </span> ' +
         '<span class="dateTime" data-utc="' + data.time + '">' + data.now + '</span> ' +
@@ -429,7 +429,7 @@ Parser.buildHTMLFromJSON = function(data, board) {
       '</div>' +
       (isOP ? '' : fileHtml) +
       '<blockquote class="postMessage" id="m' + data.no + '">'
-      + (data.com || '') + '</blockquote> ' +
+      + (Config.displayImagesOnly ? '' : (data.com || '')) + '</blockquote> ' +
     '</div>';
   
   if (!Main.tid || board != Main.board) {
@@ -4815,6 +4815,7 @@ var Config = {
   filter: false,
   revealSpoilers: false,
   replyHiding: false,
+  displayImagesOnly: false,
   imageHover: false,
   threadStats: false,
   IDColor: false,
@@ -4921,6 +4922,7 @@ SettingsMenu.options = {
     filter: [ 'Filters &amp; Highlights [<a href="javascript:;" data-cmd="filters-open">Edit</a>]', 'Enable pattern-based filters' ],
     threadHiding: [ 'Thread hiding [<a href="javascript:;" data-cmd="thread-hiding-clear">Clear</a>]', 'Enable thread hiding', true ],
     replyHiding: [ 'Reply hiding', 'Enable reply hiding' ],
+    displayImagesOnly: [ 'Display Images Only', 'Display Images Only. Do not display post message, post name, file name, etc' ],
     hideStubs: [ 'Hide thread stubs', "Don't display stubs of hidden threads" ]
   },
   'Images': {
@@ -5004,6 +5006,7 @@ SettingsMenu.presets = {
     filter: 1,
     revealSpoilers: 1,
     replyHiding: 1,
+    displayImagesOnly: 1,
     inlineQuotes: 1,
     imageHover: 1,
     threadStats: 1,

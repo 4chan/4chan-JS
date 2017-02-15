@@ -2142,6 +2142,9 @@ QR.submit = function(force) {
       if (ThreadUpdater.enabled) {
         setTimeout(ThreadUpdater.forceUpdate, 500);
       }
+	  
+	  UA.dispatchEvent('QRPostSuccess', { thread: tid, post: pid });
+	  
     }
     else {
       QR.showPostError('Error: ' + this.status + ' ' + this.statusText);
@@ -3418,6 +3421,9 @@ ThreadUpdater.onload = function() {
         op = newposts[0];
         ThreadStats.update(op.replies, op.images, op.bumplimit, op.imagelimit);
       }
+	  
+	  UA.dispatchEvent('ThreadUpdated', { count: count });
+	  
     }
     else {
       self.setStatus('No new posts');

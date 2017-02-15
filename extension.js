@@ -4,10 +4,12 @@
  *                              *
  ********************************/
 
+(function(){
+
 /**
  * Helpers
  */
-$ = {};
+var $ = {};
 
 $.id = function(id) {
   return document.getElementById(id);
@@ -6661,3 +6663,5 @@ kbd {\
 };
 
 Main.init();
+
+})();

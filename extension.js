@@ -8506,7 +8506,7 @@ SettingsMenu.options = {
     revealSpoilers: [ "Don't spoiler images", 'Show image thumbnail and original filename instead of spoiler placeholders', true ],
     unmuteWebm: [ 'Un-mute WebM audio', 'Un-mute sound automatically for WebM playback', true ],
     noPictures: [ 'Hide thumbnails', 'Don\'t display thumbnails while browsing', true ],
-    onlyPictures: [ 'Image only mode', 'Hide posts without images.', true],
+    onlyPictures: [ 'Hide replies without images', 'Automatically hide replies without images.', true],
     embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
     embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ],
   },

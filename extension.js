@@ -1150,7 +1150,7 @@ Parser.revealImageSpoiler = function(fileThumb) {
 };
 
 Parser.parsePost = function(pid, tid) {
-  var hasMobileLayout, cnt, el, pi, file, msg, filtered, uid;
+  var hasMobileLayout, cnt, el, pi, file, msg, filtered, uid, pcont;
   
   hasMobileLayout = Main.hasMobileLayout;
   
@@ -1192,8 +1192,9 @@ Parser.parsePost = function(pid, tid) {
         ReplyHiding.hide(pid);
       }
       
-      if (Config.onlyPictures && (pcont = document.getElementById('pc' + pid))) {
-        if (!document.getElementById('f' + pid) && !$.hasClass(pcont, 'post-hidden')) {
+      if (Config.onlyPictures && !document.getElementById('f' + pid)) {
+        pcont = document.getElementById('pc' + pid)
+        if (!$.hasClass(pcont, 'post-hidden')) {
           $.addClass(pcont, 'post-hidden');
         }
       }

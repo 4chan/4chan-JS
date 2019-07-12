@@ -268,7 +268,7 @@ Parser.init = function() {
     this.pruneTrackedReplies();
   }
   
-  this.postMenuIcon = Main.hasMobileLayout ? '...' : 'â–¶';
+  this.postMenuIcon = Main.hasMobileLayout ? '...' : '▶';
 };
 
 Parser.getTrackedReplies = function(board, tid) {
@@ -1284,7 +1284,7 @@ Parser.parseBacklinks = function(pid, tid) {
     
     if (!(target = document.getElementById('pi' + ids[1]))) {
       if (Main.tid && j.textContent.charAt(2) != '>' ) {
-        j.textContent += ' â†’';
+        j.textContent += ' →';
       }
       continue;
     }
@@ -1847,7 +1847,7 @@ var Search = {
     
     if (flag) {
       el.disabled = true;
-      Search.showStatus('Searchingâ€¦', 'spnr');
+      Search.showStatus('Searching…', 'spnr');
     }
     else {
       el.disabled = false;
@@ -2155,7 +2155,7 @@ Depager.setStatus = function(type) {
   }
   else if (type == 'loading') {
     for (i = 0; el = links[i]; ++i) {
-      el.textContent = 'Loadingâ€¦';
+      el.textContent = 'Loading…';
     }
   }
   else if (type == 'disabled') {
@@ -6754,8 +6754,8 @@ Filter.openHelp = function() {
 <ul><li><strong>Exact match:</strong></li>\
 <li><code>"that feel when"</code> &mdash; place double quotes around the pattern to search for an exact string</li></ul>\
 <ul><li><strong>Wildcards:</strong></li>\
-<li><code>feel*</code> &mdash; matches expressions such as <em>"feel"</em>, <em>"feels"</em>, <em>"feeling"</em>, <em>"feeler"</em>, etcâ€¦</li>\
-<li><code>idolm*ster</code> &mdash; this can match <em>"idolmaster"</em> or <em>"idolm@ster"</em>, etcâ€¦</li></ul>\
+<li><code>feel*</code> &mdash; matches expressions such as <em>"feel"</em>, <em>"feels"</em>, <em>"feeling"</em>, <em>"feeler"</em>, etc…</li>\
+<li><code>idolm*ster</code> &mdash; this can match <em>"idolmaster"</em> or <em>"idolm@ster"</em>, etc…</li></ul>\
 <ul><li><strong>Regular expressions:</strong></li>\
 <li><code>/feel when no (girl|boy)friend/i</code></li>\
 <li><code>/^(?!.*touhou).*$/i</code> &mdash; NOT operator.</li>\
@@ -6763,7 +6763,7 @@ Filter.openHelp = function() {
 <li><code>/^$/</code> &mdash; comments with no text.</li></ul>\
 <h4>Colors:</h4>\
 <ul><li>The color field can accept any valid CSS color:</li>\
-<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etcâ€¦</li></ul>\
+<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etc…</li></ul>\
 <h4>Boards:</h4>\
 <ul><li>A space separated list of boards on which the filter will be active. Leave blank to apply to all boards.</li></ul>\
 <h4>Auto-watching:</h4>\
@@ -8055,7 +8055,7 @@ CustomMenu.apply = function(str) {
   else {
     cnt.appendChild(document.createTextNode(' ['));
     el = document.createElement('a');
-    el.textContent = 'â€¦';
+    el.textContent = '…';
     el.title = 'Show all';
     el.className = 'show-all-boards pointer';
     cnt.appendChild(el);
@@ -8962,7 +8962,7 @@ var PostLiker = {
     
     if (data[0] === '1') {
       data = data.split(/\n/);
-      this.btn.textContent = 'Like! Ã—' + data[1];
+      this.btn.textContent = 'Like! ×' + data[1];
       this.btn.style.opacity = '1';
       self.state.known = true;
       self.state.score = +data[2];
@@ -9556,9 +9556,9 @@ Main.setStickyNav = function() {
   
   hdr = document.createElement('div');
   hdr.innerHTML = '<img class="pointer" src="'
-    +  Main.icons.up + '" data-cmd="totop" alt="â–²" title="Top">'
+    +  Main.icons.up + '" data-cmd="totop" alt="▲" title="Top">'
     + '<img class="pointer" src="' +  Main.icons.down
-    + '" data-cmd="tobottom" alt="â–¼" title="Bottom">';
+    + '" data-cmd="tobottom" alt="▼" title="Bottom">';
   Draggable.set(hdr);
   
   cnt.appendChild(hdr);
@@ -10380,7 +10380,7 @@ a.tex-logo sub { pointer-events: none; }\
   margin: 20px 0 0 10px;\
 }\
 #filtersHelp h4:before {\
-  content: "Â»";\
+  content: "»";\
   margin-right: 3px;\
 }\
 #filtersHelp ul {\

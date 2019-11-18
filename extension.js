@@ -3289,7 +3289,9 @@ QR.init = function() {
     }
   }
   
+  this.painterTime = 0;
   this.painterData = null;
+  this.replayBlob = null;
   
   this.captchaWidgetCnt = null;
   this.captchaWidgetId = null;
@@ -3474,7 +3476,7 @@ QR.syncStorage = function(e) {
 };
 
 QR.openPainter = function() {
-  var w, h, dims;
+  var w, h, dims, cb;
   
   dims = $.tag('input', $.id('qr-painter-ctrl'));
   
@@ -3485,9 +3487,14 @@ QR.openPainter = function() {
     return;
   }
   
+  cb = $.cls('oe-r-cb', $.id('qr-painter-ctrl'))[0];
+  
+  Keybinds.enabled = false;
+  
   window.Tegaki.open({
     onDone: QR.onPainterDone,
     onCancel: QR.onPainterCancel,
+    saveReplay: cb && cb.checked,
     width: w,
     height: h
   });
@@ -3496,7 +3503,20 @@ QR.openPainter = function() {
 QR.onPainterDone = function() {
   var el;
   
+  Keybinds.enabled = true;
+  
   QR.painterData = Tegaki.flatten().toDataURL('image/png');
+  
+  if (Tegaki.saveReplay) {
+    QR.replayBlob = Tegaki.replayRecorder.toBlob();
+  }
+  
+  if (!Tegaki.hasCustomCanvas && Tegaki.startTimeStamp) {
+    QR.painterTime = Math.round((Date.now() - Tegaki.startTimeStamp) / 1000);
+  }
+  else {
+    QR.painterTime = 0;
+  }
   
   if (el = $.id('qrFile')) {
     el.disabled = true;
@@ -3504,13 +3524,22 @@ QR.onPainterDone = function() {
   
   if (el = $.tag('button', $.id('qr-painter-ctrl'))[1]) {
     el.disabled = false;
+  }
+  
+  if (el = $.cls('oe-r-cb', $.id('qr-painter-ctrl'))[0]) {
+    el.disabled = true;
   }
 };
 
 QR.onPainterCancel = function() {
   var el;
   
+  Keybinds.enabled = true;
+  
   QR.painterData = null;
+  QR.replayBlob = null;
+  
+  QR.painterTime = 0;
   
   if (el = $.id('qrFile')) {
     el.disabled = false;
@@ -3518,6 +3547,10 @@ QR.onPainterCancel = function() {
   
   if (el = $.tag('button', $.id('qr-painter-ctrl'))[1]) {
     el.disabled = true;
+  }
+  
+  if (el = $.cls('oe-r-cb', $.id('qr-painter-ctrl'))[0]) {
+    el.disabled = false;
   }
 };
 
@@ -3843,6 +3876,7 @@ QR.onFileChange = function() {
   }
   
   QR.painterData = null;
+  QR.replayBlob = null;
   
   QR.startCooldown();
 };
@@ -4005,9 +4039,10 @@ QR.resetFile = function() {
   var file, el;
   
   QR.painterData = null;
+  QR.replayBlob = null;
   
-  if (el = $.id('qrDraw')) {
-    el.firstElementChild.textContent = 'Draw';
+  if (el = $.cls('oe-r-cb', $.id('qr-painter-ctrl'))[0]) {
+    el.disabled = false;
   }
   
   el = document.createElement('input');
@@ -4145,6 +4180,12 @@ QR.submit = function(force) {
   
   if (QR.painterData) {
     QR.appendPainter(formdata);
+    
+    if (QR.replayBlob) {
+      formdata.append('oe_replay', QR.replayBlob, 'tegaki.tgkr');
+    }
+    
+    formdata.append('oe_time', QR.painterTime);
   }
   
   clearInterval(QR.pulse);
@@ -4667,7 +4708,7 @@ ReplyHiding.save = function() {
 var ThreadWatcher = {};
 
 ThreadWatcher.init = function() {
-  var cnt, jumpTo, rect, el;
+  var cnt, jumpTo, rect, el, awt;
   
   this.listNode = null;
   this.charLimit = 45;
@@ -4703,6 +4744,24 @@ ThreadWatcher.init = function() {
     
     if (window.history && history.replaceState) {
       history.replaceState(null, '', location.href.split('#', 1)[0]);
+    }
+  }
+  
+  if (Config.threadAutoWatcher) {
+    if (awt = Main.getCookie('4chan_awt')) {
+      Main.removeCookie('4chan_awt', '.' + $L.d(Main.board), '/' + Main.board + '/');
+      
+      this.add(+awt, Main.board);
+      this.save();
+    }
+    
+    if (document.forms.post) {
+      el = $.el('input');
+      el.type = 'hidden';
+      el.name = 'awt';
+      el.value = '1';
+      
+      document.forms.post.appendChild(el);
     }
   }
   
@@ -4948,7 +5007,7 @@ ThreadWatcher.generateLabel = function(sub, com, tid) {
 };
 
 ThreadWatcher.toggle = function(tid, board) {
-  var key, label, sub, com, lastReply, thread;
+  var key;
   
   key = tid + '-' + (board || Main.board);
   
@@ -4957,29 +5016,38 @@ ThreadWatcher.toggle = function(tid, board) {
     delete this.watched[key];
   }
   else {
-    sub = $.cls('subject', $.id('pi' + tid))[0].textContent;
-    com = $.id('m' + tid).innerHTML;
-    
-    label = ThreadWatcher.generateLabel(sub, com, tid);
-    
-    if ((thread = $.id('t' + tid)).children[1]) {
-      lastReply = thread.lastElementChild.id.slice(2);
-    }
-    else {
-      lastReply = tid;
-    }
-    
-    this.watched[key] = [ label, lastReply, 0 ];
+    this.add(tid, board, key);
   }
+  
   this.save();
   this.load();
   this.build(true);
 };
 
+ThreadWatcher.add = function(tid, board) {
+  var key, label, sub, com, lastReply, thread;
+  
+  key = tid + '-' + (board || Main.board);
+  
+  sub = $.cls('subject', $.id('pi' + tid))[0].textContent;
+  com = $.id('m' + tid).innerHTML;
+  
+  label = this.generateLabel(sub, com, tid);
+  
+  if ((thread = $.id('t' + tid)).children[1]) {
+    lastReply = thread.lastElementChild.id.slice(2);
+  }
+  else {
+    lastReply = tid;
+  }
+  
+  this.watched[key] = [ label, lastReply, 0 ];
+};
+
 ThreadWatcher.addRaw = function(post, board) {
   var key, label;
   
-  key = post.no + '-' + board;
+  key = post.no + '-' + (board || Main.board);
   
   if (this.watched[key]) {
     return;
@@ -7726,9 +7794,13 @@ CustomCSS.onClick = function(e) {
 /**
  * Keyboard shortcuts
  */
-var Keybinds = {};
+var Keybinds = {
+  enabled: false
+};
 
 Keybinds.init = function() {
+  this.enabled = true;
+
   this.map = {
     // A
     65: function() {
@@ -7780,7 +7852,7 @@ Keybinds.init = function() {
 Keybinds.resolve = function(e) {
   var bind, el = e.target;
   
-  if (el.nodeName == 'TEXTAREA' || el.nodeName == 'INPUT') {
+  if (!Keybinds.enabled || el.nodeName == 'TEXTAREA' || el.nodeName == 'INPUT') {
     return;
   }
   
@@ -8295,6 +8367,7 @@ var Config = {
   alwaysAutoUpdate: false,
   topPageNav: false,
   threadWatcher: false,
+  threadAutoWatcher: false,
   imageExpansion: true,
   fitToScreenExpansion: false,
   threadExpansion: true,
@@ -8469,6 +8542,7 @@ SettingsMenu.options = {
     threadUpdater: [ 'Thread updater', 'Append new posts to bottom of thread without refreshing the page', true ],
     alwaysAutoUpdate:[ 'Auto-update by default', 'Always auto-update threads', true ],
     threadWatcher: [ 'Thread Watcher', 'Keep track of threads you\'re watching and see when they receive new posts', true ],
+    threadAutoWatcher: [ 'Automatically watch threads you create', '', true, true ],
     autoScroll: [ 'Auto-scroll with auto-updated posts', 'Automatically scroll the page as new posts are added' ],
     updaterSound: [ 'Sound notification', 'Play a sound when somebody replies to your post(s)' ],
     fixedThreadWatcher: [ 'Pin Thread Watcher to the page', 'Thread Watcher will scroll with you' ],
@@ -9596,14 +9670,18 @@ Main.setCookie = function(name, value, domain) {
     + '; path=/; domain=' + domain;
 };
 
-Main.removeCookie = function(name, domain) {
+Main.removeCookie = function(name, domain, path) {
   if (!domain) {
     domain = location.host;
   }
   
+  if (!path) {
+    path = '/';
+  }
+  
   document.cookie = name + '='
     + '; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-    + '; path=/; domain=' + domain;
+    + '; path=' + path + '; domain=' + domain;
 };
 
 Main.onclick = function(e) {
@@ -9990,13 +10068,6 @@ img.pointer {\
   width: 130px;\
   margin-right: 5px;\
 }\
-#qrDraw {\
-  display: inline-block;\
-  text-align: center;\
-  width: 40px;\
-}\
-#qrDraw a { text-decoration: none }\
-.qrDrawActive a:after { content: "*" }\
 .yotsuba_new #qrFile {\
   color:black;\
 }\
@@ -10691,6 +10762,7 @@ div.collapseWebm { text-align: center; margin-top: 10px; }\
   top: 1px;\
 }\
 #qr-painter-ctrl { text-align: center; }\
+#qr-painter-ctrl label { margin-right: 4px; }\
 .open-qr-wrap {\
   text-align: center;\
   width: 200px;\

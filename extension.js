@@ -822,9 +822,9 @@ Parser.buildHTMLFromJSON = function(data, board, standalone, fromQuote) {
   container.className = 'postContainer ' + postType + 'Container';
   container.id = 'pc' + data.no;
   
-  if (data.xa18 !== undefined && !data.capcode) {
-    capcodeStart = ' <strong class="capcode hand n-atb n-atb-'
-      + data.xa18 + ' id_at' + data.xa18 + '"></strong>';
+  if (data.xa20 !== undefined && !data.capcode) {
+    capcodeStart = '  <span class="xa20e"></span>';
+    container.className += ' xa20' + data.xa20;
   }
   
   container.innerHTML =
@@ -1206,6 +1206,10 @@ Parser.parsePost = function(pid, tid) {
     if (Config.backlinks) {
       Parser.parseBacklinks(pid, tid);
     }
+    
+    if (Main.isOekakiBoard && Main.tid) {
+      Parser.addOekakiEditLink(pid, tid);
+    }
   }
   
   if (IDColor.enabled && (uid = $.cls('posteruid', pi.parentNode)[hasMobileLayout ? 0 : 1])) {
@@ -1220,7 +1224,7 @@ Parser.parsePost = function(pid, tid) {
     Media.parseSoundCloud(msg);
   }
   
-  if (Config.embedYouTube || Main.hasMobileLayout) {
+  if (Config.embedYouTube || hasMobileLayout) {
     Media.parseYouTube(msg);
   }
   
@@ -1246,7 +1250,27 @@ Parser.parsePost = function(pid, tid) {
         = Parser.getLocaleDate(new Date(el.getAttribute('data-utc') * 1000));
     }
   }
+};
+
+Parser.addOekakiEditLink = function(pid, tid) {
+  var cnt, el, a;
   
+  cnt = $.id('fT' + pid);
+  
+  if (!cnt) {
+    return;
+  }
+  
+  a = cnt.firstElementChild;
+  
+  if (!a.href || !/\.(png|jpg)$/.test(a.href)) {
+    return;
+  }
+  
+  el = $.el('small');
+  el.innerHTML = ' <a href="#" data-pid="' + pid + '" data-tid="'
+    + tid + '" data-tip="Open in Tegaki" data-cmd="qr-painter-edit">Edit</a>';
+  cnt.appendChild(el);
 };
 
 Parser.getLocaleDate = function(date) {
@@ -3274,7 +3298,7 @@ QR.init = function() {
   this.cdElapsed = 0;
   this.activeDelay = 0;
   
-  this.ctTTL = 170;
+  this.ctTTL = 290;
   this.ctTimeout = null;
   
   this.cooldowns = {};
@@ -3291,7 +3315,9 @@ QR.init = function() {
   
   this.painterTime = 0;
   this.painterData = null;
+  this.painterSrc = null;
   this.replayBlob = null;
+  this.canvasLoading = false;
   
   this.captchaWidgetCnt = null;
   this.captchaWidgetId = null;
@@ -3475,6 +3501,83 @@ QR.syncStorage = function(e) {
   }
 };
 
+QR.onOpenInPainterClick = function(btn) {
+  var img, el, tid, pid;
+  
+  if (QR.canvasLoading) {
+    Feedback.error('An image is already being loaded.');
+    return;
+  }
+  
+  pid = +btn.getAttribute('data-pid');
+  tid = +btn.getAttribute('data-tid');
+  
+  if (!pid || !tid) {
+    return false;
+  }
+  
+  el = $.qs('#f' + pid + ' a[class="fileThumb"]');
+  
+  if (!el) {
+    return false;
+  }
+  
+  if (/\.(png|jpg)$/.test(el.href) === false) {
+    return false;
+  }
+  
+  QR.canvasLoading = true;
+  
+  img = new Image();
+  img.crossOrigin = 'Anonymous';
+  img.onload = QR.onPainterCanvasLoaded;
+  img.onerror = QR.onPainterCanvasError; 
+  img._pid = pid;
+  
+  Feedback.notify('Loading…', 0);
+  
+  img.src = el.href;
+  
+  QR.show(tid);
+};
+
+QR.onPainterCanvasError = function() {
+  QR.canvasLoading = false;
+  Feedback.error("Couldn't load the image.", 5000);
+};
+
+QR.onPainterCanvasLoaded = function() {
+  Feedback.hideMessage();
+  
+  QR.canvasLoading = false;
+  
+  if (!QR.currentTid) {
+    return;
+  }
+  
+  if (this.naturalWidth < 1 || this.naturalHeight < 1) {
+    return;
+  }
+  
+  if (Tegaki.startTimeStamp) {
+    Tegaki.destroy();
+  }
+  
+  Keybinds.enabled = false;
+  
+  QR.painterSrc = this._pid;
+  
+  Tegaki.open({
+    onDone: QR.onPainterDone,
+    onCancel: QR.onPainterCancel,
+    saveReplay: false,
+    width: 1,
+    height: 1
+  });
+  
+  Tegaki.onOpenImageLoaded.call(this);
+};
+
 QR.openPainter = function() {
   var w, h, dims, cb;
   
@@ -3501,7 +3604,7 @@ QR.openPainter = function() {
 };
 
 QR.onPainterDone = function() {
-  var el;
+  var el, cnt;
   
   Keybinds.enabled = true;
   
@@ -3511,45 +3614,58 @@ QR.onPainterDone = function() {
     QR.replayBlob = Tegaki.replayRecorder.toBlob();
   }
   
-  if (!Tegaki.hasCustomCanvas && Tegaki.startTimeStamp) {
-    QR.painterTime = Math.round((Date.now() - Tegaki.startTimeStamp) / 1000);
-  }
-  else {
-    QR.painterTime = 0;
+  QR.painterTime = 0;
+  
+  if (Tegaki.startTimeStamp) {
+    if (!Tegaki.hasCustomCanvas || QR.painterSrc) {
+      QR.painterTime = Math.round((Date.now() - Tegaki.startTimeStamp) / 1000);
+    }
   }
   
   if (el = $.id('qrFile')) {
-    el.disabled = true;
+    el.style.visibility = 'hidden';
   }
   
-  if (el = $.tag('button', $.id('qr-painter-ctrl'))[1]) {
+  cnt = $.id('qr-painter-ctrl');
+  
+  if (el = $.tag('button', cnt)[0]) {
+    el.textContent = 'Edit';
+  }
+  
+  if (el = $.tag('button', cnt)[1]) {
     el.disabled = false;
   }
   
-  if (el = $.cls('oe-r-cb', $.id('qr-painter-ctrl'))[0]) {
+  for (el of $.tag('input', cnt)) {
     el.disabled = true;
   }
 };
 
 QR.onPainterCancel = function() {
-  var el;
+  var el, cnt;
   
   Keybinds.enabled = true;
   
   QR.painterData = null;
+  QR.painterSrc = null;
   QR.replayBlob = null;
-  
   QR.painterTime = 0;
   
   if (el = $.id('qrFile')) {
-    el.disabled = false;
+    el.style.visibility = '';
   }
   
-  if (el = $.tag('button', $.id('qr-painter-ctrl'))[1]) {
+  cnt = $.id('qr-painter-ctrl');
+  
+  if (el = $.tag('button', cnt)[0]) {
+    el.textContent = 'Draw';
+  }
+  
+  if (el = $.tag('button', cnt)[1]) {
     el.disabled = true;
   }
   
-  if (el = $.cls('oe-r-cb', $.id('qr-painter-ctrl'))[0]) {
+  for (el of $.tag('input', cnt)) {
     el.disabled = false;
   }
 };
@@ -3600,6 +3716,7 @@ QR.addQuote = function(pid) {
   if (ta.selectionStart == ta.value.length) {
     ta.scrollTop = ta.scrollHeight;
   }
+  
   ta.focus();
 };
 
@@ -3946,6 +4063,12 @@ QR.close = function() {
   QR.comField = null;
   QR.currentTid = null;
   
+  QR.painterTime = 0;
+  QR.painterData = null;
+  QR.painterSrc = null;
+  QR.replayBlob = null;
+  QR.canvasLoading = false;
+  
   clearInterval(QR.pulse);
   
   if (QR.xhr) {
@@ -4040,10 +4163,6 @@ QR.resetFile = function() {
   
   QR.painterData = null;
   QR.replayBlob = null;
-  
-  if (el = $.cls('oe-r-cb', $.id('qr-painter-ctrl'))[0]) {
-    el.disabled = false;
-  }
   
   el = document.createElement('input');
   el.id = 'qrFile';
@@ -4186,6 +4305,10 @@ QR.submit = function(force) {
     }
     
     formdata.append('oe_time', QR.painterTime);
+    
+    if (QR.painterSrc) {
+      formdata.append('oe_src', QR.painterSrc);
+    }
   }
   
   clearInterval(QR.pulse);
@@ -8710,7 +8833,7 @@ SettingsMenu.showExport = function() {
     return;
   }
   
-  str = location.href.replace(location.hash, '') + '#cfg=' + Config.toURL();
+  str = location.href.replace(location.hash, '').replace(/^http:/, 'https:') + '#cfg=' + Config.toURL();
   
   cnt = document.createElement('div');
   cnt.id = 'exportSettings';
@@ -9267,6 +9390,8 @@ Main.run = function() {
   $.id('settingsWindowLinkBot').addEventListener('click', SettingsMenu.toggle, false);
   $.id('settingsWindowLinkMobile').addEventListener('click', SettingsMenu.toggle, false);
   
+  Main.isOekakiBoard = Main.board === 'i';
+  
   Main.hasMobileLayout = Main.checkMobileLayout();
   Main.isMobileDevice = /Mobile|Android|Dolfin|Opera Mobi|PlayStation Vita|Nintendo DS/.test(navigator.userAgent);
   
@@ -9698,20 +9823,6 @@ Main.onclick = function(e) {
         e.preventDefault();
         ThreadUpdater.forceUpdate();
         break;
-      /*
-      case 'like-post':
-        e.preventDefault();
-        PostLiker.onLikeClick(t);
-        break;
-      case 'like-show-perks':
-        e.preventDefault();
-        PostLiker.onShowPerksClick(t);
-        break;
-      case 'like-hide-perks':
-        e.preventDefault();
-        PostLiker.onHidePerksClick(t);
-        break;
-      */
       case 'post-menu':
         e.preventDefault();
         PostMenu.open(t);
@@ -9752,6 +9863,10 @@ Main.onclick = function(e) {
         break;
       case 'qr-painter-clear':
         QR.onPainterCancel();
+        break;
+      case 'qr-painter-edit':
+        e.preventDefault();
+        QR.onOpenInPainterClick(t);
         break;
       case 'unfilter':
         Filter.unfilter(t);

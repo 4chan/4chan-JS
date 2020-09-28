@@ -821,12 +821,12 @@ Parser.buildHTMLFromJSON = function(data, board, standalone, fromQuote) {
   
   container.className = 'postContainer ' + postType + 'Container';
   container.id = 'pc' + data.no;
-  
+  /*
   if (data.xa20 !== undefined && !data.capcode) {
     capcodeStart = '  <span class="xa20e"></span>';
     container.className += ' xa20' + data.xa20;
   }
-  
+  */
   container.innerHTML =
     (isOP ? '' : '<div class="sideArrows" id="sa' + data.no + '">&gt;&gt;</div>') +
     '<div id="p' + data.no + '" class="post ' + postType + highlight + '">' +
@@ -3536,7 +3536,7 @@ QR.onOpenInPainterClick = function(btn) {
   
   Feedback.notify('Loading…', 0);
   
-  img.src = el.href;
+  img.src = el.href.replace('is2.4chan.org', 'i.4cdn.org');
   
   QR.show(tid);
 };
@@ -4870,24 +4870,6 @@ ThreadWatcher.init = function() {
     }
   }
   
-  if (Config.threadAutoWatcher) {
-    if (awt = Main.getCookie('4chan_awt')) {
-      Main.removeCookie('4chan_awt', '.' + $L.d(Main.board), '/' + Main.board + '/');
-      
-      this.add(+awt, Main.board);
-      this.save();
-    }
-    
-    if (document.forms.post) {
-      el = $.el('input');
-      el.type = 'hidden';
-      el.name = 'awt';
-      el.value = '1';
-      
-      document.forms.post.appendChild(el);
-    }
-  }
-  
   cnt = document.createElement('div');
   cnt.id = 'threadWatcher';
   cnt.className = 'extPanel reply';
@@ -4924,6 +4906,24 @@ ThreadWatcher.init = function() {
   this.listNode.id = 'watchList';
   
   this.load();
+  
+  if (Config.threadAutoWatcher) {
+    if (awt = Main.getCookie('4chan_awt')) {
+      Main.removeCookie('4chan_awt', '.' + $L.d(Main.board), '/' + Main.board + '/');
+      
+      this.add(+awt, Main.board);
+      this.save();
+    }
+    
+    if (document.forms.post) {
+      el = $.el('input');
+      el.type = 'hidden';
+      el.name = 'awt';
+      el.value = '1';
+      
+      document.forms.post.appendChild(el);
+    }
+  }
   
   if (Main.tid) {
     this.refreshCurrent();
@@ -6278,6 +6278,12 @@ ThreadUpdater.onload = function() {
         && document[self.hidden]
         && doc.scrollHeight == Math.ceil(window.innerHeight + window.pageYOffset)
       );
+      
+      if (window.chrome && document.activeElement) {
+        if (document.activeElement.href || document.activeElement.type === 'checkbox') {
+          document.activeElement.blur();
+        }
+      }
       
       frag = document.createDocumentFragment();
       for (i = nodes.length - 1; i >= 0; i--) {
@@ -8051,8 +8057,7 @@ var Del = {
     }
     
     params = {
-      mode: window.thread_archived ? 'arcdel' : 'usrdel',
-      pwd: Main.getCookie('4chan_pass') || ''
+      mode: window.thread_archived ? 'arcdel' : 'usrdel'
     };
     
     params[pid] = 'delete';
@@ -8984,272 +8989,6 @@ var Feedback = {
 };
 
 /**
- * Post Liker
- */
-/*
-var PostLiker = {
-  state: {},
-  
-  captchaId: null,
-  
-  activeBtn: null,
-  
-  cd: 120,
-  
-  init: function() {
-    PostLiker.loadState();
-  },
-  
-  onShowPerksClick: function() {
-    var allPerks = ['showscore','smiley','sad','coinflip','dice+1d6','ok',
-    'animal','food','check','cross','nofile',
-    'card','wflag','bflag','like','rabbit','unlove','rage','perfect','fortune',
-    'dice+1d100','bricks','onsen','party','verified','partyhat','pickle',
-    'trash','heart','santa','joy','marquee','pig','dog','cat','rainbow','frog',
-    'dino','spooky'];
-    
-    var el, unlocked, locked, html, i, perk, hasPerks;
-    
-    PostLiker.onHidePerksClick();
-    
-    PostLiker.loadState();
-    
-    if (!PostLiker.state.perks) {
-      hasPerks = ['showscore'];
-    }
-    else {
-      hasPerks = PostLiker.state.perks;
-    }
-    
-    el = document.createElement('div');
-    el.id = 'like-perks-cnt';
-    el.className = 'UIPanel';
-    el.setAttribute('data-cmd', 'like-hide-perks');
-    
-    html = '\
-<div class="extPanel reply"><div class="panelHeader">Perks\
-<span class="panelCtrl"><img alt="Close" title="Close" class="pointer" data-cmd="like-hide-perks" src="'
-+ Main.icons.cross + '"></span></div><ul><li>Unlock perks by accumulating points.</li>'
-+ '<li>Points are gained for making posts, giving Likes and receiving Likes.</li>'
-+ '<li>Points are lost if you get banned, warned or get your posts deleted by the moderation team.</li>'
-+ '<li>Perks are entered in the Options field.</li>'
-+ '<li>Only one perk can be used at a time.</li>'
-+ '</ul>';
-    
-    html += '<h4>Your Score: ' + (PostLiker.state.score || 0) + '</h4>'
-    
-    unlocked = [];
-    locked = [];
-    
-    for (i = 0; perk = allPerks[i]; ++i) {
-      if (hasPerks.indexOf(perk) !== -1) {
-        unlocked.push(perk);
-      }
-      else {
-        locked.push(perk);
-      }
-    }
-    
-    if (unlocked[0]) {
-      html += '<h4>Unlocked Perks:</h4>'
-      html += '<div class="like-perk-list"><kbd>' + unlocked.join('</kbd> <kbd>') + '</kbd></div>';
-    }
-    
-    if (locked[0]) {
-      html += '<h4>Locked Perks:</h4>'
-      html += '<div class="like-perk-list"><kbd>' + locked.join('</kbd> <kbd>') + '</kbd></div>';
-    }
-    
-    el.innerHTML = html;
-    
-    document.body.appendChild(el);
-  },
-  
-  onHidePerksClick: function() {
-    var el;
-    
-    if (el = $.id('like-perks-cnt')) {
-      el.parentNode.removeChild(el);
-    }
-  },
-  
-  onLikeClick: function(btn) {
-    var left, self = PostLiker;
-    
-    if (self.state.ts && (left = Math.ceil((Date.now() - self.state.ts) / 1000)) < self.cd) {
-      alert("You need to wait a while before doing this again (" + (self.cd - left) + 's left)');
-      return;
-    }
-    
-    self.activeBtn = btn;
-    self.captchaId = null;
-    
-    if (!self.state.known && !window.passEnabled) {
-      self.showCaptcha();
-    }
-    else {
-      self.like();
-    }
-  },
-  
-  like: function() {
-    var params, self, pid;
-    
-    self = PostLiker;
-    
-    pid = self.activeBtn.parentNode.parentNode.id.slice(2);
-    
-    params = {
-      mode: 'like_post',
-      post_id: pid
-    }
-    
-    if (self.captchaId !== null) {
-      params['g-recaptcha-response'] = grecaptcha.getResponse(self.captchaId);
-    }
-    
-    window.createCookie('xa19', pid, 1, '.' + $L.d(Main.board));
-    
-    self.activeBtn.style.opacity = '0.25';
-    
-    $.xhr('POST', 'https://sys.' + $L.d(Main.board) + '/' + Main.board + '/imgboard.php',
-      {
-        onload: self.onPostLiked,
-        onerror: self.onError,
-        withCredentials: true,
-        btn: self.activeBtn,
-      },
-      params
-    );
-  },
-  
-  onPostSubmit: function(txt) {
-    var data;
-    
-    data = txt.match(/<!-- xa19:([0-9]+) ([^:]+):xa19 -->/);
-    
-    if (!data) {
-      console.log('PostLiker: state error');
-      return;
-    }
-    
-    PostLiker.state.score = +data[1];
-    PostLiker.state.perks = data[2].split(/ /);
-    PostLiker.saveState();
-  },
-  
-  onPostLiked: function() {
-    var data, self;
-    
-    self = PostLiker;
-    
-    self.closeCaptcha();
-    
-    if (!this.responseText) {
-      return;
-    }
-    
-    data = this.responseText;
-    
-    if (data[0] === '0') {
-      console.log(data.slice(2));
-      this.btn.style.opacity = '1';
-      return;
-    }
-    
-    if (data[0] === '1') {
-      data = data.split(/\n/);
-      this.btn.textContent = 'Like! ×' + data[1];
-      this.btn.style.opacity = '1';
-      self.state.known = true;
-      self.state.score = +data[2];
-      self.state.perks = data[3].split(' ');
-      self.state.ts = Date.now();
-      self.saveState();
-      return;
-    }
-    
-    this.btn.textContent = 'Like!';
-    this.btn.style.opacity = '1';
-    
-    self.state.known = false;
-    self.saveState();
-    
-    self.onError();
-  },
-  
-  onError: function() {
-    console.log('PostLiker: error');
-    PostLiker.closeCaptcha();
-  },
-  
-  showCaptcha: function() {
-    var self, cnt, btnPos, btn;
-    
-    self = PostLiker;
-    
-    self.closeCaptcha();
-    
-    btn = self.activeBtn;
-    
-    cnt = $.el('div');
-    cnt.id = 'js-like-captcha';
-    cnt.innerHTML = '<div style="margin-bottom: 2px">Please solve the captcha. ' +
-      'This is done only once.</div><div id="js-like-captcha-cnt"></div>';
-    
-    cnt.className = 'reply';
-    
-    btnPos = btn.getBoundingClientRect();
-    
-    cnt.style.padding = '4px';
-    cnt.style.position = 'absolute';
-    cnt.style.boxShadow = '0 0 4px 2px rgba(0, 0, 0, 0.5)';
-    cnt.style.top = (btnPos.top - 120 + window.pageYOffset) + 'px';
-    cnt.style.left = (btnPos.left + window.pageXOffset) + 'px';
-    
-    document.addEventListener('click', self.closeCaptcha, false);
-    
-    document.body.appendChild(cnt);
-    
-    self.captchaId = grecaptcha.render(
-      $.id('js-like-captcha-cnt'),
-      {
-        sitekey: window.recaptchaKey,
-        'callback' : self.onCaptchaDone,
-      }
-    );
-  },
-  
-  closeCaptcha: function() {
-    var el;
-    
-    if (el = $.id('js-like-captcha')) {
-      PostLiker.captchaId = null;
-      PostLiker.activeBtn = null;
-      el.parentNode.removeChild(el);
-      document.removeEventListener('click', PostLiker.closeCaptcha, false);
-    }
-  },
-  
-  onCaptchaDone: function() {
-    PostLiker.like()
-  },
-  
-  saveState: function() {
-    localStorage.setItem('4chan-event', JSON.stringify(PostLiker.state));
-    StorageSync.sync('4chan-event');
-  },
-  
-  loadState: function() {
-    var data;
-    
-    if (data = localStorage.getItem('4chan-event')) {
-      PostLiker.state = JSON.parse(data);
-    }
-  }
-};
-*/
-/**
  * Main
  */
 var Main = {};
@@ -9313,8 +9052,6 @@ Main.init = function() {
   }
   
   QR.noCaptcha = QR.noCaptcha || window.passEnabled;
-  
-  //PostLiker.init();
   
   Main.initIcons();
   

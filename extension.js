@@ -126,6 +126,37 @@ $.xhr = function(method, url, callbacks, data) {
   return xhr;
 };
 
+$.fit = function(w, h, maxW, maxH) {
+  var r, outW, outH;
+  
+  r = w / h;
+  
+  if (w > maxW) {
+    outW = maxW;
+    outH = Math.round(outW / r);
+    
+    if (outH > maxH) {
+      outH = maxH;
+      outW = Math.round(outH * r);
+    }
+  }
+  else if (h > maxH) {
+    outH = maxH;
+    outW = Math.round(outH * r);
+    
+    if (outW > maxW) {
+      outW = maxW;
+      outH = Math.round(outW / r);
+    }
+  }
+  else {
+    outW = w;
+    outH = h;
+  }
+  
+  return [outW, outH];
+};
+
 $.ago = function(timestamp) {
   var delta, count, head, tail;
   
@@ -2947,8 +2978,8 @@ ImageExpansion.fitWebm = function() {
     imgWidth = imgWidth * ratio;
   }
   
-  this.style.maxWidth = (0 | imgWidth) + 'px';
-  this.style.maxHeight = (0 | imgHeight) + 'px';
+  this.style.width = (0 | imgWidth) + 'px';
+  this.style.height = (0 | imgHeight) + 'px';
   
   if (Config.centeredThreads) {
     left = this.getBoundingClientRect().left;
@@ -3191,7 +3222,7 @@ ImageHover.hide = function() {
 };
 
 ImageHover.showWebm = function(thumb) {
-  var el, bounds, limit;
+  var el;
   
   el = document.createElement('video');
   el.id = 'image-hover';
@@ -3213,12 +3244,6 @@ ImageHover.showWebm = function(thumb) {
   el.onerror = ImageHover.onLoadError;
   el.onloadedmetadata = function() { ImageHover.showWebMDuration(this, thumb); };
   
-  bounds = thumb.getBoundingClientRect();
-  limit = window.innerWidth - bounds.right - 20;
-  
-  el.style.maxWidth = limit + 'px';
-  el.style.top = window.pageYOffset + 'px';
-  
   document.body.appendChild(el);
   
   if (Config.unmuteWebm) {
@@ -3227,6 +3252,8 @@ ImageHover.showWebm = function(thumb) {
 };
 
 ImageHover.showWebMDuration = function(el, thumb) {
+  var w, h, aabb;
+  
   if (!el.parentNode) {
     return;
   }
@@ -3241,6 +3268,14 @@ ImageHover.showWebMDuration = function(el, thumb) {
   else {
     sound = '';
   }
+  
+  aabb = thumb.getBoundingClientRect();
+  
+  [w, h] = $.fit(el.videoWidth, el.videoHeight,
+    window.innerWidth - aabb.right - 20, window.innerHeight);
+  
+  el.style.width = w + 'px';
+  el.style.height = h + 'px';
   
   Tip.show(thumb, ms[0] + ':' + ('0' + ms[1]).slice(-2) + sound);
 };
@@ -3260,7 +3295,6 @@ ImageHover.onLoadStart = function(img, thumb) {
   }
   
   img.style.display = '';
-  img.style.top = window.pageYOffset + 'px';
 };
 
 ImageHover.checkLoadStart = function(img, thumb) {
@@ -9892,14 +9926,23 @@ img.pointer {\
   padding: 2px;\
   margin: 0 0 1px 0;\
 }\
+.tomorrow #quickReply input[type="text"],\
+.tomorrow #quickReply textarea,\
+.tomorrow #quickReply #recaptcha_response_field {\
+  border: 1px solid #515151;\
+  background-color: #282a2e;\
+  color: #c5c8c6;\
+}\
+.tomorrow #quickReply input[type="text"]:focus,\
+.tomorrow #quickReply textarea:focus {\
+  border: 1px solid #757575;\
+}\
 #quickReply textarea {\
   min-width: 296px;\
   float: left;\
 }\
-#quickReply input::-moz-placeholder,\
-#quickReply textarea::-moz-placeholder {\
-  color: #aaa !important;\
-  opacity: 1 !important;\
+.tomorrow #quickReply input::placeholder {\
+  color: 919191 !important;\
 }\
 #quickReply input[type="submit"] {\
   width: 75px;\
@@ -10464,7 +10507,7 @@ div.post-hidden:not(#quote-preview) blockquote.postMessage {\
   border-style: solid;\
 }\
 #image-hover {\
-  position: absolute;\
+  position: fixed;\
   max-width: 100%;\
   max-height: 100%;\
   top: 0px;\

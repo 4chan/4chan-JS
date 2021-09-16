@@ -1183,7 +1183,7 @@ Parser.revealImageSpoiler = function(fileThumb) {
 };
 
 Parser.parsePost = function(pid, tid) {
-  var hasMobileLayout, cnt, el, pi, file, msg, filtered, uid;
+  var hasMobileLayout, cnt, el, pi, file, msg, filtered, uid, pcont;
   
   hasMobileLayout = Main.hasMobileLayout;
   
@@ -1223,6 +1223,13 @@ Parser.parsePost = function(pid, tid) {
       if (!filtered && ReplyHiding.hidden[pid]) {
         ReplyHiding.hidden[pid] = Main.now;
         ReplyHiding.hide(pid);
+      }
+      
+      if (Config.onlyPictures && !document.getElementById('f' + pid)) {
+        pcont = document.getElementById('pc' + pid)
+        if (!$.hasClass(pcont, 'post-hidden')) {
+          $.addClass(pcont, 'post-hidden');
+        }
       }
       /*
       if (ReplyHiding.hiddenR[pid]) {
@@ -8569,6 +8576,7 @@ var Config = {
   threadStats: true,
   IDColor: true,
   noPictures: false,
+  onlyPictures: false,
   embedYouTube: true,
   embedSoundCloud: false,
   updaterSound: false,
@@ -8758,6 +8766,7 @@ SettingsMenu.options = {
     revealSpoilers: [ "Don't spoiler images", 'Show image thumbnail and original filename instead of spoiler placeholders', true ],
     unmuteWebm: [ 'Un-mute WebM audio', 'Un-mute sound automatically for WebM playback', true ],
     noPictures: [ 'Hide thumbnails', 'Don\'t display thumbnails while browsing', true ],
+    onlyPictures: [ 'Hide replies without images', 'Automatically hide replies without images.', true],
     embedYouTube: [ 'Embed YouTube links', 'Embed YouTube player into replies' ],
     embedSoundCloud: [ 'Embed SoundCloud links', 'Embed SoundCloud player into replies' ],
   },

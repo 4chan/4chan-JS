@@ -299,7 +299,7 @@ Parser.init = function() {
     this.pruneTrackedReplies();
   }
   
-  this.postMenuIcon = Main.hasMobileLayout ? '...' : '▶';
+  this.postMenuIcon = Main.hasMobileLayout ? '...' : 'â–¶';
 };
 
 Parser.getTrackedReplies = function(board, tid) {
@@ -1341,7 +1341,7 @@ Parser.parseBacklinks = function(pid, tid) {
     
     if (!(target = document.getElementById('pi' + ids[1]))) {
       if (Main.tid && j.textContent.charAt(2) != '>' ) {
-        j.textContent += ' →';
+        j.textContent += ' â†’';
       }
       continue;
     }
@@ -1904,7 +1904,7 @@ var Search = {
     
     if (flag) {
       el.disabled = true;
-      Search.showStatus('Searching…', 'spnr');
+      Search.showStatus('Searchingâ€¦', 'spnr');
     }
     else {
       el.disabled = false;
@@ -2212,7 +2212,7 @@ Depager.setStatus = function(type) {
   }
   else if (type == 'loading') {
     for (i = 0; el = links[i]; ++i) {
-      el.textContent = 'Loading…';
+      el.textContent = 'Loadingâ€¦';
     }
   }
   else if (type == 'disabled') {
@@ -3576,7 +3576,7 @@ QR.onOpenInPainterClick = function(btn) {
   img.onerror = QR.onPainterCanvasError; 
   img._pid = pid;
   
-  Feedback.notify('Loading…', 0);
+  Feedback.notify('Loadingâ€¦', 0);
   
   img.src = el.href.replace('is2.4chan.org', 'i.4cdn.org');
   
@@ -5825,6 +5825,8 @@ ThreadUpdater.init = function() {
   }
 };
 
+ThreadUpdater.apiUrlFilter = null;
+
 ThreadUpdater.buildMobileControl = function(el, bottom) {
   var wrap, cnt, ctrl, cb, label, oldBtn, btn;
   
@@ -6065,7 +6067,7 @@ ThreadUpdater.toggleSound = function() {
 };
 
 ThreadUpdater.update = function(full) {
-  var self, isTail;
+  var self, isTail, url;
   
   self = ThreadUpdater;
   
@@ -6081,8 +6083,14 @@ ThreadUpdater.update = function(full) {
   
   isTail = !full && self.checkTailUpdate();
   
-  $.get('//a.4cdn.org/' + Main.board + '/thread/' + Main.tid
-    + (isTail ? '-tail' : '') + '.json',
+  url = '//a.4cdn.org/' + Main.board + '/thread/' + Main.tid
+    + (isTail ? '-tail' : '') + '.json';
+  
+  if (self.apiUrlFilter) {
+    url = self.apiUrlFilter(url);
+  }
+  
+  $.get(url,
     {
       onload: self.onload,
       onerror: self.onerror,
@@ -7001,8 +7009,8 @@ Filter.openHelp = function() {
 <ul><li><strong>Exact match:</strong></li>\
 <li><code>"that feel when"</code> &mdash; place double quotes around the pattern to search for an exact string</li></ul>\
 <ul><li><strong>Wildcards:</strong></li>\
-<li><code>feel*</code> &mdash; matches expressions such as <em>"feel"</em>, <em>"feels"</em>, <em>"feeling"</em>, <em>"feeler"</em>, etc…</li>\
-<li><code>idolm*ster</code> &mdash; this can match <em>"idolmaster"</em> or <em>"idolm@ster"</em>, etc…</li></ul>\
+<li><code>feel*</code> &mdash; matches expressions such as <em>"feel"</em>, <em>"feels"</em>, <em>"feeling"</em>, <em>"feeler"</em>, etcâ€¦</li>\
+<li><code>idolm*ster</code> &mdash; this can match <em>"idolmaster"</em> or <em>"idolm@ster"</em>, etcâ€¦</li></ul>\
 <ul><li><strong>Regular expressions:</strong></li>\
 <li><code>/feel when no (girl|boy)friend/i</code></li>\
 <li><code>/^(?!.*touhou).*$/i</code> &mdash; NOT operator.</li>\
@@ -7010,7 +7018,7 @@ Filter.openHelp = function() {
 <li><code>/^$/</code> &mdash; comments with no text.</li></ul>\
 <h4>Colors:</h4>\
 <ul><li>The color field can accept any valid CSS color:</li>\
-<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etc…</li></ul>\
+<li><code>red</code>, <code>#0f0</code>, <code>#00ff00</code>, <code>rgba( 34, 12, 64, 0.3)</code>, etcâ€¦</li></ul>\
 <h4>Boards:</h4>\
 <ul><li>A space separated list of boards on which the filter will be active. Leave blank to apply to all boards.</li></ul>\
 <h4>Auto-watching:</h4>\
@@ -8312,7 +8320,7 @@ CustomMenu.apply = function(str) {
   else {
     cnt.appendChild(document.createTextNode(' ['));
     el = document.createElement('a');
-    el.textContent = '…';
+    el.textContent = 'â€¦';
     el.title = 'Show all';
     el.className = 'show-all-boards pointer';
     cnt.appendChild(el);
@@ -9569,9 +9577,9 @@ Main.setStickyNav = function() {
   
   hdr = document.createElement('div');
   hdr.innerHTML = '<img class="pointer" src="'
-    +  Main.icons.up + '" data-cmd="totop" alt="▲" title="Top">'
+    +  Main.icons.up + '" data-cmd="totop" alt="â–²" title="Top">'
     + '<img class="pointer" src="' +  Main.icons.down
-    + '" data-cmd="tobottom" alt="▼" title="Bottom">';
+    + '" data-cmd="tobottom" alt="â–¼" title="Bottom">';
   Draggable.set(hdr);
   
   cnt.appendChild(hdr);
@@ -10390,7 +10398,7 @@ a.tex-logo sub { pointer-events: none; }\
   margin: 20px 0 0 10px;\
 }\
 #filtersHelp h4:before {\
-  content: "»";\
+  content: "Â»";\
   margin-right: 3px;\
 }\
 #filtersHelp ul {\

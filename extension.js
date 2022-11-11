@@ -1415,6 +1415,197 @@ Parser.buildSummary = function(tid, oRep, oImg) {
   return el;
 };
 
+var OgvCtrl = {
+  ogv: null,
+  cnt: null,
+  ctrl: {},
+  
+  seeking: false,
+  visible: false,
+  tick: null,
+  
+  attach: function(ogv) {
+    this.detach();
+    ogv.parentNode.appendChild(this.cnt);
+    $.on(ogv, 'mouseup', this.toggleCtrl);
+    this.ogv = ogv;
+  },
+  
+  detach: function() {
+    if (!this.ogv) {
+      return;
+    }
+    this.ogv.stop();
+    $.off(this.ogv, 'mouseup', this.toggleCtrl);
+    this.ctrl.play.classList.remove('ogv-toggled');
+    this.ctrl.mute.classList.remove('ogv-toggled');
+    this.hideCtrl();
+    this.ogv = null;
+    this.seeking = false;
+    this.cnt.remove();
+  },
+  
+  init: function() {
+    if (this.cnt) {
+      return;
+    }
+    
+    let cnt = $.el('div');
+    cnt.className = 'ogv-ctrl';
+    
+    let el = $.el('div');
+    el.className = 'ogv-btn';
+    el.innerHTML = '<svg width="28" height="28" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/></svg><svg width="28" height="28" fill="currentColor" viewBox="0 0 16 16"><path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>';
+    $.on(el, 'click', this.togglePlay, false);
+    this.ctrl.play = el;
+    cnt.appendChild(el);
+    
+    el = $.el('input');
+    el.className = 'ogv-seek';
+    el.type = 'range';
+    el.min = 0;
+    el.value = 0;
+    el.max = 100;
+    el.step = 0.1;
+    $.on(el, 'change', this.onSeek, false);
+    $.on(el, 'mousedown', this.toggleSeek, false);
+    $.on(el, 'mouseup', this.toggleSeek, false);
+    this.ctrl.seek = el;
+    cnt.appendChild(el);
+    
+    el = $.el('div');
+    el.className = 'ogv-ts';
+    el.textContent = '0:00 / 0:00';
+    this.ctrl.ts = el;
+    cnt.appendChild(el);
+    
+    el = $.el('div');
+    el.className = 'ogv-btn';
+    el.innerHTML = '<svg width="28" height="28" fill="currentColor" viewBox="0 0 16 16"><path d="M11.536 14.01A8.473 8.473 0 0 0 14.026 8a8.473 8.473 0 0 0-2.49-6.01l-.708.707A7.476 7.476 0 0 1 13.025 8c0 2.071-.84 3.946-2.197 5.303l.708.707z"/><path d="M10.121 12.596A6.48 6.48 0 0 0 12.025 8a6.48 6.48 0 0 0-1.904-4.596l-.707.707A5.483 5.483 0 0 1 11.025 8a5.483 5.483 0 0 1-1.61 3.89l.706.706z"/><path d="M8.707 11.182A4.486 4.486 0 0 0 10.025 8a4.486 4.486 0 0 0-1.318-3.182L8 5.525A3.489 3.489 0 0 1 9.025 8 3.49 3.49 0 0 1 8 10.475l.707.707zM6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06z"/></svg><svg width="28" height="28" fill="currentColor" viewBox="0 0 16 16"><path d="M6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06zm7.137 2.096a.5.5 0 0 1 0 .708L12.207 8l1.647 1.646a.5.5 0 0 1-.708.708L11.5 8.707l-1.646 1.647a.5.5 0 0 1-.708-.708L10.793 8 9.146 6.354a.5.5 0 1 1 .708-.708L11.5 7.293l1.646-1.647a.5.5 0 0 1 .708 0z"/></svg>';
+    $.on(el, 'click', this.toggleMute, false);
+    this.ctrl.mute = el;
+    cnt.appendChild(el);
+    
+    el = $.el('input');
+    el.className = 'ogv-vol';
+    el.type = 'range';
+    el.min = 0;
+    el.value = 50;
+    el.step = 0.1;
+    el.max = 100;
+    $.on(el, 'input', this.onVolInput, false);
+    this.ctrl.vol = el;
+    cnt.appendChild(el);
+    
+    el = $.el('div');
+    el.className = 'ogv-btn';
+    el.innerHTML = '<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 1 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V4.5a.5.5 0 0 1-1 0V.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z"/></svg><svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 0a.5.5 0 0 1 .5.5v4A1.5 1.5 0 0 1 4.5 6h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5zm5 0a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 10 4.5v-4a.5.5 0 0 1 .5-.5zM0 10.5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 6 11.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zm10 1a1.5 1.5 0 0 1 1.5-1.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4z"/></svg>';
+    $.on(el, 'click', this.toggleFullscreen, false);
+    this.ctrl.fs = el;
+    cnt.appendChild(el);
+    
+    this.cnt = cnt;
+  },
+  
+  onPlayEnd: function() {
+    if (OgvCtrl.ogv.seekable.length) {
+      OgvCtrl.ogv.currentTime = 0;
+    }
+    else {
+      OgvCtrl.ogv.stop();
+    }
+    OgvCtrl.ogv.play();
+  },
+  
+  toggleCtrl: function() {
+    if (OgvCtrl.visible) {
+      OgvCtrl.hideCtrl();
+    }
+    else {
+      OgvCtrl.cnt.style.display = 'flex';
+      OgvCtrl.setTickTimeout();
+      OgvCtrl.updateTimes();
+      OgvCtrl.visible = true;
+    }
+  },
+  
+  hideCtrl: function() {
+    OgvCtrl.cnt.style.display = 'none';
+    OgvCtrl.clearTickTimeout();
+    OgvCtrl.visible = false;
+  },
+  
+  toggleSeek: function() {
+    OgvCtrl.seeking = !OgvCtrl.seeking;
+  },
+  
+  seekTick: function() {
+    OgvCtrl.setTickTimeout();
+    OgvCtrl.updateTimes();
+  },
+  
+  setTickTimeout: function() {
+    OgvCtrl.tick = setTimeout(OgvCtrl.seekTick, 500);
+  },
+  
+  clearTickTimeout: function() {
+    clearTimeout(OgvCtrl.tick);
+    OgvCtrl.tick = null;
+  },
+  
+  updateTimes: function() {
+    if (!OgvCtrl.ogv.duration) {
+      return;
+    }
+    
+    if (!OgvCtrl.seeking) {
+      OgvCtrl.ctrl.seek.value = ((OgvCtrl.ogv.currentTime / OgvCtrl.ogv.duration) * 100).toFixed(2);
+    }
+    
+    let dm = Math.floor(OgvCtrl.ogv.duration / 60);
+    let ds = Math.floor(OgvCtrl.ogv.duration - dm * 60);
+    
+    let m = Math.floor(OgvCtrl.ogv.currentTime / 60);
+    let s = Math.floor(OgvCtrl.ogv.currentTime - m * 60);
+    
+    OgvCtrl.ctrl.ts.textContent = `${m}:${s.toString().padStart(2, '0')} / ${dm}:${ds.toString().padStart(2, '0')}`;
+  },
+  
+  togglePlay: function() {
+    if (OgvCtrl.ogv.paused) {
+      OgvCtrl.ogv.play();
+    }
+    else {
+      OgvCtrl.ogv.pause();
+    }
+    OgvCtrl.ctrl.play.classList.toggle('ogv-toggled');
+  },
+  
+  onSeek: function() {
+    OgvCtrl.ogv.currentTime = (this.value / 100) * OgvCtrl.ogv.duration;
+  },
+  
+  toggleMute: function() {
+    OgvCtrl.ogv.muted = !OgvCtrl.ogv.muted;
+    OgvCtrl.ctrl.mute.classList.toggle('ogv-toggled');
+  },
+  
+  onVolInput: function() {
+    OgvCtrl.ogv.volume = this.value / 100;
+  },
+
+  toggleFullscreen: function() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    }
+    else {
+      OgvCtrl.ogv.parentNode.requestFullscreen();
+    }
+    
+    OgvCtrl.ctrl.fs.classList.toggle('ogv-toggled');
+  }
+};
+
 /**
  * Post Menu
  */
@@ -2794,7 +2985,29 @@ QuotePreview.stopMedia = function(el) {
  */
 var ImageExpansion = {
   activeVideos: [],
-  timeout: null
+  timeout: null,
+  pendingTarget: null
+};
+
+ImageExpansion.loadOgv = function(target) {
+  ImageExpansion.pendingTarget = target;
+  
+  if ($.id('js-ogv-scr')) {
+    return;
+  }
+  
+  let s = $.el('script');
+  s.id = 'js-ogv-scr';
+  s.onload = ImageExpansion.onOgvLoaded;
+  s.src = 'https://s.4cdn.org/js/ogv/ogv.js';
+  document.body.appendChild(s);
+};
+
+ImageExpansion.onOgvLoaded = function() {
+  let self = ImageExpansion;
+  if (self.pendingTarget) {
+    self.expandWebm(self.pendingTarget);
+  }
 };
 
 ImageExpansion.expand = function(thumb) {
@@ -2894,11 +3107,7 @@ ImageExpansion.setMobileSrc = function(a) {
 };
 
 ImageExpansion.expandWebm = function(thumb) {
-  var el, link, fileText, left, href, maxWidth, self;
-  
-  if (Main.hasMobileLayout && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
-    return false;
-  }
+  var el, link, fileText, left, href, maxWidth, self, cnt;
   
   self = ImageExpansion;
   
@@ -2913,20 +3122,51 @@ ImageExpansion.expandWebm = function(thumb) {
   left = link.getBoundingClientRect().left;
   maxWidth = document.documentElement.clientWidth - left - 25;
   
-  el = document.createElement('video');
-  el.muted = !Config.unmuteWebm;
-  el.controls = true;
-  el.loop = true;
-  el.autoplay = true;
-  el.className = 'expandedWebm';
-  el.onloadedmetadata = ImageExpansion.fitWebm;
-  el.onvolumechange = Main.getWebmVolumeChangeCb();
-  el.onplay = ImageExpansion.onWebmPlay;
-  
   link.style.display = 'none';
-  link.parentNode.appendChild(el);
   
-  el.src = href;
+  if (/iPhone|iPad/.test(navigator.userAgent)) {
+    if (!window.OGVPlayer) {
+      OgvCtrl.init();
+      self.loadOgv(thumb);
+      return true;
+    }
+    
+    if (OgvCtrl.ogv) {
+      self.detachOgv(OgvCtrl.ogv);
+    }
+    
+    cnt = document.createElement('div');
+    cnt.className = 'ogv-cnt expandedWebm';
+    el = new OGVPlayer({
+      wasm: true,
+      threading: false,
+      simd: false
+    });
+    el.onloadedmetadata = self.fitWebm;
+    el.onvolumechange = Main.getWebmVolumeChangeCb();
+    $.on(el, 'ended', OgvCtrl.onPlayEnd);
+    cnt.appendChild(el);
+    link.parentNode.appendChild(cnt);
+    el.src = href.replace(/\/\/.+\.4chan\.org\//, '//i.4cdn.org/');
+    OgvCtrl.attach(el);
+    if (!Config.unmuteWebm) {
+      OgvCtrl.toggleMute();
+    }
+    OgvCtrl.togglePlay();
+  }
+  else {
+    el = document.createElement('video');
+    el.muted = !Config.unmuteWebm;
+    el.controls = true;
+    el.loop = true;
+    el.autoplay = true;
+    el.className = 'expandedWebm';
+    el.onloadedmetadata = self.fitWebm;
+    el.onvolumechange = Main.getWebmVolumeChangeCb();
+    el.onplay = self.onWebmPlay;
+    link.parentNode.appendChild(el);
+    el.src = href;
+  }
   
   if (Config.unmuteWebm) {
     el.volume = Main.getWebmVolume();
@@ -2953,21 +3193,31 @@ ImageExpansion.expandWebm = function(thumb) {
 
 ImageExpansion.fitWebm = function() {
   var imgWidth, imgHeight, maxWidth, maxHeight, ratio, left, cntEl,
-    centerWidth, ofs;
+    centerWidth, ofs, player, target;
+  
+  player = this;
+  
+  if (OgvCtrl.ogv) {
+    target = player.parentNode;
+    $.addClass(target, 'ogv-loaded');
+  }
+  else {
+    target = player;
+  }
   
   if (Config.centeredThreads) {
     centerWidth = $.cls('opContainer')[0].offsetWidth;
-    cntEl = this.parentNode.parentNode.parentNode;
+    cntEl = target.parentNode.parentNode.parentNode;
     $.addClass(cntEl, 'centre-exp');
   }
   
-  left = this.getBoundingClientRect().left;
+  left = player.getBoundingClientRect().left;
   
   maxWidth = document.documentElement.clientWidth - left - 25;
   maxHeight = document.documentElement.clientHeight;
   
-  imgWidth = this.videoWidth;
-  imgHeight = this.videoHeight;
+  imgWidth = player.videoWidth;
+  imgHeight = player.videoHeight;
   
   if (imgWidth > maxWidth) {
     ratio = maxWidth / imgWidth;
@@ -2981,12 +3231,17 @@ ImageExpansion.fitWebm = function() {
     imgWidth = imgWidth * ratio;
   }
   
-  this.style.width = (0 | imgWidth) + 'px';
-  this.style.height = (0 | imgHeight) + 'px';
+  target.style.width = (0 | imgWidth) + 'px';
+  target.style.height = (0 | imgHeight) + 'px';
+  
+  if (player !== target) {
+    player.style.width = target.style.width;
+    player.style.height = target.style.height;
+  }
   
   if (Config.centeredThreads) {
-    left = this.getBoundingClientRect().left;
-    ofs = this.offsetWidth + left * 2;
+    left = target.getBoundingClientRect().left;
+    ofs = target.offsetWidth + left * 2;
     if (ofs > centerWidth) {
       left = Math.floor(($.docEl.clientWidth - ofs) / 2);
       
@@ -3026,7 +3281,15 @@ ImageExpansion.collapseWebm = function(e) {
     el = cnt.parentNode.parentNode.getElementsByClassName('expandedWebm')[0];
   }
   
-  el.pause();
+  if (el.classList.contains('ogv-cnt')) {
+    if (!el.classList.contains('ogv-detached')) {
+      el.firstElementChild.stop();
+      OgvCtrl.detach();
+    }
+  }
+  else {
+    el.pause();
+  }
   
   if (Config.centeredThreads) {
     el2 = el.parentNode.parentNode.parentNode;
@@ -3037,6 +3300,14 @@ ImageExpansion.collapseWebm = function(e) {
   el.previousElementSibling.style.display = '';
   el.parentNode.removeChild(el);
   cnt.parentNode.removeChild(cnt);
+};
+
+ImageExpansion.detachOgv = function(ogv) {
+  let cnt = ogv.parentNode;
+  cnt.style.width = ogv.style.width;
+  cnt.style.height = ogv.style.height;
+  cnt.classList.add('ogv-detached');
+  ogv.remove();
 };
 
 ImageExpansion.onScroll = function() {
@@ -3912,6 +4183,7 @@ QR.show = function(tid) {
         }
       }
     }
+    
     qrForm.appendChild(row);
   }
   
@@ -4182,6 +4454,11 @@ QR.showPostError = function(msg, type, silent) {
   qrError = $.id('qrError');
   
   if (!qrError) {
+    return;
+  }
+  
+  if (!msg) {
+    QR.hidePostError();
     return;
   }
   
@@ -9504,7 +9781,7 @@ Main.getWebmVolumeChangeCb = function() {
   
   return (e) => {
     clearTimeout(t);
-    t = setTimeout(() => { localStorage.setItem('4chan-volume', e.target.volume) }, 200);
+    t = setTimeout(() => { localStorage.setItem('4chan-volume', e.target.volume); }, 200);
   };
 };
 
